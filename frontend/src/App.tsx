@@ -3,6 +3,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Navbar } from './components/layout/Navbar';
 import { Sidebar, NavTab } from './components/layout/Sidebar';
 import { DashboardPage } from './pages/DashboardPage';
+import { ScenarioRunnerPage } from './pages/ScenarioRunnerPage';
+import { DetectorComparisonPage } from './pages/DetectorComparisonPage';
 import { StubPage } from './pages/StubPage';
 import { api } from './api/client';
 import { SystemStatus, WebSocketEvent } from './types/api';
@@ -88,25 +90,19 @@ export function AppContent() {
           )}
 
           {currentTab === 'scenarios' && (
-            <StubPage
-              title="Scenario Runner & Restoration Visualizer"
-              promptStage="Prompt 7"
-              description="Dedicated scenario cards, live filesystem grid showing file-by-file encryption and rollback restoration, and speed controls."
+            <ScenarioRunnerPage
+              wsEvents={wsEvents}
+              onRefreshStatus={fetchStatus}
             />
           )}
 
           {currentTab === 'comparison' && (
-            <StubPage
-              title="Detector Comparison Benchmark"
-              promptStage="Prompt 7"
-              description="Side-by-side detection performance comparison: Rule-based heuristics vs Random Forest vs XGBoost with ROC/PR curves and latency."
-            />
+            <DetectorComparisonPage />
           )}
 
           {currentTab === 'datasets' && (
             <StubPage
               title="Benchmark Datasets Explorer"
-              promptStage="Prompt 8"
               description="Interactive feature distributions, class overlap histograms, raw trace samples, and dataset generation tool."
             />
           )}
@@ -114,7 +110,6 @@ export function AppContent() {
           {currentTab === 'models' && (
             <StubPage
               title="Model Registry & Training Studio"
-              promptStage="Prompt 8"
               description="Active model registry, background training job dispatch, evaluation curves, and interactive 11-feature 'Try It' prediction widget."
             />
           )}
@@ -122,7 +117,6 @@ export function AppContent() {
           {currentTab === 'alerts' && (
             <StubPage
               title="Forensics & Investigation Hub"
-              promptStage="Prompt 9"
               description="Comprehensive historical alert records, forensic tree feature contribution graphs, and incident containment logs."
             />
           )}
@@ -130,7 +124,6 @@ export function AppContent() {
           {currentTab === 'settings' && (
             <StubPage
               title="Engine Configuration & Safety Controls"
-              promptStage="Prompt 9"
               description="Tune EWMA alpha smoothing, risk thresholds (0.3/0.6/0.85), process allowlists, and false-positive storm parameters."
             />
           )}

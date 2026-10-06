@@ -173,3 +173,107 @@ def get_scenario_run_detail(run_id: str, db: Session = Depends(get_db)):
         summary=summary,
         simulated=True,
     )
+
+
+@router.get("/scenarios/filesystem")
+def get_virtual_filesystem():
+    """Returns the current state and file listing of the virtual filesystem."""
+    state = SystemStateManager.get_instance()
+    summary = state.response_engine.get_filesystem_summary()
+    return {
+        "summary": summary,
+        "simulated": True,
+    }
+
+
+@router.post("/scenarios/reset")
+def reset_scenario_state():
+    """Resets virtual filesystem, active processes, and scorers to baseline."""
+    state = SystemStateManager.get_instance()
+    state.stop_scenario()
+    with state._lock:
+        state.active_processes.clear()
+    state.response_engine = SimulatedResponse(default_policy=state.policy)
+    state.pipeline.response_engine = state.response_engine
+    state.pipeline.scorers.clear()
+    state.safety_rails.reset_panic()
+    return {
+        "success": True,
+        "message": "Scenario state and virtual filesystem reset to baseline",
+        "simulated": True,
+    }
+
+
+@router.post("/scenarios/compare")
+def compare_detectors(payload: dict):
+    """
+    Executes the same scenario across rule_based, random_forest, and xgboost
+    sequentially with the exact same seed to generate side-by-side comparison.
+    """
+    scen_name = payload.get("scenario_name", "fast_ransomware")
+    seed = int(payload.get("seed", 42))
+
+    from backend.app.core.pipeline import DetectionPipeline
+    from backend.app.core.sources import SimulatedSource
+    from backend.app.core.response import SimulatedResponse
+    from backend.app.core.safety import SafetyRails
+
+    detectors = ["rule_based", "random_forest", "xgboost"]
+    results = {}
+
+    for det in detectors:
+        engine = SimulatedResponse(default_policy="immediate")
+        rails = SafetyRails()
+        pipe = DetectionPipeline(
+            response_engine=engine,
+            safety_rails=rails,
+            model_name=det,
+            default_policy="immediate",
+        )
+
+        source = SimulatedSource(scenario=scen_name, seed=seed, speed=50.0)
+        contained_pids = set()
+        first_contain_w = None
+        false_positives = 0
+        total_w = 0
+
+        for win in source.stream_all(sleep_delay=False):
+            total_w += 1
+            pid = int(win["pid"])
+            label = str(win.get("label", "benign"))
+            res = pipe.process_window(win)
+            cont = res.get("containment")
+
+            if cont and cont.get("action") == "freeze" and cont.get("is_frozen"):
+                if label != "ransomware":
+                    false_positives += 1
+                if pid not in contained_pids:
+                    contained_pids.add(pid)
+                    if first_contain_w is None:
+                        first_contain_w = win.get("window_idx")
+
+        fs = engine.get_filesystem_summary()
+        status_counts = fs.get("status_counts", {})
+        restored = status_counts.get("restored", 0)
+        encrypted = status_counts.get("encrypted", 0)
+        intact = status_counts.get("healthy", 0)
+
+        results[det] = {
+            "detector": det,
+            "total_windows": total_w,
+            "time_to_detect_windows": first_contain_w,
+            "time_to_detect_seconds": (first_contain_w * 2.0) if first_contain_w is not None else None,
+            "contained_pids": sorted(list(contained_pids)),
+            "files_lost": encrypted,
+            "files_saved": intact + restored,
+            "files_restored": restored,
+            "false_alarms": false_positives,
+        }
+
+    return {
+        "scenario": scen_name,
+        "seed": seed,
+        "comparison": results,
+        "simulated": True,
+    }
+

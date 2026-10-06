@@ -31,10 +31,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const navItems = [
     { id: 'dashboard' as NavTab, label: 'Live Dashboard', icon: Activity, badge: null },
-    { id: 'scenarios' as NavTab, label: 'Scenario Runner', icon: PlayCircle, badge: 'P7' },
-    { id: 'comparison' as NavTab, label: 'Detector Comparison', icon: BarChart3, badge: 'P7' },
-    { id: 'datasets' as NavTab, label: 'Datasets Explorer', icon: Database, badge: 'P8' },
-    { id: 'models' as NavTab, label: 'Models & Training', icon: Cpu, badge: 'P8' },
+    { id: 'scenarios' as NavTab, label: 'Scenario Runner', icon: PlayCircle, badge: null },
+    { id: 'comparison' as NavTab, label: 'Detector Comparison', icon: BarChart3, badge: null },
+    { id: 'datasets' as NavTab, label: 'Datasets Explorer', icon: Database, badge: null },
+    { id: 'models' as NavTab, label: 'Models & Training', icon: Cpu, badge: null },
     {
       id: 'alerts' as NavTab,
       label: 'Alerts & Forensics',
@@ -42,7 +42,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       badge: unresolvedAlertsCount > 0 ? String(unresolvedAlertsCount) : null,
       badgeColor: 'bg-red-500/20 text-red-400 border border-red-500/30',
     },
-    { id: 'settings' as NavTab, label: 'System Settings', icon: Settings, badge: 'P9' },
+    { id: 'settings' as NavTab, label: 'System Settings', icon: Settings, badge: null },
   ];
 
   return (

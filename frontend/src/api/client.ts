@@ -75,8 +75,15 @@ export const api = {
       body: JSON.stringify({ scenario_name, ...options }),
     }),
   stopScenario: () => fetchJson('/scenarios/stop', { method: 'POST' }),
+  resetScenarioState: () => fetchJson('/scenarios/reset', { method: 'POST' }),
   getScenarioRuns: (): Promise<ScenarioRunDetail[]> => fetchJson('/scenarios/runs'),
   getScenarioRunDetail: (runId: string): Promise<ScenarioRunDetail> => fetchJson(`/scenarios/runs/${runId}`),
+  getVirtualFilesystem: (): Promise<{ summary: any; simulated: boolean }> => fetchJson('/scenarios/filesystem'),
+  compareDetectors: (params: { scenario_name: string; seed?: number }): Promise<{ scenario: string; seed: number; comparison: Record<string, any>; simulated: boolean }> =>
+    fetchJson('/scenarios/compare', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    }),
 
   // Datasets & Models
   getDatasets: () => fetchJson('/datasets'),

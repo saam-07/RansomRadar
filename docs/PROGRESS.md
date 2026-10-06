@@ -113,8 +113,35 @@
 - **Live Agent Telemetry Stream (`LiveAgentSource`):**
   - Requires live agent running on Linux writing to `/var/log/adaptshield/alert.jsonl`.
 
+- **Prompt 7 (Scenario Runner, Restoration Visualizer, Detector Comparison):**
+  - Built `ScenarioRunnerPage` (`frontend/src/pages/ScenarioRunnerPage.tsx`) with cards for all 8 benchmark scenarios (`fast_ransomware`, `slow_and_low_ransomware`, `intermittent_ransomware`, `partial_encryption`, `mixed_chaos`, `normal_workday`, `nightly_backup`, `oltp_database`).
+  - Implemented interactive scenario execution toolbar: speed multiplier (1x, 5x, 20x), deterministic seed, detector selector (`xgboost`, `random_forest`, `rule_based`), and containment policy selector (`immediate`, `manual`, `none`).
+  - Added Run / Pause / Stop / Reset controls with real-time feedback.
+  - Implemented `FilesystemGrid` (`frontend/src/components/scenarios/FilesystemGrid.tsx`): 60-file interactive visualizer showing intact, encrypted (`.locked`), cgroup freezer containment (`OVERLAY FROZEN`), and restored (`.restored` emerald checkmark) states.
+  - Built `ScenarioReportModal` (`frontend/src/components/scenarios/ScenarioReportModal.tsx`): post-run execution report showing time-to-detect, files compromised vs preserved, rollback latency, false alarms, and export buttons for JSON and PDF/print.
+  - Built `DetectorComparisonPage` (`frontend/src/pages/DetectorComparisonPage.tsx`): side-by-side benchmark comparing Rule-based, Random Forest, and XGBoost with identical seed, Recharts latency and damage charts, and comparative metrics table.
+  - Updated backend with `POST /api/scenarios/compare`, `GET /api/scenarios/filesystem`, and `POST /api/scenarios/reset`.
+  - Added multi-attacker independent containment tracking in `ScenarioRunnerPage` for `mixed_chaos`.
+  - Component tests implemented in `frontend/src/test/scenarios.test.tsx` (6/6 tests passing, 10/10 total frontend tests passing).
+  - Playwright E2E smoke test implemented in `frontend/e2e/scenario_smoke.spec.ts` asserting containment, and generating demo screenshots in `docs/demo/filesystem_rollback.png` and `docs/demo/detector_comparison.png`.
+
+## Verified
+- **Frontend Test Suite Passing (10/10 tests passed via Vitest):**
+  - `src/test/dashboard.test.tsx` (4/4 passed)
+  - `src/test/scenarios.test.tsx` (6/6 passed)
+- **Playwright E2E Smoke Test Passing (1/1 test passed):**
+  - `frontend/e2e/scenario_smoke.spec.ts`: loads application, navigates to Scenario Runner, triggers `Fast Ransomware Outbreak`, asserts containment (`OVERLAY FROZEN` / `Locked` / `Restored`), captures `docs/demo/filesystem_rollback.png`, navigates to Detector Comparison, executes side-by-side benchmark, asserts comparative table, and captures `docs/demo/detector_comparison.png`.
+- **Backend & ML Test Suites Passing (58/58 tests passed):**
+  - All 58 pytest tests passing across `tests/`.
+
+## Not Verified (Requires Linux Kernel / Root Privileges)
+- **Real Containment Execution (`RealResponse`):**
+  - `RealResponse` wraps real cgroup freezer and overlay unmount commands. Verified in userspace via `SimulatedResponse`; real execution requires an Ubuntu VM with root.
+- **Live Agent Telemetry Stream (`LiveAgentSource`):**
+  - Requires live agent running on Linux writing to `/var/log/adaptshield/alert.jsonl`.
+
 ## Next
-- **Prompt 7:** Scenario runner, file-restore visual, detector comparison (`feat/scenarios` branch).
+- **Prompt 8:** Datasets page, Models and Training page, "Try it" widget (`feat/ml-ui` branch).
 
 ---
 
@@ -127,7 +154,7 @@
 | Prompt 4 | Backend Core | `feat/backend-core` | **done** | Implement `EventSource` (simulated/replay/live), `ResponseEngine`, pipeline execution, per-PID containment, CLI scenario runner |
 | Prompt 5 | Backend API & WebSocket | `feat/api` | **done** | FastAPI REST API, SQLite database, WebSocket stream (`/api/stream`), OpenAPI documentation |
 | Prompt 6 | Frontend Foundation & Dashboard | `feat/dashboard` | **done** | Vite + React + TS UI, Tailwind CSS, live dashboard, process table, risk timeline, alert drawer |
-| Prompt 7 | Scenario Runner & Restoration Visual | `feat/scenarios` | not started | Scenario runner page, live file encryption/rollback visualization, side-by-side detector comparison |
+| Prompt 7 | Scenario Runner & Restoration Visual | `feat/scenarios` | **done** | Scenario runner page, live file encryption/rollback visualization, side-by-side detector comparison |
 | Prompt 8 | Datasets & Models UI | `feat/ml-ui` | not started | Datasets explorer, model training and registry management, interactive 11-feature "Try it" predictor |
 | Prompt 9 | Forensics & Guided Demo | `feat/guided-demo` | not started | Forensic investigation drawer, engine settings controls, automated 3-minute guided demo narrative |
 | Prompt 10 | Demo Release & Packaging | `feat/demo-release` | not started | Docker Compose orchestration, Makefile automation, CI suite, acceptance criteria audit, `v0.2.0-demo` tag |

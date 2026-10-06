@@ -43,6 +43,7 @@ state/
 *.db
 /var/lib/adaptshield/
 /var/log/adaptshield/
+models/registry/test_*/
 
 # Large generated data & telemetry
 data/raw/
@@ -61,6 +62,10 @@ telemetry/
 *.tar
 *.tar.gz
 powershell.cmd
+
+# Test results
+test-results/
+playwright-report/
 
 # OS / Editor
 .DS_Store
