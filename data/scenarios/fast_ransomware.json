@@ -1,0 +1,26 @@
+{
+  "id": "fast_ransomware",
+  "name": "Fast Ransomware Outbreak",
+  "description": "Rapid bulk encryption traversing user directories, overwriting file contents with cipher blocks, and replacing file extensions.",
+  "family": "ransomware",
+  "variant": "fast",
+  "expected_outcome": "contained_and_rolled_back",
+  "duration_windows": 20,
+  "window_seconds": 2.0,
+  "processes": [
+    {
+      "pid": 4099,
+      "name": "encryptor.elf",
+      "role": "attacker",
+      "behavior": "rapid_bulk_encryption",
+      "escalation_expected": true
+    }
+  ],
+  "parameters": {
+    "mod_rate_mean": 65.0,
+    "rename_rate_mean": 32.0,
+    "create_del_rate_mean": 2.5,
+    "entropy_mean": 7.6,
+    "gini_mean": 0.68
+  }
+}

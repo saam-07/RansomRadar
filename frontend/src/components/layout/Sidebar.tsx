@@ -1,0 +1,98 @@
+import {
+  Activity,
+  PlayCircle,
+  BarChart3,
+  Database,
+  Cpu,
+  ShieldAlert,
+  Settings,
+  Terminal,
+} from 'lucide-react';
+
+export type NavTab =
+  | 'dashboard'
+  | 'scenarios'
+  | 'comparison'
+  | 'datasets'
+  | 'models'
+  | 'alerts'
+  | 'settings';
+
+interface SidebarProps {
+  currentTab: NavTab;
+  onSelectTab: (tab: NavTab) => void;
+  unresolvedAlertsCount?: number;
+}
+
+export const Sidebar: React.FC<SidebarProps> = ({
+  currentTab,
+  onSelectTab,
+  unresolvedAlertsCount = 0,
+}) => {
+  const navItems = [
+    { id: 'dashboard' as NavTab, label: 'Live Dashboard', icon: Activity, badge: null },
+    { id: 'scenarios' as NavTab, label: 'Scenario Runner', icon: PlayCircle, badge: 'P7' },
+    { id: 'comparison' as NavTab, label: 'Detector Comparison', icon: BarChart3, badge: 'P7' },
+    { id: 'datasets' as NavTab, label: 'Datasets Explorer', icon: Database, badge: 'P8' },
+    { id: 'models' as NavTab, label: 'Models & Training', icon: Cpu, badge: 'P8' },
+    {
+      id: 'alerts' as NavTab,
+      label: 'Alerts & Forensics',
+      icon: ShieldAlert,
+      badge: unresolvedAlertsCount > 0 ? String(unresolvedAlertsCount) : null,
+      badgeColor: 'bg-red-500/20 text-red-400 border border-red-500/30',
+    },
+    { id: 'settings' as NavTab, label: 'System Settings', icon: Settings, badge: 'P9' },
+  ];
+
+  return (
+    <aside className="w-64 border-r border-slate-800 bg-[#0a0f1d] flex flex-col justify-between select-none">
+      <div className="py-6 px-4 space-y-1">
+        <div className="px-3 pb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
+          Navigation
+        </div>
+
+        {navItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = currentTab === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => onSelectTab(item.id)}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                isActive
+                  ? 'bg-blue-600/15 text-blue-400 border border-blue-500/30 font-semibold'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+              }`}
+            >
+              <div className="flex items-center space-x-3">
+                <Icon className={`w-4 h-4 ${isActive ? 'text-blue-400' : 'text-slate-400'}`} />
+                <span>{item.label}</span>
+              </div>
+              {item.badge && (
+                <span
+                  className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${
+                    item.badgeColor || 'bg-slate-800 text-slate-400 border border-slate-700'
+                  }`}
+                >
+                  {item.badge}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* System Telemetry Info */}
+      <div className="p-4 border-t border-slate-800/80 m-2 rounded-lg bg-slate-900/50">
+        <div className="flex items-center space-x-2 text-xs text-slate-400 mb-2">
+          <Terminal className="w-3.5 h-3.5 text-blue-400" />
+          <span>AdaptShield Daemon v0.1.0</span>
+        </div>
+        <p className="text-[11px] text-slate-400 leading-relaxed">
+          Autonomous Tier-0 heuristic & Tier-1 eBPF behavioral containment engine.
+        </p>
+      </div>
+    </aside>
+  );
+};

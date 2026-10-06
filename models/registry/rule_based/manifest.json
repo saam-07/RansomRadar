@@ -1,0 +1,212 @@
+{
+  "name": "rule_based",
+  "classifier_type": "rule_based",
+  "feature_columns": [
+    "mod_rate",
+    "rename_rate",
+    "create_del_rate",
+    "event_count",
+    "concentration_gini",
+    "t1_write_rate",
+    "t1_mean_entropy",
+    "t1_entropy_std",
+    "t1_unlink_rate",
+    "t1_rename_rate",
+    "t1_mean_write_size"
+  ],
+  "schema_version": "1.0.0",
+  "data_source": "synthetic",
+  "metrics": {
+    "accuracy": 0.8142,
+    "precision": 0.979,
+    "recall": 0.3889,
+    "f1": 0.5567,
+    "roc_auc": 0.6928,
+    "pr_auc": 0.5652,
+    "confusion_matrix": [
+      [
+        837,
+        3
+      ],
+      [
+        220,
+        140
+      ]
+    ],
+    "roc_curve": [
+      {
+        "x": 0.0,
+        "y": 0.0
+      },
+      {
+        "x": 0.0,
+        "y": 0.0528
+      },
+      {
+        "x": 0.0036,
+        "y": 0.3889
+      },
+      {
+        "x": 1.0,
+        "y": 1.0
+      }
+    ],
+    "pr_curve": [
+      {
+        "x": 1.0,
+        "y": 0.3
+      },
+      {
+        "x": 0.3889,
+        "y": 0.979
+      },
+      {
+        "x": 0.0528,
+        "y": 1.0
+      },
+      {
+        "x": 0.0,
+        "y": 1.0
+      }
+    ],
+    "class_report": {
+      "benign": {
+        "count": 360,
+        "flagged_as_ransomware_rate": 0.0,
+        "mean_probability": 0.0
+      },
+      "backup": {
+        "count": 240,
+        "flagged_as_ransomware_rate": 0.0125,
+        "mean_probability": 0.0063
+      },
+      "oltp": {
+        "count": 240,
+        "flagged_as_ransomware_rate": 0.0,
+        "mean_probability": 0.0
+      },
+      "ransomware": {
+        "count": 360,
+        "flagged_as_ransomware_rate": 0.3889,
+        "mean_probability": 0.2208
+      }
+    },
+    "scenario_breakdown": {
+      "fast_ransomware": {
+        "count": 195,
+        "detection_rate": 0.6564,
+        "mean_probability": 0.3744
+      },
+      "intermittent_ransomware": {
+        "count": 90,
+        "detection_rate": 0.1333,
+        "mean_probability": 0.0722
+      },
+      "nightly_backup": {
+        "count": 240,
+        "detection_rate": 0.0125,
+        "mean_probability": 0.0063
+      },
+      "normal_workday": {
+        "count": 360,
+        "detection_rate": 0.0,
+        "mean_probability": 0.0
+      },
+      "oltp_database": {
+        "count": 240,
+        "detection_rate": 0.0,
+        "mean_probability": 0.0
+      },
+      "partial_encryption": {
+        "count": 75,
+        "detection_rate": 0.0,
+        "mean_probability": 0.0
+      }
+    },
+    "feature_importances": [
+      {
+        "feature": "mod_rate",
+        "importance": 0.5
+      },
+      {
+        "feature": "rename_rate",
+        "importance": 0.5
+      }
+    ],
+    "false_positives_per_hour": 6.42,
+    "risk_scorer_replay": {
+      "benign": {
+        "containment_rate": 0.0,
+        "contained_count": 0,
+        "total_simulated": 50,
+        "mean_windows_to_detect": null
+      },
+      "backup": {
+        "containment_rate": 0.0,
+        "contained_count": 0,
+        "total_simulated": 50,
+        "mean_windows_to_detect": null
+      },
+      "oltp": {
+        "containment_rate": 0.0,
+        "contained_count": 0,
+        "total_simulated": 50,
+        "mean_windows_to_detect": null
+      },
+      "ransomware": {
+        "containment_rate": 0.0,
+        "contained_count": 0,
+        "total_simulated": 50,
+        "mean_windows_to_detect": null
+      }
+    },
+    "hard_test": {
+      "accuracy": 0.4939,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "roc_auc": 0.4939,
+      "confusion_matrix": [
+        [
+          889,
+          11
+        ],
+        [
+          900,
+          0
+        ]
+      ],
+      "risk_scorer_replay": {
+        "benign": {
+          "containment_rate": 0.0,
+          "contained_count": 0,
+          "total_simulated": 50,
+          "mean_windows_to_detect": null
+        },
+        "backup": {
+          "containment_rate": 0.0,
+          "contained_count": 0,
+          "total_simulated": 50,
+          "mean_windows_to_detect": null
+        },
+        "oltp": {
+          "containment_rate": 0.0,
+          "contained_count": 0,
+          "total_simulated": 50,
+          "mean_windows_to_detect": null
+        },
+        "ransomware": {
+          "containment_rate": 0.0,
+          "contained_count": 0,
+          "total_simulated": 50,
+          "mean_windows_to_detect": null
+        }
+      }
+    }
+  },
+  "seed": 42,
+  "git_commit": "3611ef19c9fd3799edf15c389d516aec09b5cc0b",
+  "sha256": "1095fd28e58e807f0d23f1abb9842f82404a310b7656bc594d2fb7eef315b21b",
+  "trained_at": "2026-10-06T09:34:04.450973+00:00",
+  "active": false
+}

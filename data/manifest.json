@@ -1,0 +1,121 @@
+{
+  "schema_version": "1.0.0",
+  "generator_version": "1.0.0",
+  "seed": 42,
+  "generated_at": "2026-10-06T09:24:02.911033+00:00",
+  "feature_columns": [
+    "mod_rate",
+    "rename_rate",
+    "create_del_rate",
+    "event_count",
+    "concentration_gini",
+    "t1_write_rate",
+    "t1_mean_entropy",
+    "t1_entropy_std",
+    "t1_unlink_rate",
+    "t1_rename_rate",
+    "t1_mean_write_size"
+  ],
+  "schema_columns": [
+    "pid",
+    "run_id",
+    "scenario",
+    "label",
+    "window_idx",
+    "timestamp",
+    "source",
+    "mod_rate",
+    "rename_rate",
+    "create_del_rate",
+    "event_count",
+    "concentration_gini",
+    "t1_write_rate",
+    "t1_mean_entropy",
+    "t1_entropy_std",
+    "t1_unlink_rate",
+    "t1_rename_rate",
+    "t1_mean_write_size"
+  ],
+  "splits": {
+    "train": {
+      "filename": "raw/traces_train.csv",
+      "sha256": "52862955fade62f41754ad6aeb50736231a1043df274717498e4a32bfcc148a2",
+      "row_count": 3600,
+      "run_count": 240,
+      "class_counts": {
+        "benign": 1080,
+        "ransomware": 1080,
+        "backup": 720,
+        "oltp": 720
+      },
+      "scenarios": [
+        "fast_ransomware",
+        "intermittent_ransomware",
+        "nightly_backup",
+        "normal_workday",
+        "oltp_database",
+        "partial_encryption"
+      ]
+    },
+    "val": {
+      "filename": "raw/traces_val.csv",
+      "sha256": "f2785c876e6584b51515bedcbe2342c52385bf5ac99021535ed7df5307a6717a",
+      "row_count": 1200,
+      "run_count": 80,
+      "class_counts": {
+        "benign": 360,
+        "ransomware": 360,
+        "backup": 240,
+        "oltp": 240
+      },
+      "scenarios": [
+        "fast_ransomware",
+        "intermittent_ransomware",
+        "nightly_backup",
+        "normal_workday",
+        "oltp_database",
+        "partial_encryption"
+      ]
+    },
+    "test": {
+      "filename": "raw/traces_test.csv",
+      "sha256": "7b4fa31f25a690ba65a762e7943a1ff4d76ac00c0e82eb2bf26e3a7b5d4d50f0",
+      "row_count": 1200,
+      "run_count": 80,
+      "class_counts": {
+        "benign": 360,
+        "ransomware": 360,
+        "backup": 240,
+        "oltp": 240
+      },
+      "scenarios": [
+        "fast_ransomware",
+        "intermittent_ransomware",
+        "nightly_backup",
+        "normal_workday",
+        "oltp_database",
+        "partial_encryption"
+      ]
+    },
+    "hard_test": {
+      "filename": "raw/traces_hard_test.csv",
+      "sha256": "fbc5cabf5019bde74f299eece9cecb641fea7bead9f65b2a69c67adca743d946",
+      "row_count": 1800,
+      "run_count": 120,
+      "class_counts": {
+        "ransomware": 900,
+        "benign": 300,
+        "backup": 300,
+        "oltp": 300
+      },
+      "scenarios": [
+        "mixed_chaos",
+        "nightly_backup",
+        "normal_workday",
+        "oltp_database",
+        "slow_and_low_ransomware"
+      ]
+    }
+  },
+  "total_rows": 7800
+}

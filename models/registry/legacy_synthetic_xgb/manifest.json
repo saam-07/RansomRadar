@@ -1,0 +1,27 @@
+{
+  "name": "legacy_synthetic_xgb",
+  "classifier_type": "xgboost",
+  "feature_columns": [
+    "mod_rate",
+    "rename_rate",
+    "create_del_rate",
+    "event_count",
+    "concentration_gini",
+    "t1_write_rate",
+    "t1_mean_entropy",
+    "t1_entropy_std",
+    "t1_unlink_rate",
+    "t1_rename_rate",
+    "t1_mean_write_size"
+  ],
+  "schema_version": "1.0.0",
+  "data_source": "synthetic_bootstrap_legacy",
+  "metrics": {
+    "note": "Trained on legacy synthetic_traces_bootstrap.csv, for backwards-compatibility testing only."
+  },
+  "seed": 0,
+  "git_commit": "3611ef19c9fd3799edf15c389d516aec09b5cc0b",
+  "sha256": "2be8342dc48610de766c74aaa548bd607e32d0d3414ed48d20232f61a6a33bec",
+  "trained_at": "2026-10-06T09:34:21.431597+00:00",
+  "active": false
+}

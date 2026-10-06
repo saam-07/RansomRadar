@@ -1,0 +1,47 @@
+{
+  "id": "mixed_chaos",
+  "name": "Mixed Multi-Process Chaos",
+  "description": "Concurrent multi-process environment with background developer builds, an active database, and two independent simultaneous ransomware attackers.",
+  "family": "ransomware",
+  "variant": "mixed_chaos",
+  "expected_outcome": "contained_and_rolled_back",
+  "duration_windows": 30,
+  "window_seconds": 2.0,
+  "processes": [
+    {
+      "pid": 8001,
+      "name": "dev_worker",
+      "role": "benign",
+      "behavior": "compile_and_test",
+      "escalation_expected": false
+    },
+    {
+      "pid": 8002,
+      "name": "db_worker",
+      "role": "oltp",
+      "behavior": "wal_flush",
+      "escalation_expected": true
+    },
+    {
+      "pid": 8010,
+      "name": "attacker_alpha",
+      "role": "ransomware",
+      "behavior": "fast_encryption",
+      "escalation_expected": true
+    },
+    {
+      "pid": 8020,
+      "name": "attacker_beta",
+      "role": "ransomware",
+      "behavior": "rename_then_encrypt",
+      "escalation_expected": true
+    }
+  ],
+  "parameters": {
+    "mod_rate_mean": 55.0,
+    "rename_rate_mean": 24.0,
+    "create_del_rate_mean": 3.0,
+    "entropy_mean": 7.3,
+    "gini_mean": 0.65
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "id": "partial_encryption",
+  "name": "Partial Header Encryption",
+  "description": "Evasive ransomware encrypting only header blocks and interleaving plaintext segments to keep file entropy moderate.",
+  "family": "ransomware",
+  "variant": "partial_encryption",
+  "expected_outcome": "contained_and_rolled_back",
+  "duration_windows": 25,
+  "window_seconds": 2.0,
+  "processes": [
+    {
+      "pid": 7034,
+      "name": "header_lock",
+      "role": "attacker",
+      "behavior": "partial_chunk_encryption",
+      "escalation_expected": true
+    }
+  ],
+  "parameters": {
+    "mod_rate_mean": 32.0,
+    "rename_rate_mean": 8.5,
+    "create_del_rate_mean": 1.0,
+    "entropy_mean": 6.2,
+    "gini_mean": 0.44
+  }
+}

@@ -1,42 +1,120 @@
 # AdaptShield Implementation Progress
 
 ## Done
-- Initialized project tracking and repository governance.
-- Created `docs/briefs/RULES.md` defining defensive project constraints, execution guidelines, verification standards, and workflow rules.
-- Added comprehensive `.gitignore` covering virtual environments, python/node caches, state/log directories, large generated data, zip archives, secrets, and local wrappers.
-- Restored baseline prototype assets from archive:
-  - `evaluate_model.py` at repository root
-  - Bootstrap trace `results/raw/synthetic_traces_bootstrap.csv`
-  - Synthetic baseline models `results/processed/xgb_model.joblib` and `results/processed/rf_model.joblib`
-- Placed agent brief (`antigravity_prompt_adaptshield_agent.md`) and roadmap prompts (`antigravity_prompts_1_to_17.md`) in `docs/briefs/`.
-- Configured local environment with testing dependencies (`pytest`, `pandas`, `scikit-learn`, `xgboost`, `joblib`).
-- Executed and validated all 23 existing unit tests across `tests/`.
-- Committed unchanged prototype state and created Git tag `v0.1.0-prototype`.
+- **Prompt 1 (Setup & Rules):**
+  - Initialized project tracking and repository governance.
+  - Created `docs/briefs/RULES.md` defining defensive project constraints, execution guidelines, verification standards, and workflow rules.
+  - Added comprehensive `.gitignore` covering virtual environments, python/node caches, state/log directories, large generated data, zip archives, secrets, and local wrappers.
+  - Restored baseline prototype assets (`evaluate_model.py`, bootstrap trace `results/raw/synthetic_traces_bootstrap.csv`, baseline models `xgb_model.joblib` and `rf_model.joblib`).
+  - Placed agent brief (`antigravity_prompt_adaptshield_agent.md`) and roadmap prompts (`antigravity_prompts_1_to_17.md`) in `docs/briefs/`.
+  - Executed all 23 baseline unit tests across `tests/`.
+  - Committed unchanged prototype state and created Git tag `v0.1.0-prototype`.
+- **Prompt 2 (Datasets):**
+  - Evaluated existing `dataset/make_synthetic_bootstrap.py` for separability: confirmed trivial separability (100% accuracy on single thresholds for `t1_mean_entropy`, `rename_rate`, `t1_rename_rate`, and `concentration_gini`).
+  - Built `scripts/make_datasets.py` supporting reproducible fixed seeds, per-run parameter jitter, correlated feature generation, realistic class overlap (backup vs ransomware, oltp vs ransomware), and unescalated Tier-1 NaN sentinels.
+  - Created `Makefile` with `make data` and `make test` targets.
+  - Generated reproducible splits: `data/raw/traces_train.csv` (3,600 rows / 240 runs), `traces_val.csv` (1,200 rows / 80 runs), `traces_test.csv` (1,200 rows / 80 runs), and `traces_hard_test.csv` (1,800 rows / 120 runs).
+  - Generated 8 benchmark scenario definitions in `data/scenarios/*.json` (`normal_workday`, `nightly_backup`, `oltp_database`, `fast_ransomware`, `slow_and_low_ransomware`, `intermittent_ransomware`, `partial_encryption`, `mixed_chaos`).
+  - Generated `data/manifest.json` and `data/DATASET_CARD.md`.
+  - Implemented unit tests in `tests/test_datasets.py` validating schema conformity, zero run_id leakage, reproducibility, non-trivial separability, manifest count synchronization, and held-out scenario isolation.
+- **Prompt 3 (Model Training, Evaluation, Registry):**
+  - Refactored training and evaluation logic into modular, importable functions under `adaptshield.ml/` and root alias `ml/`.
+  - Defined feature schema contract in `adaptshield/ml/schema.py` (`SCHEMA_VERSION = "1.0.0"`, validation, metadata stripping, NaN sentinel semantics).
+  - Built `ModelRegistry` in `adaptshield/ml/registry.py` managing `models/registry/`, enforcing compatibility validation and active model state.
+  - Built `scripts/train_all.py` (and `make train`) training `rule_based`, `rf_tier0_ablation`, `random_forest`, and `xgboost` (active model).
+  - Registered legacy synthetic bootstrap models (`legacy_synthetic_xgb`, `legacy_synthetic_rf`) flagged as `synthetic_bootstrap_legacy`.
+  - Saved comprehensive metrics JSON (`models/registry/all_models_metrics.json`) including ROC/PR curve coordinates, per-scenario breakdowns, and EWMA risk-scorer replays.
+  - Documented findings in `docs/ml_report.md`.
+  - Implemented unit test suite in `tests/test_ml.py` verifying schema validation, column mismatch rejection, training reproducibility, and hard test set degradation.
+- **Prompt 4 (Backend Core):**
+  - Implemented `EventSource` interface in `backend/app/core/sources.py` with `SimulatedSource`, `ReplaySource`, and `LiveAgentSource` (stub marked unverified).
+  - Implemented `ResponseEngine` interface in `backend/app/core/response.py` with `SimulatedResponse` (virtual filesystem, damage tracking, rollback, per-process state isolation, policies `immediate`/`manual`/`none`, auto-resolve timeout) and `RealResponse` (wrapping `containment_manager`, feature-flagged).
+  - Implemented `SafetyRails` in `backend/app/core/safety.py` enforcing immunity for PID 1, kernel threads, system daemons, allowlisted processes, rate limits, and false-positive storm panic switch.
+  - Implemented forensic alert attribution in `backend/app/core/explain.py` for tree models and rule-based heuristics.
+  - Implemented in-process `EventBus` in `backend/app/core/bus.py` with history buffer and subscriber routing.
+  - Built `DetectionPipeline` in `backend/app/core/pipeline.py` connecting all stages with independent per-process state.
+  - Built standalone CLI scenario runner `backend/app/run_scenario.py`.
+- **Prompt 5 (Backend API, WebSocket, Database):**
+  - Built FastAPI application layer in `backend/app/` with SQLite database and versioned migrations (`backend/app/db/`).
+  - Implemented all Section 6 endpoints: status and control (`/api/status`, `/api/control`, `/api/health`), processes (`/api/processes`), alerts with forensic evidence (`/api/alerts`, `/api/alerts/{id}`), release and confirm containment (`/api/containment/release`, `/api/containment/confirm`), scenario definitions and background execution (`/api/scenarios`, `/api/scenarios/run`, `/api/scenarios/stop`, `/api/scenarios/runs`), datasets overview and sampling (`/api/datasets`, `/api/datasets/{split}/sample`, `/api/datasets/{split}/stats`, `/api/datasets/generate`), and model registry operations (`/api/models`, `/api/models/{name}/evaluation`, `/api/models/activate`, `/api/models/train`, `/api/models/training/{id}`, `/api/models/predict`).
+  - Enforced schema compatibility check on model activation (rejects incompatible models with HTTP 400).
+  - Implemented WebSocket streaming at `/api/stream` with batched message delivery (`window_scored`, `process_update`, `escalation`, `alert`, `containment`, `file_damage`, `rollback`, `scenario_state`).
+  - Added configuration via `backend/config.yaml` and environment variables.
+  - Implemented auto-seeding of demo data on first start if DB is empty.
+  - Enforced provenance tagging (`simulated: true` on all simulated responses, `data_source: synthetic` on all model responses).
+  - Wrote comprehensive API guide with curl examples in `docs/api.md`.
+  - Implemented test suite in `tests/test_api.py` (14/14 tests passing).
 
 ## Verified
-- **Unit Test Suite Passing (23/23 tests passed):**
-  - `tests/test_classifier.py` (3/3 passed): Rule-based baseline heuristic, scikit-learn random forest joblib serialization round-trip, XGBoost wrapper serialization round-trip.
-  - `tests/test_containment_manager.py` (7/7 passed): Userspace overlay upper-directory diff and byte calculations, empty directory diff handling, quarantine copy verification, upper directory wipe on rollback, quarantine preservation, manual decision file writing/reading, PID-specific decision filtering.
-  - `tests/test_feature_aggregator.py` (5/5 passed): Shannon entropy computation (0.0 for constant buffers, ~8.0 for uniform random bytes), Tier-1 empty event NaN handling, Tier-1 read/write/rename rate calculations, feature row shape matching `FEATURE_COLUMNS` (11 features).
-  - `tests/test_risk_scorer.py` (4/4 passed): Low-risk EWMA scores stay at `RiskLevel.NONE`, sustained high probabilities reach `RiskLevel.CRITICAL`, single transient spikes do not trigger premature containment, independent tracking across distinct PIDs.
-  - `tests/test_tier0_scoring.py` (4/4 passed): Inter-event timestamp spacing Gini coefficient (uniform vs bursty), Tier-0 heuristic suspicion scores (benign patterns score low, ransomware patterns score high).
+- **Full Repository Test Suite Passing (58/58 tests passed):**
+  - `tests/test_api.py` (14/14 passed):
+    - `test_health_endpoint`: validates health response and `simulated: true`.
+    - `test_status_endpoint`: validates mode, policy, active detector, and data source.
+    - `test_control_endpoint`: verifies policy and mode switching.
+    - `test_processes_endpoint`: verifies process table inspection.
+    - `test_alerts_endpoint_and_detail`: verifies alert listing and forensic evidence payload.
+    - `test_containment_release_and_confirm`: verifies manual operator containment overrides.
+    - `test_scenarios_listing`: validates all 8 scenarios available.
+    - `test_scenario_run_and_history`: starts background scenario, records run, and verifies details.
+    - `test_datasets_overview_and_samples`: validates dataset manifests, row counts, and sampling.
+    - `test_models_listing_and_evaluation`: verifies registry listing and detailed evaluation report.
+    - `test_model_predict`: verifies feature inference, probabilities, and tree attribution explanation.
+    - `test_model_activation_compatibility_check`: proves activation works for valid models and strictly rejects incompatible models with HTTP 400.
+    - `test_training_job_lifecycle`: validates background training job queue and status polling.
+    - `test_websocket_stream`: verifies WebSocket connection acknowledgment and ping/pong.
+  - `tests/test_backend_core.py` (7/7 passed)
+  - `tests/test_ml.py` (6/6 passed)
+  - `tests/test_datasets.py` (8/8 passed)
+  - `tests/test_classifier.py` (3/3 passed)
+  - `tests/test_containment_manager.py` (7/7 passed)
+  - `tests/test_feature_aggregator.py` (5/5 passed)
+  - `tests/test_risk_scorer.py` (4/4 passed)
+- **Prompt 6 (Frontend Foundation & Live Dashboard):**
+  - Initialized `frontend/` with React 18, TypeScript, Vite 6, Tailwind CSS, Recharts, and TanStack React Query.
+  - Built dark mode SOC theme layout with sticky `Navbar` displaying a prominent, persistent `SIMULATED DEMO DATA` badge, operating mode, policy selector, active model with synthetic data origin tag, and WebSocket stream status pill.
+  - Implemented responsive `Sidebar` navigation with active route to `Live Dashboard` and clean stub placeholders for upcoming features (`Scenario Runner`, `Detector Comparison`, `Datasets Explorer`, `Models & Training`, `Alerts & Forensics`, `System Settings`).
+  - Built typed API client (`frontend/src/api/client.ts`) and auto-reconnecting WebSocket hook (`frontend/src/hooks/useWebSocket.ts`) with heartbeat ping/pong and batched event handling.
+  - Implemented Live Dashboard components:
+    - `KpiCards`: Monitored Processes, Active Threat Alerts, Contained PIDs, Files Protected/Restored.
+    - `RiskTimelineChart`: Recharts EWMA risk and raw probability timeline with threshold reference lines at 0.3 (Elevated), 0.6 (Suspicious), and 0.85 (Critical Containment).
+    - `ProcessTable`: Real-time monitored processes table with colored EWMA progress bars, risk chips (`NORMAL`/`ELEVATED`/`CRITICAL`), status chips (`normal`/`monitored`/`frozen`/`quarantined`/`killed`), and interactive manual `Release`/`Confirm` controls.
+    - `AlertFeed`: Forensic alert feed showing real-time containment triggers.
+    - `EvidenceDrawer`: Forensic slide-over investigation drawer displaying tree feature contributions, impact scores, observed window feature vectors, and containment action buttons.
+  - Added component test suite in `frontend/src/test/dashboard.test.tsx` (4/4 tests passed via Vitest).
+  - Built production bundle (`npm run build` -> `dist/`) without TypeScript warnings or errors.
+  - Captured live dashboard screenshot preview in `docs/demo/dashboard_live.png`.
+
+## Verified
+- **Frontend Test Suite Passing (4/4 tests passed via Vitest):**
+  - `Navbar Component`: validates brand, persistent SIMULATED DEMO DATA badge, active model, and live stream pill.
+  - `KpiCards Component`: validates metric counts for processes, critical alerts, contained threats, and protected/restored files.
+  - `ProcessTable Component`: validates table rendering, risk EWMA scores, status chips, and callback triggers for `Release` and `Confirm`.
+  - `EvidenceDrawer Component`: validates attribution narrative, feature contribution breakdown, observed metrics, and drawer closing.
+- **Production Build:**
+  - `npm --prefix frontend run build`: cleanly bundled with Vite and TypeScript compiler without errors (`dist/index.html`, `dist/assets/`).
+- **Live Backend & Frontend Integration:**
+  - Started backend at `http://127.0.0.1:8000` and frontend at `http://127.0.0.1:3000`.
+  - Triggered `fast_ransomware` scenario via API (`POST /api/scenarios/run`): completed in 5.4s, contained attacker PID 4099 at window 4 (8.0s), rolled back and restored 55 files, intact 300 files.
+  - Saved live dashboard preview screenshot to `docs/demo/dashboard_live.png`.
+- **Backend & ML Test Suites Passing (58/58 tests passed):**
+  - `tests/test_api.py` (14/14 passed)
+  - `tests/test_backend_core.py` (7/7 passed)
+  - `tests/test_ml.py` (6/6 passed)
+  - `tests/test_datasets.py` (8/8 passed)
+  - `tests/test_classifier.py` (3/3 passed)
+  - `tests/test_containment_manager.py` (7/7 passed)
+  - `tests/test_feature_aggregator.py` (5/5 passed)
+  - `tests/test_risk_scorer.py` (4/4 passed)
+  - `tests/test_tier0_scoring.py` (4/4 passed)
 
 ## Not Verified (Requires Linux Kernel / Root Privileges)
-- **Fanotify Subsystem (`adaptshield/fanotify_ctypes.py`, `adaptshield/tier0_watcher.py`):**
-  - Real-time kernel event intercept via `fanotify_init` / `fanotify_mark` (`FAN_CLASS_NOTIF`, `FAN_OPEN_PERM`, `FAN_CLOSE_WRITE`).
-  - Requires Linux kernel >= 5.9 with fanotify enabled and `CAP_SYS_ADMIN` / root.
-- **eBPF Tier-1 Kernel Tracing (`adaptshield/tier1_bridge.py`, `ebpf/tier1_trace.bpf.c`):**
-  - Kernel kprobe attachment to `sys_enter_write`, `sys_enter_read`, `sys_enter_rename*` via BCC.
-  - Requires Linux kernel headers, BCC compiler infrastructure, and root permissions.
-- **cgroup v2 Freezer Containment (`adaptshield/containment_manager.py`):**
-  - Moving target processes into `/sys/fs/cgroup/` freezer cgroups (`cgroup.freeze`) and process termination (`SIGKILL`).
-  - Requires cgroup v2 filesystem mounted with `freezer` controller and root privileges.
-- **Real OverlayFS Filesystem Layering:**
-  - Live mounting of overlayfs (`mount -t overlay ...`) on ext4/btrfs/xfs.
-- *How to verify on Linux VM:* Run `sudo ./setup/verify_all.sh` or execute Phase 1–3 verification commands from `README.md` on an Ubuntu 22.04/24.04 VM.
+- **Real Containment Execution (`RealResponse`):**
+  - `RealResponse` wraps real cgroup freezer and overlay unmount commands. Verified in userspace via `SimulatedResponse`; real execution requires an Ubuntu VM with root.
+- **Live Agent Telemetry Stream (`LiveAgentSource`):**
+  - Requires live agent running on Linux writing to `/var/log/adaptshield/alert.jsonl`.
 
 ## Next
-- **Prompt 2:** Datasets generation (`feat/datasets` branch) — implement `scripts/make_datasets.py`, train/val/test/hard_test splits, scenario configurations, `DATASET_CARD.md`, and manifest.
+- **Prompt 7:** Scenario runner, file-restore visual, detector comparison (`feat/scenarios` branch).
 
 ---
 
@@ -44,11 +122,11 @@
 
 | Prompt | Topic | Target Branch | Status | Description |
 |---|---|---|:---:|---|
-| Prompt 2 | Datasets | `feat/datasets` | not started | Build `scripts/make_datasets.py`, generate reproducible trace splits, define scenarios, create dataset card and manifest |
-| Prompt 3 | Model Training, Evaluation, Registry | `feat/ml` | not started | Refactor ML pipeline into `ml/`, implement schema contract, build `models/registry/`, train RF/XGB/Tier-0/rule-based models |
-| Prompt 4 | Backend Core | `feat/backend-core` | not started | Implement `EventSource` (simulated/replay/live), `ResponseEngine`, pipeline execution, per-PID containment, CLI scenario runner |
-| Prompt 5 | Backend API & WebSocket | `feat/api` | not started | FastAPI REST API, SQLite database, WebSocket stream (`/api/stream`), OpenAPI documentation |
-| Prompt 6 | Frontend Foundation & Dashboard | `feat/dashboard` | not started | Vite + React + TS UI, Tailwind CSS, live dashboard, process table, risk timeline, alert drawer |
+| Prompt 2 | Datasets | `feat/datasets` | **done** | Build `scripts/make_datasets.py`, generate reproducible trace splits, define scenarios, create dataset card and manifest |
+| Prompt 3 | Model Training, Evaluation, Registry | `feat/ml` | **done** | Refactor ML pipeline into `ml/`, implement schema contract, build `models/registry/`, train RF/XGB/Tier-0/rule-based models |
+| Prompt 4 | Backend Core | `feat/backend-core` | **done** | Implement `EventSource` (simulated/replay/live), `ResponseEngine`, pipeline execution, per-PID containment, CLI scenario runner |
+| Prompt 5 | Backend API & WebSocket | `feat/api` | **done** | FastAPI REST API, SQLite database, WebSocket stream (`/api/stream`), OpenAPI documentation |
+| Prompt 6 | Frontend Foundation & Dashboard | `feat/dashboard` | **done** | Vite + React + TS UI, Tailwind CSS, live dashboard, process table, risk timeline, alert drawer |
 | Prompt 7 | Scenario Runner & Restoration Visual | `feat/scenarios` | not started | Scenario runner page, live file encryption/rollback visualization, side-by-side detector comparison |
 | Prompt 8 | Datasets & Models UI | `feat/ml-ui` | not started | Datasets explorer, model training and registry management, interactive 11-feature "Try it" predictor |
 | Prompt 9 | Forensics & Guided Demo | `feat/guided-demo` | not started | Forensic investigation drawer, engine settings controls, automated 3-minute guided demo narrative |
