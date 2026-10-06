@@ -1,90 +1,86 @@
 """
-Evaluates the classifiers on a held-out split and replays the full ML path
-(feature row -> classifier -> EWMA RiskScorer -> CRITICAL decision) exactly as
-daemon.py does, but offline (no fanotify / eBPF / root needed).
-
-Usage:
-    PYTHONPATH=. python evaluate_model.py                       # synthetic bootstrap
-    PYTHONPATH=. python evaluate_model.py --glob "results/raw/traces_*.csv"   # real traces
-
-NOTE: numbers from synthetic data only prove the plumbing works.
+CLI wrapper for AdaptShield model evaluation.
+Refactored to delegate core evaluation and risk-replay logic to adaptshield.ml.evaluate.
 """
+from __future__ import annotations
+
 import argparse
 import glob
+import sys
+from pathlib import Path
 
-import numpy as np
+# Ensure repository root is on sys.path
+REPO_ROOT = Path(__file__).resolve().parent
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
 import pandas as pd
-from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score
 from sklearn.model_selection import train_test_split
 
-from adaptshield.classifier import build_classifier, POSITIVE_LABEL
-from adaptshield.feature_aggregator import FEATURE_COLUMNS
-from adaptshield.risk_scorer import RiskScorer, RiskLevel
-
-TIER0 = ["mod_rate", "rename_rate", "create_del_rate", "event_count", "concentration_gini"]
-
-
-def evaluate(name, df_train, df_test, columns=None):
-    clf = build_classifier(name, columns=columns)
-    clf.fit(df_train, df_train["label"])
-    proba = clf.predict_proba(df_test)
-    p = proba[:, 1] if proba.shape[1] == 2 else proba[:, -1]
-    y = (df_test["label"] == POSITIVE_LABEL).astype(int).values
-    pred = (p >= 0.5).astype(int)
-    print(f"\n=== {name} {'(Tier-0 only)' if columns == TIER0 else ''} ===")
-    print(classification_report(y, pred, target_names=["not_ransomware", "ransomware"], digits=3))
-    print("Confusion matrix [[TN FP],[FN TP]]:\n", confusion_matrix(y, pred))
-    if len(set(y)) == 2:
-        print(f"ROC-AUC: {roc_auc_score(y, p):.4f}")
-    return clf
-
-
-def replay_through_risk_scorer(clf, df_test, windows=10, seed=0):
-    """Simulates one PID per class emitting `windows` consecutive windows and
-    reports whether the EWMA scorer reaches CRITICAL (what triggers containment)."""
-    rng = np.random.default_rng(seed)
-    print("\n=== Risk-scorer replay (fraction of simulated PIDs reaching CRITICAL) ===")
-    for label in ["benign", "backup", "oltp", "ransomware"]:
-        pool = df_test[df_test["label"] == label]
-        n_pids, critical, first_win = 100, 0, []
-        for _ in range(n_pids):
-            scorer = RiskScorer()
-            rows = pool.sample(windows, replace=True, random_state=int(rng.integers(1e9)))
-            proba = clf.predict_proba(rows)
-            p = proba[:, 1] if proba.shape[1] == 2 else proba[:, -1]
-            for i, pi in enumerate(p, 1):
-                if scorer.update(1, float(pi)) == RiskLevel.CRITICAL:
-                    critical += 1
-                    first_win.append(i)
-                    break
-        mean_w = f"{np.mean(first_win):.1f}" if first_win else "-"
-        print(f"{label:11s} CRITICAL: {critical:3d}/{n_pids}   mean windows to detect: {mean_w}")
+from adaptshield.ml.schema import TIER0_COLUMNS, FEATURE_COLUMNS
+from adaptshield.ml.train import train_classifier
+from adaptshield.ml.evaluate import evaluate_classifier
 
 
 def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--glob", default="results/raw/synthetic_traces_*.csv")
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--data", default="data/raw/traces_test.csv")
+    ap.add_argument("--train-data", default="data/raw/traces_train.csv")
     ap.add_argument("--seed", type=int, default=42)
     args = ap.parse_args()
 
-    files = sorted(glob.glob(args.glob))
-    if not files:
-        raise SystemExit(f"No files match {args.glob}")
-    df = pd.concat([pd.read_csv(f) for f in files], ignore_index=True)
-    tr, te = train_test_split(df, test_size=0.3, stratify=df["label"], random_state=args.seed)
-    print(f"Train rows: {len(tr)}  Test rows: {len(te)}")
+    test_path = Path(args.data)
+    train_path = Path(args.train_data)
 
-    xgb = evaluate("xgboost", tr, te)
-    evaluate("random_forest", tr, te)
-    evaluate("random_forest", tr, te, columns=TIER0)   # baseline 3: Tier-0 only
-    evaluate("rule_based", tr, te)                      # baseline 1
+    if test_path.exists() and train_path.exists():
+        train_df = pd.read_csv(train_path)
+        test_df = pd.read_csv(test_path)
+    else:
+        # Fall back to bootstrap if generated datasets not yet available
+        bootstrap_files = sorted(glob.glob("results/raw/synthetic_traces_*.csv"))
+        if not bootstrap_files:
+            sys.exit("No trace data found to evaluate.")
+        df = pd.concat([pd.read_csv(f) for f in bootstrap_files], ignore_index=True)
+        train_df, test_df = train_test_split(df, test_size=0.3, stratify=df["label"], random_state=args.seed)
 
-    replay_through_risk_scorer(xgb, te)
+    print(f"Train rows: {len(train_df)}  Test rows: {len(test_df)}")
 
-    imp = sorted(zip(FEATURE_COLUMNS, xgb.model.feature_importances_), key=lambda t: -t[1])
-    print("\nXGBoost feature importance:")
-    for f, v in imp:
-        print(f"  {f:20s} {v:.3f}")
+    # 1. XGBoost
+    xgb = train_classifier("xgboost", train_df, seed=args.seed)
+    metrics_xgb = evaluate_classifier(xgb, test_df, seed=args.seed)
+    print("\n=== XGBoost ===")
+    print(f"Accuracy:  {metrics_xgb['accuracy']:.4f}")
+    print(f"F1 Score:  {metrics_xgb['f1']:.4f}")
+    print(f"ROC-AUC:   {metrics_xgb['roc_auc']:.4f}")
+    print("Confusion Matrix [[TN FP],[FN TP]]:", metrics_xgb['confusion_matrix'])
+
+    # 2. Random Forest (Full)
+    rf = train_classifier("random_forest", train_df, seed=args.seed)
+    metrics_rf = evaluate_classifier(rf, test_df, seed=args.seed)
+    print("\n=== Random Forest (Full) ===")
+    print(f"Accuracy:  {metrics_rf['accuracy']:.4f}")
+    print(f"F1 Score:  {metrics_rf['f1']:.4f}")
+    print(f"ROC-AUC:   {metrics_rf['roc_auc']:.4f}")
+
+    # 3. Random Forest (Tier-0 only ablation)
+    rf_t0 = train_classifier("random_forest", train_df, columns=TIER0_COLUMNS, seed=args.seed)
+    metrics_rf_t0 = evaluate_classifier(rf_t0, test_df, columns=TIER0_COLUMNS, seed=args.seed)
+    print("\n=== Random Forest (Tier-0 only) ===")
+    print(f"Accuracy:  {metrics_rf_t0['accuracy']:.4f}")
+    print(f"F1 Score:  {metrics_rf_t0['f1']:.4f}")
+    print(f"ROC-AUC:   {metrics_rf_t0['roc_auc']:.4f}")
+
+    # 4. Rule-Based
+    rb = train_classifier("rule_based", train_df, seed=args.seed)
+    metrics_rb = evaluate_classifier(rb, test_df, seed=args.seed)
+    print("\n=== Rule Based ===")
+    print(f"Accuracy:  {metrics_rb['accuracy']:.4f}")
+    print(f"F1 Score:  {metrics_rb['f1']:.4f}")
+    print(f"ROC-AUC:   {metrics_rb['roc_auc']:.4f}")
+
+    print("\n=== Risk-Scorer Replay (XGBoost) ===")
+    for lbl, res in metrics_xgb["risk_scorer_replay"].items():
+        print(f"{lbl:11s} Containment rate: {res['containment_rate']:.2%}  Mean windows: {res['mean_windows_to_detect']}")
 
 
 if __name__ == "__main__":

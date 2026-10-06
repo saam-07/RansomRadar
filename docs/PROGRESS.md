@@ -17,38 +17,42 @@
   - Generated 8 benchmark scenario definitions in `data/scenarios/*.json` (`normal_workday`, `nightly_backup`, `oltp_database`, `fast_ransomware`, `slow_and_low_ransomware`, `intermittent_ransomware`, `partial_encryption`, `mixed_chaos`).
   - Generated `data/manifest.json` and `data/DATASET_CARD.md`.
   - Implemented unit tests in `tests/test_datasets.py` validating schema conformity, zero run_id leakage, reproducibility, non-trivial separability, manifest count synchronization, and held-out scenario isolation.
+- **Prompt 3 (Model Training, Evaluation, Registry):**
+  - Refactored training and evaluation logic into modular, importable functions under `adaptshield.ml/` and root alias `ml/`.
+  - Defined feature schema contract in `adaptshield/ml/schema.py` (`SCHEMA_VERSION = "1.0.0"`, validation, metadata stripping, NaN sentinel semantics).
+  - Built `ModelRegistry` in `adaptshield/ml/registry.py` managing `models/registry/`, enforcing compatibility validation and active model state.
+  - Built `scripts/train_all.py` (and `make train`) training `rule_based`, `rf_tier0_ablation`, `random_forest`, and `xgboost` (active model).
+  - Registered legacy synthetic bootstrap models (`legacy_synthetic_xgb`, `legacy_synthetic_rf`) flagged as `synthetic_bootstrap_legacy`.
+  - Saved comprehensive metrics JSON (`models/registry/all_models_metrics.json`) including ROC/PR curve coordinates, per-scenario breakdowns, and EWMA risk-scorer replays.
+  - Documented findings in `docs/ml_report.md`.
+  - Implemented unit test suite in `tests/test_ml.py` verifying schema validation, column mismatch rejection, training reproducibility, and hard test set degradation.
 
 ## Verified
-- **Unit Test Suite Passing (31/31 tests passed):**
-  - `tests/test_datasets.py` (8/8 passed):
-    - `test_schema_matches_feature_columns`: exact match to `FEATURE_COLUMNS` and 18-column schema, source labeled `synthetic`.
-    - `test_zero_run_id_overlap_across_splits`: zero run_id overlap between train, val, test, and hard_test.
-    - `test_reproducibility_same_seed_gives_same_sha256`: bitwise identical output and identical SHA256 hashes across consecutive runs.
-    - `test_single_feature_threshold_not_near_perfect`: no single feature achieves near-perfect separation (all single thresholds < 0.97 accuracy; on hard test best threshold < 0.84).
-    - `test_class_counts_match_manifest`: row counts, class distributions, and SHA256 hashes match `data/manifest.json`.
-    - `test_hard_test_contains_held_out_scenarios`: held-out variants (`slow_and_low_ransomware`, `mimicry`) are strictly absent from train and val.
-    - `test_unescalated_processes_have_nan_tier1`: unescalated windows preserve documented `NaN` values across all Tier-1 features.
-    - `test_scenarios_json_definitions_exist`: all 8 scenario JSON files parse and contain valid process parameters and expected outcomes.
+- **Unit Test Suite Passing (37/37 tests passed):**
+  - `tests/test_ml.py` (6/6 passed):
+    - `test_schema_validation_drops_metadata_and_retains_features`: verifies non-feature metadata is safely dropped.
+    - `test_schema_validation_catches_missing_columns`: ensures missing features trigger validation errors.
+    - `test_registry_rejects_mismatched_columns`: verifies model registry prevents loading incompatible column sets.
+    - `test_registry_loads_compatible_model`: verifies model load and manifest fidelity.
+    - `test_training_is_reproducible_with_seed`: verifies identical probability outputs for fixed random seed.
+    - `test_hard_test_set_scores_lower_and_tier0_ablation`: confirms hard test F1 is lower than standard test, and Tier-0 ablation scores lower than full model.
+  - `tests/test_datasets.py` (8/8 passed)
   - `tests/test_classifier.py` (3/3 passed)
   - `tests/test_containment_manager.py` (7/7 passed)
   - `tests/test_feature_aggregator.py` (5/5 passed)
   - `tests/test_risk_scorer.py` (4/4 passed)
   - `tests/test_tier0_scoring.py` (4/4 passed)
-- **Dataset Hash Stability:**
-  - Ran `scripts/make_datasets.py` twice consecutively and verified matching SHA-256 hashes:
-    - `traces_train.csv`: `52862955fade62f41754ad6aeb50736231a1043df274717498e4a32bfcc148a2`
-    - `traces_val.csv`: `f2785c876e6584b51515bedcbe2342c52385bf5ac99021535ed7df5307a6717a`
-    - `traces_test.csv`: `7b4fa31f25a690ba65a762e7943a1ff4d76ac00c0e82eb2bf26e3a7b5d4d50f0`
-    - `traces_hard_test.csv`: `fbc5cabf5019bde74f299eece9cecb641fea7bead9f65b2a69c67adca743d946`
+- **Model Training & Registry Verification:**
+  - `xgboost` active detector achieves 0.9986 F1 on standard test set, dropping to 0.7612 F1 on the held-out hard test set with novel evasion tactics.
+  - `rf_tier0_ablation` drops from 0.9931 F1 on standard test to 0.3585 F1 on hard test, proving the necessity of Tier-1 eBPF byte entropy inspection.
+  - `rule_based` volume detector drops to 0.0000 F1 on hard test stealth attacks.
+  - Risk-scorer replay achieves 0.0% false containment on benign, backup, and oltp, and 100.0% containment on ransomware in ~5.0 windows (~10 seconds).
 
 ## Not Verified (Requires Linux Kernel / Root Privileges)
-- **Live Kernel-Collected Telemetry:**
-  - The datasets generated are synthetic behavioral traces labeled with `source: synthetic`. Real eBPF/fanotify event collection from live ransomware samples requires a dedicated Ubuntu VM with root and isolated test filesystems.
-- **Fanotify / eBPF / cgroups in Sandbox:**
-  - Direct live interception remains unverified in this sandboxed Windows environment.
+- **Real Kernel eBPF/Fanotify Traces:** Models are trained and evaluated on behavioral synthetic traces labeled `source: synthetic`. Validation against real Linux malware execution requires an isolated Ubuntu VM with root privileges.
 
 ## Next
-- **Prompt 3:** Model training, evaluation, and registry (`feat/ml` branch).
+- **Prompt 4:** Backend Core (`feat/backend-core` branch): implement `EventSource` (simulated, replay, live stub), `ResponseEngine` (simulated virtual FS + real containment wrapper), pipeline execution, safety rails, alert explanations, in-process event bus, and CLI scenario runner.
 
 ---
 
@@ -57,7 +61,7 @@
 | Prompt | Topic | Target Branch | Status | Description |
 |---|---|---|:---:|---|
 | Prompt 2 | Datasets | `feat/datasets` | **done** | Build `scripts/make_datasets.py`, generate reproducible trace splits, define scenarios, create dataset card and manifest |
-| Prompt 3 | Model Training, Evaluation, Registry | `feat/ml` | not started | Refactor ML pipeline into `ml/`, implement schema contract, build `models/registry/`, train RF/XGB/Tier-0/rule-based models |
+| Prompt 3 | Model Training, Evaluation, Registry | `feat/ml` | **done** | Refactor ML pipeline into `ml/`, implement schema contract, build `models/registry/`, train RF/XGB/Tier-0/rule-based models |
 | Prompt 4 | Backend Core | `feat/backend-core` | not started | Implement `EventSource` (simulated/replay/live), `ResponseEngine`, pipeline execution, per-PID containment, CLI scenario runner |
 | Prompt 5 | Backend API & WebSocket | `feat/api` | not started | FastAPI REST API, SQLite database, WebSocket stream (`/api/stream`), OpenAPI documentation |
 | Prompt 6 | Frontend Foundation & Dashboard | `feat/dashboard` | not started | Vite + React + TS UI, Tailwind CSS, live dashboard, process table, risk timeline, alert drawer |

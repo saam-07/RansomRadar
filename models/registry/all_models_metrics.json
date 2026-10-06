@@ -1,0 +1,50 @@
+[
+  {
+    "name": "rule_based",
+    "classifier_type": "rule_based",
+    "columns_count": 11,
+    "test_accuracy": 0.8142,
+    "test_f1": 0.5567,
+    "test_roc_auc": 0.6928,
+    "hard_test_accuracy": 0.4939,
+    "hard_test_f1": 0.0,
+    "hard_test_roc_auc": 0.4939,
+    "false_positives_per_hour": 6.42
+  },
+  {
+    "name": "rf_tier0_ablation",
+    "classifier_type": "random_forest",
+    "columns_count": 5,
+    "test_accuracy": 0.9958,
+    "test_f1": 0.9931,
+    "test_roc_auc": 1.0,
+    "hard_test_accuracy": 0.6083,
+    "hard_test_f1": 0.3585,
+    "hard_test_roc_auc": 0.8998,
+    "false_positives_per_hour": 6.42
+  },
+  {
+    "name": "random_forest",
+    "classifier_type": "random_forest",
+    "columns_count": 11,
+    "test_accuracy": 0.9992,
+    "test_f1": 0.9986,
+    "test_roc_auc": 1.0,
+    "hard_test_accuracy": 0.595,
+    "hard_test_f1": 0.3206,
+    "hard_test_roc_auc": 0.8935,
+    "false_positives_per_hour": 0.0
+  },
+  {
+    "name": "xgboost",
+    "classifier_type": "xgboost",
+    "columns_count": 11,
+    "test_accuracy": 0.9992,
+    "test_f1": 0.9986,
+    "test_roc_auc": 1.0,
+    "hard_test_accuracy": 0.8072,
+    "hard_test_f1": 0.7612,
+    "hard_test_roc_auc": 0.9315,
+    "false_positives_per_hour": 2.14
+  }
+]
