@@ -34,18 +34,35 @@
   - Implemented in-process `EventBus` in `backend/app/core/bus.py` with history buffer and subscriber routing.
   - Built `DetectionPipeline` in `backend/app/core/pipeline.py` connecting all stages with independent per-process state.
   - Built standalone CLI scenario runner `backend/app/run_scenario.py`.
-  - Implemented unit test suite in `tests/test_backend_core.py` verifying scenario determinism, zero benign containment, fast ransomware containment/rollback, independent attacker isolation, manual policy timeout, and allowlisting.
+- **Prompt 5 (Backend API, WebSocket, Database):**
+  - Built FastAPI application layer in `backend/app/` with SQLite database and versioned migrations (`backend/app/db/`).
+  - Implemented all Section 6 endpoints: status and control (`/api/status`, `/api/control`, `/api/health`), processes (`/api/processes`), alerts with forensic evidence (`/api/alerts`, `/api/alerts/{id}`), release and confirm containment (`/api/containment/release`, `/api/containment/confirm`), scenario definitions and background execution (`/api/scenarios`, `/api/scenarios/run`, `/api/scenarios/stop`, `/api/scenarios/runs`), datasets overview and sampling (`/api/datasets`, `/api/datasets/{split}/sample`, `/api/datasets/{split}/stats`, `/api/datasets/generate`), and model registry operations (`/api/models`, `/api/models/{name}/evaluation`, `/api/models/activate`, `/api/models/train`, `/api/models/training/{id}`, `/api/models/predict`).
+  - Enforced schema compatibility check on model activation (rejects incompatible models with HTTP 400).
+  - Implemented WebSocket streaming at `/api/stream` with batched message delivery (`window_scored`, `process_update`, `escalation`, `alert`, `containment`, `file_damage`, `rollback`, `scenario_state`).
+  - Added configuration via `backend/config.yaml` and environment variables.
+  - Implemented auto-seeding of demo data on first start if DB is empty.
+  - Enforced provenance tagging (`simulated: true` on all simulated responses, `data_source: synthetic` on all model responses).
+  - Wrote comprehensive API guide with curl examples in `docs/api.md`.
+  - Implemented test suite in `tests/test_api.py` (14/14 tests passing).
 
 ## Verified
-- **Unit Test Suite Passing (44/44 tests passed):**
-  - `tests/test_backend_core.py` (7/7 passed):
-    - `test_scenario_runs_are_deterministic_with_seed`: verifies identical summary metrics and event sequences for fixed seed.
-    - `test_benign_and_backup_produce_zero_containments`: confirms `normal_workday` and `nightly_backup` trigger zero containments with active XGBoost detector.
-    - `test_fast_ransomware_contained_and_rolled_back`: confirms `fast_ransomware` is detected, contained, and all affected files restored.
-    - `test_independent_per_process_containment`: confirms releasing PID A leaves PID B frozen under manual policy.
-    - `test_manual_policy_release_confirm_timeout`: verifies automatic resolution after configurable timeout.
-    - `test_allowlisted_process_is_never_contained`: verifies allowlisted processes and PID 1 are never frozen or killed.
-    - `test_event_bus_publishes_all_pipeline_events`: confirms `window_scored`, `alert`, and `containment` events are published.
+- **Full Repository Test Suite Passing (58/58 tests passed):**
+  - `tests/test_api.py` (14/14 passed):
+    - `test_health_endpoint`: validates health response and `simulated: true`.
+    - `test_status_endpoint`: validates mode, policy, active detector, and data source.
+    - `test_control_endpoint`: verifies policy and mode switching.
+    - `test_processes_endpoint`: verifies process table inspection.
+    - `test_alerts_endpoint_and_detail`: verifies alert listing and forensic evidence payload.
+    - `test_containment_release_and_confirm`: verifies manual operator containment overrides.
+    - `test_scenarios_listing`: validates all 8 scenarios available.
+    - `test_scenario_run_and_history`: starts background scenario, records run, and verifies details.
+    - `test_datasets_overview_and_samples`: validates dataset manifests, row counts, and sampling.
+    - `test_models_listing_and_evaluation`: verifies registry listing and detailed evaluation report.
+    - `test_model_predict`: verifies feature inference, probabilities, and tree attribution explanation.
+    - `test_model_activation_compatibility_check`: proves activation works for valid models and strictly rejects incompatible models with HTTP 400.
+    - `test_training_job_lifecycle`: validates background training job queue and status polling.
+    - `test_websocket_stream`: verifies WebSocket connection acknowledgment and ping/pong.
+  - `tests/test_backend_core.py` (7/7 passed)
   - `tests/test_ml.py` (6/6 passed)
   - `tests/test_datasets.py` (8/8 passed)
   - `tests/test_classifier.py` (3/3 passed)
@@ -53,11 +70,10 @@
   - `tests/test_feature_aggregator.py` (5/5 passed)
   - `tests/test_risk_scorer.py` (4/4 passed)
   - `tests/test_tier0_scoring.py` (4/4 passed)
-- **CLI Scenario Execution Verification:**
-  - `python -m backend.app.run_scenario normal_workday --detector xgboost`: 40 windows, 0 containments, 60 healthy files.
-  - `python -m backend.app.run_scenario nightly_backup --detector xgboost`: 25 windows, 0 containments, 60 healthy files.
-  - `python -m backend.app.run_scenario fast_ransomware --detector xgboost`: 20 windows, PID 4099 contained at window 4 (8.0s), 55 files rolled back to restored.
-  - `python -m backend.app.run_scenario mixed_chaos --detector xgboost`: 120 windows across 4 PIDs, contained both attackers (PIDs 8010 and 8020) independently, 0 false alarms on benign/oltp workers.
+- **Live Server & Curl Verification:**
+  - Started uvicorn server at `http://127.0.0.1:8000`.
+  - Verified OpenAPI documentation (`/docs`) returns HTTP 200 OK.
+  - Executed `fast_ransomware` scenario via POST to `/api/scenarios/run` and monitored completion via GET `/api/scenarios/runs/{id}`: contained PID 4099 at window 4 (8.0s), restored 55 files, completed with `simulated: true`.
 
 ## Not Verified (Requires Linux Kernel / Root Privileges)
 - **Real Containment Execution (`RealResponse`):**
@@ -66,7 +82,7 @@
   - Requires live agent running on Linux writing to `/var/log/adaptshield/alert.jsonl`.
 
 ## Next
-- **Prompt 5:** Backend API, WebSocket, database (`feat/api` branch).
+- **Prompt 6:** Frontend foundation and live dashboard (`feat/dashboard` branch).
 
 ---
 
@@ -77,7 +93,7 @@
 | Prompt 2 | Datasets | `feat/datasets` | **done** | Build `scripts/make_datasets.py`, generate reproducible trace splits, define scenarios, create dataset card and manifest |
 | Prompt 3 | Model Training, Evaluation, Registry | `feat/ml` | **done** | Refactor ML pipeline into `ml/`, implement schema contract, build `models/registry/`, train RF/XGB/Tier-0/rule-based models |
 | Prompt 4 | Backend Core | `feat/backend-core` | **done** | Implement `EventSource` (simulated/replay/live), `ResponseEngine`, pipeline execution, per-PID containment, CLI scenario runner |
-| Prompt 5 | Backend API & WebSocket | `feat/api` | not started | FastAPI REST API, SQLite database, WebSocket stream (`/api/stream`), OpenAPI documentation |
+| Prompt 5 | Backend API & WebSocket | `feat/api` | **done** | FastAPI REST API, SQLite database, WebSocket stream (`/api/stream`), OpenAPI documentation |
 | Prompt 6 | Frontend Foundation & Dashboard | `feat/dashboard` | not started | Vite + React + TS UI, Tailwind CSS, live dashboard, process table, risk timeline, alert drawer |
 | Prompt 7 | Scenario Runner & Restoration Visual | `feat/scenarios` | not started | Scenario runner page, live file encryption/rollback visualization, side-by-side detector comparison |
 | Prompt 8 | Datasets & Models UI | `feat/ml-ui` | not started | Datasets explorer, model training and registry management, interactive 11-feature "Try it" predictor |

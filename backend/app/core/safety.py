@@ -118,3 +118,7 @@ class SafetyRails:
         self.panic_tripped = False
         self.mode = "protect"
         self.critical_events.clear()
+
+    def reset_storm_state(self) -> None:
+        """Alias for reset_panic."""
+        self.reset_panic()

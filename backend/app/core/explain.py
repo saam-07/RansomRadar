@@ -67,7 +67,7 @@ def explain_alert(
     if hasattr(classifier, "model") and hasattr(classifier.model, "feature_importances_"):
         cols = getattr(classifier, "columns", list(row_dict.keys()))
         imps = classifier.model.feature_importances_
-        importances = dict(zip(cols, imps))
+        importances = {c: float(v) for c, v in zip(cols, imps)}
 
     # Reference baseline means for non-ransomware traffic
     benchmarks = {
@@ -84,11 +84,11 @@ def explain_alert(
         val = row_dict.get(feat)
         if val is not None and not (isinstance(val, float) and np.isnan(val)):
             fval = float(val)
-            weight = importances.get(feat, 0.1)
+            weight = float(importances.get(feat, 0.1))
 
             # Score contribution higher when exceeding suspicious threshold
             if fval >= susp_thresh:
-                score = round(weight * (1.0 + (fval - susp_thresh) / susp_thresh), 4)
+                score = round(float(weight * (1.0 + (fval - susp_thresh) / susp_thresh)), 4)
                 narrative_tmpl = FEATURE_NARRATIVES.get(feat, "{val:.2f} elevated")
                 contributions.append({
                     "feature": feat,
