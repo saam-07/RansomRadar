@@ -25,6 +25,8 @@ from .response.containment_manager import (
 )
 from .logging.logger import get_logger, setup_logging
 from .logging.alert_logger import AlertLogger
+from .response.safety import SafetyRails
+from .state import StateManager
 from .ml.classifier import build_classifier
 from .ml.registry import ModelRegistry
 
@@ -132,10 +134,27 @@ class AdaptShieldDaemon:
         self._contained_pids: set[int] = set()
         self._awaiting_manual: set[int] = set()
 
+        # 7. Safety Rails & State Recovery
+        self.safety = SafetyRails(self.config)
+        state_dir = Path(self.config.response.control_dir).parent
+        self.state_mgr = StateManager(state_dir / "state.json")
+
         try:
             ensure_cgroup_ready()
         except Exception as e:
             logger.debug("cgroup v2 initialization skipped in userspace: %s", e)
+
+        # Recover prior state if present
+        try:
+            recovery_summary = self.state_mgr.recover(self.config)
+            if recovery_summary.get("recovered_count", 0) > 0:
+                logger.info(
+                    "State recovery processed %d processes on startup: %s",
+                    recovery_summary["recovered_count"],
+                    recovery_summary["actions"],
+                )
+        except Exception as e:
+            logger.warning("Error recovering state on startup: %s", e)
 
     @classmethod
     def from_config(cls, cfg: AdaptShieldConfig | None = None, dry_run: bool = False) -> "AdaptShieldDaemon":
@@ -216,6 +235,20 @@ class AdaptShieldDaemon:
                 ewma = float(p)
 
             if level == RiskLevel.CRITICAL and pid not in self._contained_pids:
+                # 1. Safety rails check: immunity for PID 1, system processes, agent itself, allowlists
+                is_immune, reason = self.safety.is_immune(pid, process_name=row.get("process_name"))
+                if is_immune:
+                    logger.info("[SAFETY RAILS] PID=%s is immune from containment (%s). Action suppressed.", pid, reason)
+                    continue
+
+                # 2. Rate limit & False-Positive Storm Panic Switch
+                permitted, permit_reason = self.safety.check_containment_permitted(pid)
+                if not permitted:
+                    logger.warning("[SAFETY RAILS] Containment suppressed for PID=%s: %s", pid, permit_reason)
+                    if self.safety.panic_switch_tripped:
+                        self.logger.log("storm_panic_switch_tripped", pid=pid, reason=permit_reason)
+                    continue
+
                 self.logger.log("alert_critical", pid=pid, risk_ewma=ewma, evidence=row)
                 if self.dry_run:
                     logger.info("[DRY-RUN] Would contain PID=%s with policy=%s", pid, self.rollback_policy.value)
@@ -233,6 +266,18 @@ class AdaptShieldDaemon:
                     self._awaiting_manual.add(pid)
                 self._log_containment_result(pid, result)
 
+                # 3. Persist runtime state
+                status = "awaiting_manual" if result.awaiting_manual_decision else ("quarantined" if result.rolled_back else "frozen")
+                self.state_mgr.record_containment(
+                    pid=pid,
+                    policy=self.rollback_policy.value,
+                    status=status,
+                    evidence=row,
+                    quarantine_path=result.quarantine_path,
+                    overlay_upper=self.overlay_upperdir,
+                    overlay_work=self.overlay_workdir,
+                )
+
     def _poll_manual_decisions(self):
         resolved = []
         for pid in list(self._awaiting_manual):
@@ -245,6 +290,7 @@ class AdaptShieldDaemon:
             )
             self._log_containment_result(pid, result)
             self.logger.log("manual_decision_applied", pid=pid, decision=decision)
+            self.state_mgr.record_resolution(pid, decision)
             resolved.append(pid)
         for pid in resolved:
             self._awaiting_manual.discard(pid)
