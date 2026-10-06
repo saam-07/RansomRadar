@@ -22,6 +22,7 @@ from .containment_manager import (
     _control_file,
 )
 from .safety import SafetyRails
+from .protection import ProtectionManager, ProtectionTarget, is_overlay_mount_active
 
 __all__ = [
     "ContainmentManager",
@@ -46,4 +47,7 @@ __all__ = [
     "ensure_cgroup_ready",
     "_control_file",
     "SafetyRails",
+    "ProtectionManager",
+    "ProtectionTarget",
+    "is_overlay_mount_active",
 ]

@@ -3,6 +3,7 @@ Tier 0 -- always-on, cheap watcher.
 Computes windowed features per PID without reading contents or computing entropy.
 """
 import argparse
+import os
 import sys
 import time
 import threading
@@ -11,7 +12,7 @@ from dataclasses import dataclass, field
 
 from .fanotify_ctypes import (
     Fanotify, FAN_MODIFY, FAN_CLOSE_WRITE, FAN_MOVED_FROM, FAN_MOVED_TO,
-    FAN_CREATE, FAN_DELETE,
+    FAN_CREATE, FAN_DELETE, is_path_excluded,
 )
 
 MOD_MASK = FAN_MODIFY | FAN_CLOSE_WRITE
@@ -42,9 +43,34 @@ def gini_of_gaps(timestamps: list) -> float:
 
 
 class Tier0Watcher:
-    def __init__(self, watch_path: str, window_seconds: float = 2.0):
-        self.fan = Fanotify(watch_path)
+    def __init__(
+        self,
+        watch_path: str | list[str] = "/home",
+        window_seconds: float = 2.0,
+        excludes: list[str] | None = None,
+        excluded_pids: set[int] | None = None,
+    ):
+        if isinstance(watch_path, str):
+            self.watch_paths = [watch_path]
+        else:
+            self.watch_paths = list(watch_path)
+        self.watch_path = self.watch_paths[0] if self.watch_paths else ""
         self.window_seconds = window_seconds
+        self.excludes = list(excludes) if excludes else [
+            "/proc", "/sys", "/dev", "/run", "/tmp",
+            "/var/lib/adaptshield", "/var/log/adaptshield", "/var/cache/apt",
+        ]
+        self.excluded_pids = set(excluded_pids or [])
+        try:
+            self.excluded_pids.add(os.getpid())
+        except Exception:
+            pass
+
+        try:
+            self.fan = Fanotify(self.watch_paths)
+        except OSError:
+            self.fan = None
+
         self._state: dict[int, PidWindowState] = defaultdict(PidWindowState)
         self._lock = threading.Lock()
         self._stop = threading.Event()
@@ -52,6 +78,9 @@ class Tier0Watcher:
 
     def _reader_loop(self):
         while not self._stop.is_set():
+            if not self.fan:
+                time.sleep(0.05)
+                continue
             try:
                 events = self.fan.read_events()
             except (BlockingIOError, OSError):
@@ -63,6 +92,12 @@ class Tier0Watcher:
             now = time.monotonic()
             with self._lock:
                 for ev in events:
+                    # 1. Filter out self / excluded PIDs
+                    if ev.pid in self.excluded_pids:
+                        continue
+                    # 2. Filter out excluded paths
+                    if ev.path and is_path_excluded(ev.path, self.excludes):
+                        continue
                     st = self._state[ev.pid]
                     st.events.append((now, ev.mask))
 
@@ -73,7 +108,8 @@ class Tier0Watcher:
 
     def stop(self):
         self._stop.set()
-        self.fan.close()
+        if self.fan:
+            self.fan.close()
         if self._thread and self._thread.is_alive():
             self._thread.join(timeout=1.0)
 

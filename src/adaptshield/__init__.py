@@ -20,6 +20,7 @@ from .response.containment_manager import (
     kill_pid,
 )
 from .response.safety import SafetyRails
+from .response.protection import ProtectionManager, ProtectionTarget
 from .state import StateManager
 from .logging.logger import setup_logging, get_logger
 from .logging.alert_logger import AlertLogger
@@ -57,4 +58,6 @@ __all__ = [
     "build_classifier",
     "SafetyRails",
     "StateManager",
+    "ProtectionManager",
+    "ProtectionTarget",
 ]

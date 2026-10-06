@@ -40,6 +40,8 @@ class ContainmentResult:
     killed: bool = False
     awaiting_manual_decision: bool = False
     dry_run: bool = False
+    rollback_available: bool = True
+    rollback_reason: str | None = None
 
 
 # --------------------------------------------------------------------
@@ -187,7 +189,7 @@ def kill_pid(pid: int):
     """Terminates the process with SIGKILL."""
     try:
         os.kill(pid, 9)
-    except (ProcessLookupError, PermissionError):
+    except (ProcessLookupError, PermissionError, OSError):
         pass
 
 
@@ -316,6 +318,8 @@ def contain(
     use_freeze: bool = True,
     dry_run: bool = False,
     cgroup_parent: Path = ADAPTSHIELD_CGROUP,
+    rollback_available: bool = True,
+    rollback_reason: str | None = None,
 ) -> ContainmentResult:
     decision_ts = time.monotonic()
     frozen_ts = None
@@ -328,6 +332,8 @@ def contain(
             freeze_latency_s=0.001, bytes_at_risk=bytes_at_risk,
             files_at_risk=files_at_risk, policy=policy,
             killed=False, dry_run=True,
+            rollback_available=rollback_available,
+            rollback_reason=rollback_reason,
         )
 
     if use_freeze:
@@ -345,6 +351,8 @@ def contain(
         freeze_latency_s=freeze_latency, bytes_at_risk=bytes_at_risk,
         files_at_risk=files_at_risk, policy=policy,
         killed=not use_freeze,
+        rollback_available=rollback_available,
+        rollback_reason=rollback_reason,
     )
 
     if not use_freeze:
@@ -354,15 +362,29 @@ def contain(
         return result
 
     if policy == RollbackPolicy.IMMEDIATE:
-        qpath, qfiles, qbytes = quarantine_upper(upperdir, quarantine_root, pid)
-        rollback_overlay(upperdir, workdir)
-        kill_pid(pid)
-        result.quarantine_path = qpath
-        result.quarantined_files = qfiles
-        result.quarantined_bytes = qbytes
-        result.rolled_back = True
-        result.killed = True
-        return result
+        if rollback_available:
+            qpath, qfiles, qbytes = quarantine_upper(upperdir, quarantine_root, pid)
+            rollback_overlay(upperdir, workdir)
+            kill_pid(pid)
+            result.quarantine_path = qpath
+            result.quarantined_files = qfiles
+            result.quarantined_bytes = qbytes
+            result.rolled_back = True
+            result.killed = True
+            return result
+        else:
+            ts = time.strftime("%Y%m%d_%H%M%S")
+            fallback_dir = Path(quarantine_root) / f"pid{pid}_fallback_{ts}"
+            fallback_dir.mkdir(parents=True, exist_ok=True)
+            kill_pid(pid)
+            result.quarantine_path = str(fallback_dir)
+            result.quarantined_files = 0
+            result.quarantined_bytes = 0
+            result.rolled_back = False
+            result.rollback_available = False
+            result.rollback_reason = rollback_reason or "Overlay rollback unavailable for this filesystem"
+            result.killed = True
+            return result
 
     if policy == RollbackPolicy.MANUAL:
         if control_dir is None:
@@ -382,6 +404,8 @@ def resolve_manual_decision(
     quarantine_root: str,
     control_dir: str,
     cgroup_parent: Path = ADAPTSHIELD_CGROUP,
+    rollback_available: bool = True,
+    rollback_reason: str | None = None,
 ) -> ContainmentResult:
     decision_ts = time.monotonic()
     if decision == "release":
@@ -392,20 +416,38 @@ def resolve_manual_decision(
             pid=pid, decision_ts=decision_ts, frozen_ts=None, freeze_latency_s=None,
             bytes_at_risk=0, files_at_risk=0, policy=RollbackPolicy.MANUAL,
             rolled_back=False, killed=False,
+            rollback_available=rollback_available,
         )
     if decision == "confirm":
-        bytes_at_risk, files_at_risk = compute_overlay_diff(upperdir)
-        qpath, qfiles, qbytes = quarantine_upper(upperdir, quarantine_root, pid)
-        rollback_overlay(upperdir, workdir)
-        kill_pid(pid)
-        unfreeze_pid(pid, cgroup_parent=cgroup_parent)
-        clear_manual_decision(control_dir, pid)
-        return ContainmentResult(
-            pid=pid, decision_ts=decision_ts, frozen_ts=None, freeze_latency_s=None,
-            bytes_at_risk=bytes_at_risk, files_at_risk=files_at_risk,
-            policy=RollbackPolicy.MANUAL, rolled_back=True, killed=True,
-            quarantine_path=qpath, quarantined_files=qfiles, quarantined_bytes=qbytes,
-        )
+        if rollback_available:
+            bytes_at_risk, files_at_risk = compute_overlay_diff(upperdir)
+            qpath, qfiles, qbytes = quarantine_upper(upperdir, quarantine_root, pid)
+            rollback_overlay(upperdir, workdir)
+            kill_pid(pid)
+            unfreeze_pid(pid, cgroup_parent=cgroup_parent)
+            clear_manual_decision(control_dir, pid)
+            return ContainmentResult(
+                pid=pid, decision_ts=decision_ts, frozen_ts=None, freeze_latency_s=None,
+                bytes_at_risk=bytes_at_risk, files_at_risk=files_at_risk,
+                policy=RollbackPolicy.MANUAL, rolled_back=True, killed=True,
+                quarantine_path=qpath, quarantined_files=qfiles, quarantined_bytes=qbytes,
+                rollback_available=True,
+            )
+        else:
+            ts = time.strftime("%Y%m%d_%H%M%S")
+            fallback_dir = Path(quarantine_root) / f"pid{pid}_fallback_{ts}"
+            fallback_dir.mkdir(parents=True, exist_ok=True)
+            kill_pid(pid)
+            unfreeze_pid(pid, cgroup_parent=cgroup_parent)
+            clear_manual_decision(control_dir, pid)
+            return ContainmentResult(
+                pid=pid, decision_ts=decision_ts, frozen_ts=None, freeze_latency_s=None,
+                bytes_at_risk=0, files_at_risk=0,
+                policy=RollbackPolicy.MANUAL, rolled_back=False, killed=True,
+                quarantine_path=str(fallback_dir), quarantined_files=0, quarantined_bytes=0,
+                rollback_available=False,
+                rollback_reason=rollback_reason or "Overlay rollback unavailable for this filesystem",
+            )
     raise ValueError(f"Unknown decision: {decision}")
 
 

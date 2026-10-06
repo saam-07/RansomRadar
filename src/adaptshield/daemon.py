@@ -23,6 +23,7 @@ from .response.containment_manager import (
     ensure_cgroup_ready, contain, RollbackPolicy,
     check_manual_decision, resolve_manual_decision,
 )
+from .response.protection import ProtectionManager
 from .logging.logger import get_logger, setup_logging
 from .logging.alert_logger import AlertLogger
 from .response.safety import SafetyRails
@@ -70,12 +71,21 @@ class AdaptShieldDaemon:
         self.use_risk_smoothing = use_risk_smoothing
         self.use_freeze = use_freeze
 
-        # 1. Tier-0 Watcher (attempt initialization with fallback for non-Linux / sandbox)
+        # 0. Overlay Protection Manager (manages per-path overlayfs layers and fallbacks)
+        self.protection = ProtectionManager(config=self.config)
         try:
-            self.tier0 = Tier0Watcher(watch_path, window_seconds=window_seconds)
+            self.protection.setup_all()
+        except Exception as e:
+            logger.debug("ProtectionManager setup_all note: %s", e)
+
+        # 1. Tier-0 Watcher (attempt initialization with fallback for non-Linux / sandbox)
+        watch_paths = self.config.watch.paths if (self.config and self.config.watch.paths) else [watch_path]
+        excludes = self.config.watch.excludes if (self.config and self.config.watch.excludes) else None
+        try:
+            self.tier0 = Tier0Watcher(watch_path=watch_paths, window_seconds=window_seconds, excludes=excludes)
             self.tier0_available = True
         except Exception as e:
-            logger.warning("Fanotify unavailable on %s (%s); running in mock/sandbox watcher mode.", watch_path, e)
+            logger.warning("Fanotify unavailable on %s (%s); running in mock/sandbox watcher mode.", watch_paths, e)
             self.tier0 = None
             self.tier0_available = False
 
@@ -255,11 +265,17 @@ class AdaptShieldDaemon:
                     self._contained_pids.add(pid)
                     continue
 
+                target = self.protection.get_target_for_path(self.watch_path) if hasattr(self, "protection") else None
+                rollback_available = target.rollback_available if target else True
+                rollback_reason = target.reason if target else None
+
                 result = contain(
                     pid, self.overlay_upperdir, self.overlay_workdir,
                     self.quarantine_dir, policy=self.rollback_policy,
                     control_dir=self.control_dir, evidence=row,
                     use_freeze=self.use_freeze,
+                    rollback_available=rollback_available,
+                    rollback_reason=rollback_reason,
                 )
                 self._contained_pids.add(pid)
                 if result.awaiting_manual_decision:

@@ -164,8 +164,14 @@
   - Implemented `StateManager` in `src/adaptshield/state.py`: atomic JSON state persistence (`/var/run/adaptshield/state.json`), startup crash recovery, dead-process cgroup cleanup, and automatic resolution timeout for operator decisions under manual policy.
   - Implemented `dry_run` containment mode in `daemon.py` and `containment_manager.py`.
   - Added comprehensive test suite `tests/test_agent_containment.py` (6 tests).
-- **Backend & ML Test Suites Passing (75/75 tests passed):**
-  - All 75 pytest tests passing across `tests/` (58 demo + 11 agent core + 6 containment tests).
+- **Prompt 13 (Overlay Protection and Multi-Path Watching):**
+  - Upgraded fanotify watching to multi-path (`Fanotify` and `Tier0Watcher`), supporting lists of watched paths and configurable excludes with automatic self-exclusion (agent PID excluded).
+  - Built `ProtectionManager` in `src/adaptshield/response/protection.py`: creates, mounts, and unmounts dedicated overlayfs layers for each path in `protect_paths`, saves persistent manifest, and remounts across reboots.
+  - Implemented non-destructive fallback: when overlayfs cannot be mounted (unsupported filesystem, unprivileged environment, or conflict), AdaptShield logs the reason, gracefully engages `fallback_quarantine_only` (quarantine-copy-on-detect + freeze/kill), and explicitly reports `"rollback unavailable"` in status.
+  - Documented kernel and filesystem limitations honestly in `docs/filesystem_limitations.md`.
+  - Added unit test suite `tests/test_agent_protection.py` (7 tests) using temporary directories and loopback mocks without touching real user data.
+- **Backend & ML Test Suites Passing (82/82 tests passed):**
+  - All 82 pytest tests passing across `tests/` (58 demo + 11 agent core + 6 containment + 7 protection tests).
 - **Frontend Test Suite Passing (19/19 tests passed):**
   - All 19 vitest tests passing across `frontend/src/test/`.
 - **Frontend Production Bundle:**
@@ -174,13 +180,15 @@
 ## Not Verified (Requires Linux Kernel / Root Privileges)
 - **Real Containment Execution (`RealResponse`):**
   - `RealResponse` wraps real cgroup freezer and overlay unmount commands. Verified in userspace with mocked filesystem tree and dry-run mode; real cgroup v2 freeze requires an Ubuntu VM with kernel >= 5.9 and root.
+- **Live Fanotify & OverlayFS Mounts (`ProtectionManager` / `Tier0Watcher`):**
+  - Tested in userspace with temporary directories and mocked loopback mount/unmount functions; real Linux fanotify and overlayfs attachment require `CAP_SYS_ADMIN` on Linux with kernel >= 5.9.
 - **Live Agent Telemetry Stream (`LiveAgentSource`):**
   - Requires live agent running on Linux writing to `/var/log/adaptshield/alert.jsonl`.
 - **Live Kernel eBPF Kprobe Attachment (`Tier1Tracer`):**
   - Tested graceful fallback to Tier-0-only mode in userspace; real BCC attachment requires Ubuntu VM with kernel >= 5.9 and root.
 
 ## Next
-- **Prompt 13:** Protection & Multi-Path Watching (`feat/agent-protection` branch).
+- **Prompt 14:** Agent main loop, modes, ML auto-selection, hot reload (`feat/agent-main` branch).
 
 ---
 
@@ -199,10 +207,11 @@
 | Prompt 10 | Demo Release & Packaging | `feat/demo-release` | **done** | Docker Compose orchestration, Makefile automation, CI suite, acceptance criteria audit, `v0.2.0-demo` tag |
 | Prompt 11 | Agent Packaging, Config, Logging | `feat/agent-core` | **done** | Reorganize into `src/` layout with `pyproject.toml`, YAML config system, structured rotating/journald logging, Tier-0 fallback |
 | Prompt 12 | Per-Process Containment & Rails | `feat/agent-containment` | **done** | Dedicated per-PID freezer cgroups, process allowlists, false-positive storm panic switch, persistent state recovery |
-| Prompt 13 | Protection & Multi-Path Watching | `feat/agent-protection` | not started | Multi-mount fanotify monitoring, automated overlayfs protection manager, non-destructive fallbacks |
+| Prompt 13 | Protection & Multi-Path Watching | `feat/agent-protection` | **done** | Multi-mount fanotify monitoring, automated overlayfs protection manager, non-destructive fallbacks |
 | Prompt 14 | Agent Daemon & ML Auto-Selection | `feat/agent-main` | not started | Agent main loop, signal handling (`SIGTERM`/`SIGHUP`), operating modes (`monitor`/`protect`/`learn`), synthetic guard |
 | Prompt 15 | AdaptShield Agent CLI | `feat/agent-cli` | not started | Unified `adaptshield` command-line utility (`status`, `doctor`, `run`, `alerts`, `release`, `confirm`, `simulate`) |
 | Prompt 16 | Installer & Systemd Service | `feat/agent-installer` | not started | Standalone `install.sh` / `uninstall.sh`, systemd service unit, preflight hardware/kernel verification |
 | Prompt 17 | Agent Release & Verification | `feat/agent-release` | not started | Comprehensive test suite, documentation rewrite, acceptance criteria audit, `v0.2.0` agent release tag |
+
 
 
