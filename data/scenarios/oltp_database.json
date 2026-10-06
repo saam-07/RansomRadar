@@ -1,0 +1,26 @@
+{
+  "id": "oltp_database",
+  "name": "OLTP Database",
+  "description": "High-concurrency transactional database workload generating continuous write-ahead log (WAL) commits and table page updates.",
+  "family": "oltp",
+  "variant": "oltp_postgres",
+  "expected_outcome": "no_containment",
+  "duration_windows": 25,
+  "window_seconds": 2.0,
+  "processes": [
+    {
+      "pid": 3012,
+      "name": "postgres_writer",
+      "role": "database_engine",
+      "behavior": "rapid_in_place_updates",
+      "escalation_expected": true
+    }
+  ],
+  "parameters": {
+    "mod_rate_mean": 35.0,
+    "rename_rate_mean": 0.2,
+    "create_del_rate_mean": 1.2,
+    "entropy_mean": 3.9,
+    "gini_mean": 0.22
+  }
+}

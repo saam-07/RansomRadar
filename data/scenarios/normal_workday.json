@@ -1,0 +1,33 @@
+{
+  "id": "normal_workday",
+  "name": "Normal Workday",
+  "description": "Standard developer and office workstation activity: text editing, git status, builds, and idle pauses.",
+  "family": "benign",
+  "variant": "office_worker",
+  "expected_outcome": "no_containment",
+  "duration_windows": 20,
+  "window_seconds": 2.0,
+  "processes": [
+    {
+      "pid": 1042,
+      "name": "code_editor",
+      "role": "benign_editor",
+      "behavior": "low_mod_sporadic",
+      "escalation_expected": false
+    },
+    {
+      "pid": 1088,
+      "name": "git_status",
+      "role": "benign_vcs",
+      "behavior": "read_heavy",
+      "escalation_expected": false
+    }
+  ],
+  "parameters": {
+    "mod_rate_mean": 3.5,
+    "rename_rate_mean": 0.4,
+    "create_del_rate_mean": 0.3,
+    "entropy_mean": 3.8,
+    "gini_mean": 0.18
+  }
+}

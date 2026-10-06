@@ -1,0 +1,26 @@
+{
+  "id": "nightly_backup",
+  "name": "Nightly Backup",
+  "description": "Legitimate high-throughput backup archive job scanning filesystem trees, compressing streams, and writing deduplicated chunk stores.",
+  "family": "backup",
+  "variant": "backup_restic",
+  "expected_outcome": "no_containment",
+  "duration_windows": 25,
+  "window_seconds": 2.0,
+  "processes": [
+    {
+      "pid": 2045,
+      "name": "restic",
+      "role": "legitimate_backup",
+      "behavior": "high_throughput_compressed_writes",
+      "escalation_expected": true
+    }
+  ],
+  "parameters": {
+    "mod_rate_mean": 48.0,
+    "rename_rate_mean": 0.8,
+    "create_del_rate_mean": 8.0,
+    "entropy_mean": 6.1,
+    "gini_mean": 0.28
+  }
+}

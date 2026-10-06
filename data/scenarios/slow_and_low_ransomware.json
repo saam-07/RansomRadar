@@ -1,0 +1,26 @@
+{
+  "id": "slow_and_low_ransomware",
+  "name": "Slow-and-Low Ransomware",
+  "description": "Stealthy ransomware pacing its encryption rate with deliberate sleep cycles to blend in below volume-based rate alerts.",
+  "family": "ransomware",
+  "variant": "slow_and_low",
+  "expected_outcome": "contained_and_rolled_back",
+  "duration_windows": 35,
+  "window_seconds": 2.0,
+  "processes": [
+    {
+      "pid": 5011,
+      "name": "stealth_crypt",
+      "role": "attacker",
+      "behavior": "low_rate_throttled_encryption",
+      "escalation_expected": true
+    }
+  ],
+  "parameters": {
+    "mod_rate_mean": 6.5,
+    "rename_rate_mean": 3.0,
+    "create_del_rate_mean": 0.8,
+    "entropy_mean": 7.4,
+    "gini_mean": 0.52
+  }
+}
