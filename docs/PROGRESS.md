@@ -139,8 +139,21 @@
   - `docs/demo/alerts_forensics.png`: Alerts log with risk levels, EWMA scores, and forensic evidence drawer displaying 11-feature snapshot and SHAP factor attribution.
   - `docs/demo/settings_rails.png`: System settings page with EWMA alpha tuning, risk thresholds (0.3/0.6/0.85), allowlist editor, and demo baseline reset.
   - `docs/demo/guided_demo.png`: Interactive 3-minute story mode modal with 5-step progress, narrative talking points, and automated action triggers.
+- **Prompt 10 (Demo Release & Packaging):**
+  - Configured rootless multi-service container orchestration with `Dockerfile.backend`, `Dockerfile.frontend`, `frontend/nginx.conf`, and `docker-compose.yml`.
+  - Added `.env.example` defining environment variable overrides (`PORT`, `VITE_API_URL`, etc.).
+  - Added Makefile automation targets: `help`, `data`, `train`, `test-backend`, `test-frontend`, `test`, `demo`, `docker-up`, `docker-down`, `clean`.
+  - Added GitHub Actions CI pipeline `.github/workflows/ci.yml` verifying linting, backend pytest, frontend vitest, and typecheck.
+  - Authored comprehensive architectural specification `docs/architecture.md` with Mermaid pipeline and state diagrams.
+  - Authored honest evasion and limitations report `docs/limitations.md`.
+  - Authored Section 10 Acceptance Criteria Audit report `docs/acceptance_report.md` (16 PASS, 2 NOT VERIFIED due to Linux sandbox constraints).
+  - Updated `README.md` with quickstart guides, architecture, limitations, and verification instructions.
 - **Backend & ML Test Suites Passing (58/58 tests passed):**
   - All 58 pytest tests passing across `tests/`.
+- **Frontend Test Suite Passing (19/19 tests passed):**
+  - All 19 vitest tests passing across `frontend/src/test/`.
+- **Frontend Production Bundle:**
+  - `npm --prefix frontend run build` bundles cleanly with 0 TypeScript/Vite errors.
 
 ## Not Verified (Requires Linux Kernel / Root Privileges)
 - **Real Containment Execution (`RealResponse`):**
@@ -149,7 +162,7 @@
   - Requires live agent running on Linux writing to `/var/log/adaptshield/alert.jsonl`.
 
 ## Next
-- **Prompt 10:** Demo Release & Packaging (`feat/demo-release` branch).
+- **Prompt 11:** Agent Packaging, Config, Logging (`feat/agent-core` branch).
 
 ---
 
@@ -165,7 +178,7 @@
 | Prompt 7 | Scenario Runner & Restoration Visual | `feat/scenarios` | **done** | Scenario runner page, live file encryption/rollback visualization, side-by-side detector comparison |
 | Prompt 8 | Datasets & Models UI | `feat/ml-ui` | **done** | Datasets explorer, model training and registry management, interactive 11-feature "Try it" predictor |
 | Prompt 9 | Forensics & Guided Demo | `feat/guided-demo` | **done** | Forensic investigation drawer, engine settings controls, automated 3-minute guided demo narrative |
-| Prompt 10 | Demo Release & Packaging | `feat/demo-release` | not started | Docker Compose orchestration, Makefile automation, CI suite, acceptance criteria audit, `v0.2.0-demo` tag |
+| Prompt 10 | Demo Release & Packaging | `feat/demo-release` | **done** | Docker Compose orchestration, Makefile automation, CI suite, acceptance criteria audit, `v0.2.0-demo` tag |
 | Prompt 11 | Agent Packaging, Config, Logging | `feat/agent-core` | not started | Reorganize into `src/` layout with `pyproject.toml`, YAML config system, structured rotating/journald logging, Tier-0 fallback |
 | Prompt 12 | Per-Process Containment & Rails | `feat/agent-containment` | not started | Dedicated per-PID freezer cgroups, process allowlists, false-positive storm panic switch, persistent state recovery |
 | Prompt 13 | Protection & Multi-Path Watching | `feat/agent-protection` | not started | Multi-mount fanotify monitoring, automated overlayfs protection manager, non-destructive fallbacks |

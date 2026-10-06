@@ -314,3 +314,28 @@ To avoid flooding browsers at high simulation speeds (e.g. 20x), messages are gr
 ```
 
 Clients can also send `{"type": "ping"}` and receive `{"type": "pong", "simulated": true}` for connection health checks.
+
+---
+
+## 8. Settings & Runtime Configuration
+
+### `GET /api/settings`
+Retrieves engine parameters ($\theta_0$, window size, EWMA $\alpha$, risk thresholds, allowlist, and policy).
+```bash
+curl -s http://localhost:8000/api/settings
+```
+
+### `POST /api/settings`
+Updates runtime parameters and immediately propagates them to active scorers and safety rails.
+```bash
+curl -X POST http://localhost:8000/api/settings \
+  -H "Content-Type: application/json" \
+  -d '{"ewma_alpha": 0.5, "critical_threshold": 0.80, "policy": "immediate"}'
+```
+
+### `POST /api/settings/reset`
+Resets all simulator files back to 300 intact files, clears active scenarios, resets panic storm switch, and reseeds initial demo run history.
+```bash
+curl -X POST http://localhost:8000/api/settings/reset
+```
+

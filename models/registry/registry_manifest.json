@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "total_models": 6,
+  "total_models": 7,
   "active_model": "xgboost",
   "models": [
     {
@@ -1152,6 +1152,462 @@
       "active": false
     },
     {
+      "name": "test_rf_job",
+      "classifier_type": "random_forest",
+      "feature_columns": [
+        "mod_rate",
+        "rename_rate",
+        "create_del_rate",
+        "event_count",
+        "concentration_gini",
+        "t1_write_rate",
+        "t1_mean_entropy",
+        "t1_entropy_std",
+        "t1_unlink_rate",
+        "t1_rename_rate",
+        "t1_mean_write_size"
+      ],
+      "schema_version": "1.0.0",
+      "data_source": "synthetic",
+      "metrics": {
+        "accuracy": 0.9633,
+        "precision": 0.9969,
+        "recall": 0.8806,
+        "f1": 0.9351,
+        "roc_auc": 0.9999,
+        "pr_auc": 0.9997,
+        "confusion_matrix": [
+          [
+            839,
+            1
+          ],
+          [
+            43,
+            317
+          ]
+        ],
+        "roc_curve": [
+          {
+            "x": 0.0,
+            "y": 0.0
+          },
+          {
+            "x": 0.0,
+            "y": 0.0028
+          },
+          {
+            "x": 0.0,
+            "y": 0.65
+          },
+          {
+            "x": 0.0,
+            "y": 0.7694
+          },
+          {
+            "x": 0.0,
+            "y": 0.8278
+          },
+          {
+            "x": 0.0,
+            "y": 0.8333
+          },
+          {
+            "x": 0.0,
+            "y": 0.8778
+          },
+          {
+            "x": 0.0,
+            "y": 0.8806
+          },
+          {
+            "x": 0.0012,
+            "y": 0.8806
+          },
+          {
+            "x": 0.0012,
+            "y": 0.9639
+          },
+          {
+            "x": 0.0012,
+            "y": 0.9972
+          },
+          {
+            "x": 0.0012,
+            "y": 1.0
+          },
+          {
+            "x": 0.0071,
+            "y": 1.0
+          },
+          {
+            "x": 0.0202,
+            "y": 1.0
+          },
+          {
+            "x": 0.0238,
+            "y": 1.0
+          },
+          {
+            "x": 0.025,
+            "y": 1.0
+          },
+          {
+            "x": 0.0286,
+            "y": 1.0
+          },
+          {
+            "x": 0.1333,
+            "y": 1.0
+          },
+          {
+            "x": 0.1369,
+            "y": 1.0
+          },
+          {
+            "x": 0.1381,
+            "y": 1.0
+          },
+          {
+            "x": 0.1762,
+            "y": 1.0
+          },
+          {
+            "x": 0.181,
+            "y": 1.0
+          },
+          {
+            "x": 0.1833,
+            "y": 1.0
+          },
+          {
+            "x": 0.2202,
+            "y": 1.0
+          },
+          {
+            "x": 0.225,
+            "y": 1.0
+          },
+          {
+            "x": 0.4536,
+            "y": 1.0
+          },
+          {
+            "x": 0.6643,
+            "y": 1.0
+          },
+          {
+            "x": 0.6857,
+            "y": 1.0
+          },
+          {
+            "x": 0.9643,
+            "y": 1.0
+          },
+          {
+            "x": 1.0,
+            "y": 1.0
+          }
+        ],
+        "pr_curve": [
+          {
+            "x": 1.0,
+            "y": 0.3
+          },
+          {
+            "x": 1.0,
+            "y": 0.3028
+          },
+          {
+            "x": 1.0,
+            "y": 0.3077
+          },
+          {
+            "x": 1.0,
+            "y": 0.3846
+          },
+          {
+            "x": 1.0,
+            "y": 0.3883
+          },
+          {
+            "x": 1.0,
+            "y": 0.3922
+          },
+          {
+            "x": 1.0,
+            "y": 0.6557
+          },
+          {
+            "x": 1.0,
+            "y": 0.6606
+          },
+          {
+            "x": 1.0,
+            "y": 0.7004
+          },
+          {
+            "x": 1.0,
+            "y": 0.7018
+          },
+          {
+            "x": 1.0,
+            "y": 0.7031
+          },
+          {
+            "x": 1.0,
+            "y": 0.7087
+          },
+          {
+            "x": 1.0,
+            "y": 0.7563
+          },
+          {
+            "x": 1.0,
+            "y": 0.7579
+          },
+          {
+            "x": 1.0,
+            "y": 0.7627
+          },
+          {
+            "x": 1.0,
+            "y": 0.9375
+          },
+          {
+            "x": 1.0,
+            "y": 0.9449
+          },
+          {
+            "x": 1.0,
+            "y": 0.9474
+          },
+          {
+            "x": 1.0,
+            "y": 0.9836
+          },
+          {
+            "x": 1.0,
+            "y": 0.9972
+          },
+          {
+            "x": 0.9972,
+            "y": 0.9972
+          },
+          {
+            "x": 0.9667,
+            "y": 0.9971
+          },
+          {
+            "x": 0.9639,
+            "y": 0.9971
+          },
+          {
+            "x": 0.8806,
+            "y": 0.9969
+          },
+          {
+            "x": 0.8778,
+            "y": 1.0
+          },
+          {
+            "x": 0.8333,
+            "y": 1.0
+          },
+          {
+            "x": 0.8278,
+            "y": 1.0
+          },
+          {
+            "x": 0.7694,
+            "y": 1.0
+          },
+          {
+            "x": 0.65,
+            "y": 1.0
+          },
+          {
+            "x": 0.0,
+            "y": 1.0
+          }
+        ],
+        "class_report": {
+          "benign": {
+            "count": 360,
+            "flagged_as_ransomware_rate": 0.0,
+            "mean_probability": 0.0664
+          },
+          "backup": {
+            "count": 240,
+            "flagged_as_ransomware_rate": 0.0042,
+            "mean_probability": 0.0364
+          },
+          "oltp": {
+            "count": 240,
+            "flagged_as_ransomware_rate": 0.0,
+            "mean_probability": 0.0181
+          },
+          "ransomware": {
+            "count": 360,
+            "flagged_as_ransomware_rate": 0.8806,
+            "mean_probability": 0.8944
+          }
+        },
+        "scenario_breakdown": {
+          "fast_ransomware": {
+            "count": 195,
+            "detection_rate": 1.0,
+            "mean_probability": 0.9611
+          },
+          "intermittent_ransomware": {
+            "count": 90,
+            "detection_rate": 0.5333,
+            "mean_probability": 0.7144
+          },
+          "nightly_backup": {
+            "count": 240,
+            "detection_rate": 0.0042,
+            "mean_probability": 0.0364
+          },
+          "normal_workday": {
+            "count": 360,
+            "detection_rate": 0.0,
+            "mean_probability": 0.0664
+          },
+          "oltp_database": {
+            "count": 240,
+            "detection_rate": 0.0,
+            "mean_probability": 0.0181
+          },
+          "partial_encryption": {
+            "count": 75,
+            "detection_rate": 0.9867,
+            "mean_probability": 0.937
+          }
+        },
+        "feature_importances": [
+          {
+            "feature": "t1_mean_entropy",
+            "importance": 0.2143
+          },
+          {
+            "feature": "rename_rate",
+            "importance": 0.1426
+          },
+          {
+            "feature": "t1_rename_rate",
+            "importance": 0.1261
+          },
+          {
+            "feature": "event_count",
+            "importance": 0.1152
+          },
+          {
+            "feature": "create_del_rate",
+            "importance": 0.1023
+          },
+          {
+            "feature": "t1_entropy_std",
+            "importance": 0.0627
+          },
+          {
+            "feature": "mod_rate",
+            "importance": 0.059
+          },
+          {
+            "feature": "t1_write_rate",
+            "importance": 0.0547
+          },
+          {
+            "feature": "concentration_gini",
+            "importance": 0.0528
+          },
+          {
+            "feature": "t1_unlink_rate",
+            "importance": 0.0438
+          },
+          {
+            "feature": "t1_mean_write_size",
+            "importance": 0.0265
+          }
+        ],
+        "false_positives_per_hour": 2.14,
+        "risk_scorer_replay": {
+          "benign": {
+            "containment_rate": 0.0,
+            "contained_count": 0,
+            "total_simulated": 50,
+            "mean_windows_to_detect": null
+          },
+          "backup": {
+            "containment_rate": 0.0,
+            "contained_count": 0,
+            "total_simulated": 50,
+            "mean_windows_to_detect": null
+          },
+          "oltp": {
+            "containment_rate": 0.0,
+            "contained_count": 0,
+            "total_simulated": 50,
+            "mean_windows_to_detect": null
+          },
+          "ransomware": {
+            "containment_rate": 1.0,
+            "contained_count": 50,
+            "total_simulated": 50,
+            "mean_windows_to_detect": 6.98
+          }
+        },
+        "hard_test": {
+          "accuracy": 0.6733,
+          "precision": 1.0,
+          "recall": 0.3467,
+          "f1": 0.5149,
+          "roc_auc": 0.8681,
+          "confusion_matrix": [
+            [
+              900,
+              0
+            ],
+            [
+              588,
+              312
+            ]
+          ],
+          "risk_scorer_replay": {
+            "benign": {
+              "containment_rate": 0.0,
+              "contained_count": 0,
+              "total_simulated": 50,
+              "mean_windows_to_detect": null
+            },
+            "backup": {
+              "containment_rate": 0.0,
+              "contained_count": 0,
+              "total_simulated": 50,
+              "mean_windows_to_detect": null
+            },
+            "oltp": {
+              "containment_rate": 0.0,
+              "contained_count": 0,
+              "total_simulated": 50,
+              "mean_windows_to_detect": null
+            },
+            "ransomware": {
+              "containment_rate": 0.0,
+              "contained_count": 0,
+              "total_simulated": 50,
+              "mean_windows_to_detect": null
+            }
+          }
+        }
+      },
+      "seed": 42,
+      "git_commit": "759d792c27355adae4d0f5ef08842f52679dc00e",
+      "sha256": "af7177b8b9bd8fd6f03b093a3c9fed99d0a23bebb2600bc38323b3412477a03e",
+      "trained_at": "2026-10-06T14:55:07.051825+00:00",
+      "active": false
+    },
+    {
       "name": "xgboost",
       "classifier_type": "xgboost",
       "feature_columns": [
@@ -1608,5 +2064,5 @@
       "active": true
     }
   ],
-  "updated_at": "2026-10-06T10:35:06.759457+00:00"
+  "updated_at": "2026-10-06T14:55:07.075916+00:00"
 }
