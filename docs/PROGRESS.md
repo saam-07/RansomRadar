@@ -177,8 +177,13 @@
   - Built size-rotating telemetry writer in `src/adaptshield/telemetry.py` recording feature rows and containment actions under `/var/lib/adaptshield/telemetry/`.
   - Built forensic alert explanations module in `src/adaptshield/ml/explain.py` for heuristic and tree-based alerts.
   - Implemented unit test suite `tests/test_agent_main.py` (6 tests).
-- **Backend & ML Test Suites Passing (88/88 tests passed):**
-  - All 88 pytest tests passing across `tests/` (58 demo + 11 agent core + 6 containment + 7 protection + 6 agent main loop tests).
+- **Prompt 15 (The `adaptshield` Unified CLI):**
+  - Built unified CLI utility in `src/adaptshield/cli.py` exposing 16 subcommands: `status`, `doctor`, `run` (`--dry-run`), `alerts` (`--follow`, `--since`, `--json`), `list`, `show <pid>`, `release <pid>`, `confirm <pid>`, `mode [monitor|protect|learn]`, `config [check|show|edit]`, `allowlist [list|add|remove]`, `model [list|info|set|reload|rollback]`, `train`, `evaluate`, `simulate [benign|ransomware]`, `version`.
+  - Implemented thorough preflight diagnostic checks in `adaptshield doctor` (OS platform, cgroup v2, freezer controller, fanotify subsystem, BCC/eBPF, root privileges, active model compatibility).
+  - Maintained backward compatibility shim in `containment_cli.py` delegating to `adaptshield.cli`.
+  - Implemented unit test suite `tests/test_agent_cli.py` (9 tests) verifying CLI parsing, outputs, and subcommands.
+- **Backend & ML Test Suites Passing (97/97 tests passed):**
+  - All 97 pytest tests passing across `tests/` (58 demo + 11 agent core + 6 containment + 7 protection + 6 agent main loop + 9 CLI tests).
 - **Frontend Test Suite Passing (19/19 tests passed):**
   - All 19 vitest tests passing across `frontend/src/test/`.
 - **Frontend Production Bundle:**
@@ -195,7 +200,7 @@
   - Tested graceful fallback to Tier-0-only mode in userspace; real BCC attachment requires Ubuntu VM with kernel >= 5.9 and root.
 
 ## Next
-- **Prompt 15:** The `adaptshield` CLI (`feat/agent-cli` branch).
+- **Prompt 16:** Standalone Installer & Systemd Service Unit (`feat/agent-installer` branch).
 
 ---
 
@@ -216,7 +221,7 @@
 | Prompt 12 | Per-Process Containment & Rails | `feat/agent-containment` | **done** | Dedicated per-PID freezer cgroups, process allowlists, false-positive storm panic switch, persistent state recovery |
 | Prompt 13 | Protection & Multi-Path Watching | `feat/agent-protection` | **done** | Multi-mount fanotify monitoring, automated overlayfs protection manager, non-destructive fallbacks |
 | Prompt 14 | Agent Daemon & ML Auto-Selection | `feat/agent-main` | **done** | Agent main loop, signal handling (`SIGTERM`/`SIGHUP`), operating modes (`monitor`/`protect`/`learn`), synthetic guard |
-| Prompt 15 | AdaptShield Agent CLI | `feat/agent-cli` | not started | Unified `adaptshield` command-line utility (`status`, `doctor`, `run`, `alerts`, `release`, `confirm`, `simulate`) |
+| Prompt 15 | AdaptShield Agent CLI | `feat/agent-cli` | **done** | Unified `adaptshield` command-line utility (`status`, `doctor`, `run`, `alerts`, `release`, `confirm`, `simulate`) |
 | Prompt 16 | Installer & Systemd Service | `feat/agent-installer` | not started | Standalone `install.sh` / `uninstall.sh`, systemd service unit, preflight hardware/kernel verification |
 | Prompt 17 | Agent Release & Verification | `feat/agent-release` | not started | Comprehensive test suite, documentation rewrite, acceptance criteria audit, `v0.2.0` agent release tag |
 
