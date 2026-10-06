@@ -308,14 +308,36 @@ def cmd_release(args):
     state_file = Path(ctrl_dir).parent / "state.json"
     state_mgr = StateManager(state_file)
 
-    # Thaw per-PID cgroup
-    unfreeze_pid(args.pid)
-    # Clear decision file
-    clear_manual_decision(ctrl_dir, args.pid)
-    # Record state resolution
-    state_mgr.record_resolution(args.pid, "release")
+    if getattr(args, "all", False) or str(args.pid).lower() == "all" or args.pid is None:
+        active_pids = [r.pid for r in state_mgr.records.values() if r.status in ("frozen", "awaiting_manual")]
+        cgroup_root = Path("/sys/fs/cgroup/adaptshield")
+        if cgroup_root.exists():
+            for p in cgroup_root.glob("proc_*"):
+                try:
+                    c_pid = int(p.name.replace("proc_", ""))
+                    if c_pid not in active_pids:
+                        active_pids.append(c_pid)
+                except ValueError:
+                    pass
+        if not active_pids:
+            print("No frozen processes found to release.")
+            return
+        for p in active_pids:
+            unfreeze_pid(p)
+            clear_manual_decision(ctrl_dir, p)
+            state_mgr.record_resolution(p, "release")
+            print(f"Released and thawed PID {p}.")
+        return
 
-    print(f"Successfully released and thawed PID {args.pid} (marked false positive).")
+    pid = int(args.pid)
+    # Thaw per-PID cgroup
+    unfreeze_pid(pid)
+    # Clear decision file
+    clear_manual_decision(ctrl_dir, pid)
+    # Record state resolution
+    state_mgr.record_resolution(pid, "release")
+
+    print(f"Successfully released and thawed PID {pid} (marked false positive).")
 
 
 def cmd_confirm(args):
@@ -601,7 +623,8 @@ def main():
     p_show = sub.add_parser("show")
     p_show.add_argument("pid", type=int, help="Target process PID")
     p_rel = sub.add_parser("release")
-    p_rel.add_argument("pid", type=int, help="PID to thaw and mark false-positive")
+    p_rel.add_argument("pid", nargs="?", default=None, help="PID to thaw and mark false-positive, or omit with --all")
+    p_rel.add_argument("--all", action="store_true", help="Release and thaw all currently frozen processes")
     p_conf = sub.add_parser("confirm")
     p_conf.add_argument("pid", type=int, help="PID to confirm as ransomware and quarantine")
 

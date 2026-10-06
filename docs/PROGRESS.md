@@ -198,9 +198,11 @@
   - Requires live agent running on Linux writing to `/var/log/adaptshield/alert.jsonl`.
 - **Live Kernel eBPF Kprobe Attachment (`Tier1Tracer`):**
   - Tested graceful fallback to Tier-0-only mode in userspace; real BCC attachment requires Ubuntu VM with kernel >= 5.9 and root.
+- **Production Installer on Live Linux Host (`install.sh` / `systemd`):**
+  - Tested in userspace with cross-platform pytest suite and mocked filesystem paths; live APT package installation, systemd enablement, and reboot tests require a fresh Ubuntu 22.04/24.04 VM (checklist documented in `docs/installer_verification.md`).
 
 ## Next
-- **Prompt 16:** Standalone Installer & Systemd Service Unit (`feat/agent-installer` branch).
+- **Prompt 17:** Agent Release, Comprehensive Tests, CI, Docs, Acceptance Criteria (`feat/agent-release` branch).
 
 ---
 
@@ -222,8 +224,9 @@
 | Prompt 13 | Protection & Multi-Path Watching | `feat/agent-protection` | **done** | Multi-mount fanotify monitoring, automated overlayfs protection manager, non-destructive fallbacks |
 | Prompt 14 | Agent Daemon & ML Auto-Selection | `feat/agent-main` | **done** | Agent main loop, signal handling (`SIGTERM`/`SIGHUP`), operating modes (`monitor`/`protect`/`learn`), synthetic guard |
 | Prompt 15 | AdaptShield Agent CLI | `feat/agent-cli` | **done** | Unified `adaptshield` command-line utility (`status`, `doctor`, `run`, `alerts`, `release`, `confirm`, `simulate`) |
-| Prompt 16 | Installer & Systemd Service | `feat/agent-installer` | not started | Standalone `install.sh` / `uninstall.sh`, systemd service unit, preflight hardware/kernel verification |
+| Prompt 16 | Installer & Systemd Service | `feat/agent-installer` | **done** | Standalone `install.sh` / `uninstall.sh`, systemd service unit, preflight hardware/kernel verification, deb builder |
 | Prompt 17 | Agent Release & Verification | `feat/agent-release` | not started | Comprehensive test suite, documentation rewrite, acceptance criteria audit, `v0.2.0` agent release tag |
+
 
 
 

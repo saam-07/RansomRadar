@@ -151,3 +151,27 @@ def test_cli_simulate_benign():
     with tempfile.TemporaryDirectory() as tmp_dir:
         out = run_cli_args("simulate", "benign", "--target", tmp_dir)
         assert "Benign simulation finished" in out
+
+
+def test_cli_release_all():
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        state_file = Path(tmp_dir) / "state.json"
+        ctrl_dir = Path(tmp_dir) / "control"
+        ctrl_dir.mkdir(parents=True, exist_ok=True)
+
+        mgr = StateManager(state_file)
+        mgr.record_containment(pid=1111, policy="manual", status="awaiting_manual", evidence={})
+        mgr.record_containment(pid=2222, policy="manual", status="awaiting_manual", evidence={})
+
+        conf_file = Path(tmp_dir) / "config.yaml"
+        conf_file.write_text(yaml.safe_dump({
+            "response": {"control_dir": str(ctrl_dir), "quarantine_dir": str(tmp_dir)}
+        }))
+
+        out = run_cli_args("-c", str(conf_file), "release", "--all")
+        assert "Released and thawed PID 1111" in out
+        assert "Released and thawed PID 2222" in out
+
+        # Now list should be empty
+        out_list = run_cli_args("-c", str(conf_file), "list")
+        assert "No contained or pending processes found." in out_list
