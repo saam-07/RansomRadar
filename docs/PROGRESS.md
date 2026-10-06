@@ -130,11 +130,15 @@
   - `src/test/dashboard.test.tsx` (4/4 passed)
   - `src/test/scenarios.test.tsx` (6/6 passed)
   - `src/test/ml_ui.test.tsx` (4/4 passed)
+  - `src/test/forensics_and_settings.test.tsx` (5/5 passed)
 - **Playwright E2E Smoke Test Passing (1/1 test passed):**
   - `frontend/e2e/scenario_smoke.spec.ts`: loads application, navigates to Scenario Runner, triggers `Fast Ransomware Outbreak`, asserts containment (`OVERLAY FROZEN` / `Locked` / `Restored`), captures `docs/demo/filesystem_rollback.png`, navigates to Detector Comparison, executes side-by-side benchmark, asserts comparative table, and captures `docs/demo/detector_comparison.png`.
 - **UI Screenshots Verified:**
   - `docs/demo/datasets_explorer.png`: Datasets explorer with train/val/test/hard_test split cards, class balance breakdown, feature schema specification, and rendered Dataset Card.
   - `docs/demo/models_studio.png`: Model registry table with active status, evaluation curves, hard test degradation alert, and interactive 11-feature "Try it" predictor with presets.
+  - `docs/demo/alerts_forensics.png`: Alerts log with risk levels, EWMA scores, and forensic evidence drawer displaying 11-feature snapshot and SHAP factor attribution.
+  - `docs/demo/settings_rails.png`: System settings page with EWMA alpha tuning, risk thresholds (0.3/0.6/0.85), allowlist editor, and demo baseline reset.
+  - `docs/demo/guided_demo.png`: Interactive 3-minute story mode modal with 5-step progress, narrative talking points, and automated action triggers.
 - **Backend & ML Test Suites Passing (58/58 tests passed):**
   - All 58 pytest tests passing across `tests/`.
 
@@ -145,7 +149,7 @@
   - Requires live agent running on Linux writing to `/var/log/adaptshield/alert.jsonl`.
 
 ## Next
-- **Prompt 9:** Alerts and forensics, settings, Guided Demo (`feat/guided-demo` branch).
+- **Prompt 10:** Demo Release & Packaging (`feat/demo-release` branch).
 
 ---
 
@@ -160,7 +164,7 @@
 | Prompt 6 | Frontend Foundation & Dashboard | `feat/dashboard` | **done** | Vite + React + TS UI, Tailwind CSS, live dashboard, process table, risk timeline, alert drawer |
 | Prompt 7 | Scenario Runner & Restoration Visual | `feat/scenarios` | **done** | Scenario runner page, live file encryption/rollback visualization, side-by-side detector comparison |
 | Prompt 8 | Datasets & Models UI | `feat/ml-ui` | **done** | Datasets explorer, model training and registry management, interactive 11-feature "Try it" predictor |
-| Prompt 9 | Forensics & Guided Demo | `feat/guided-demo` | in progress | Forensic investigation drawer, engine settings controls, automated 3-minute guided demo narrative |
+| Prompt 9 | Forensics & Guided Demo | `feat/guided-demo` | **done** | Forensic investigation drawer, engine settings controls, automated 3-minute guided demo narrative |
 | Prompt 10 | Demo Release & Packaging | `feat/demo-release` | not started | Docker Compose orchestration, Makefile automation, CI suite, acceptance criteria audit, `v0.2.0-demo` tag |
 | Prompt 11 | Agent Packaging, Config, Logging | `feat/agent-core` | not started | Reorganize into `src/` layout with `pyproject.toml`, YAML config system, structured rotating/journald logging, Tier-0 fallback |
 | Prompt 12 | Per-Process Containment & Rails | `feat/agent-containment` | not started | Dedicated per-PID freezer cgroups, process allowlists, false-positive storm panic switch, persistent state recovery |

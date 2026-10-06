@@ -1,4 +1,4 @@
-import { Shield, Radio, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Shield, Radio, AlertTriangle, RefreshCw, Sparkles } from 'lucide-react';
 import { SystemStatus } from '../../types/api';
 
 interface NavbarProps {
@@ -6,6 +6,7 @@ interface NavbarProps {
   wsConnected: boolean;
   onPolicyChange?: (policy: string) => void;
   onResetStorm?: () => void;
+  onOpenGuidedDemo?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -13,10 +14,11 @@ export const Navbar: React.FC<NavbarProps> = ({
   wsConnected,
   onPolicyChange,
   onResetStorm,
+  onOpenGuidedDemo,
 }) => {
   return (
     <header className="h-16 border-b border-slate-800 bg-[#0d1527]/90 backdrop-blur-md px-6 flex items-center justify-between sticky top-0 z-40">
-      {/* Left: Brand & Simulated Badge */}
+      {/* Left: Brand, Simulated Badge, & Guided Demo trigger */}
       <div className="flex items-center space-x-4">
         <div className="flex items-center space-x-2 text-blue-500 font-bold text-lg tracking-wider">
           <Shield className="w-6 h-6 text-blue-400" />
@@ -32,6 +34,17 @@ export const Navbar: React.FC<NavbarProps> = ({
           <AlertTriangle className="w-3.5 h-3.5" />
           <span>SIMULATED DEMO DATA</span>
         </div>
+
+        {/* Guided Demo Button */}
+        {onOpenGuidedDemo && (
+          <button
+            onClick={onOpenGuidedDemo}
+            className="flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-purple-600/20 text-purple-300 border border-purple-500/40 hover:bg-purple-600/30 transition-colors shadow-sm shadow-purple-900/20"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-purple-400 animate-spin" />
+            <span>Guided Demo (3 Min)</span>
+          </button>
+        )}
       </div>
 
       {/* Right: Runtime State, Model, Policy & Stream Status */}

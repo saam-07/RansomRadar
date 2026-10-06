@@ -83,6 +83,16 @@ class SystemStateManager:
         self.mode = settings.pipeline.default_mode  # simulated | live
         self.policy = settings.pipeline.default_policy  # immediate | manual | none
 
+        # Configurable engine settings
+        self.theta0: float = 0.5
+        self.window_duration: float = 2.0
+        self.ewma_alpha: float = settings.pipeline.ewma_alpha
+        self.watch_threshold: float = 0.3
+        self.suspect_threshold: float = 0.6
+        self.critical_threshold: float = 0.85
+        self.critical_confirm_windows: int = settings.pipeline.critical_confirm_windows
+        self.auto_resolve_timeout: float = 10.0
+
         # Active processes tracked in memory
         self.active_processes: Dict[int, Dict[str, Any]] = {}
         self._lock = threading.Lock()
@@ -402,6 +412,84 @@ class SystemStateManager:
             "simulated": True,
         })
         return result
+
+    # --- Settings & Demo State Management ---
+
+    def get_settings(self) -> Dict[str, Any]:
+        return {
+            "theta0": self.theta0,
+            "window": self.window_duration,
+            "ewma_alpha": self.ewma_alpha,
+            "watch_threshold": self.watch_threshold,
+            "suspect_threshold": self.suspect_threshold,
+            "critical_threshold": self.critical_threshold,
+            "critical_confirm_windows": self.critical_confirm_windows,
+            "policy": self.policy,
+            "auto_resolve_timeout": self.auto_resolve_timeout,
+            "allowlist": sorted(list(self.safety_rails.allowlisted_names)),
+            "panic_storm_threshold": self.safety_rails.panic_distinct_pids,
+            "mode": self.mode,
+            "simulated": True,
+        }
+
+    def update_settings(self, updates: Dict[str, Any]) -> Dict[str, Any]:
+        if "theta0" in updates and updates["theta0"] is not None:
+            self.theta0 = float(updates["theta0"])
+        if "window" in updates and updates["window"] is not None:
+            self.window_duration = float(updates["window"])
+        if "ewma_alpha" in updates and updates["ewma_alpha"] is not None:
+            self.ewma_alpha = float(updates["ewma_alpha"])
+        if "watch_threshold" in updates and updates["watch_threshold"] is not None:
+            self.watch_threshold = float(updates["watch_threshold"])
+        if "suspect_threshold" in updates and updates["suspect_threshold"] is not None:
+            self.suspect_threshold = float(updates["suspect_threshold"])
+        if "critical_threshold" in updates and updates["critical_threshold"] is not None:
+            self.critical_threshold = float(updates["critical_threshold"])
+        if "critical_confirm_windows" in updates and updates["critical_confirm_windows"] is not None:
+            self.critical_confirm_windows = int(updates["critical_confirm_windows"])
+        if "auto_resolve_timeout" in updates and updates["auto_resolve_timeout"] is not None:
+            self.auto_resolve_timeout = float(updates["auto_resolve_timeout"])
+        if "policy" in updates and updates["policy"] is not None:
+            self.set_policy(updates["policy"])
+        if "mode" in updates and updates["mode"] is not None:
+            self.mode = updates["mode"]
+        if "allowlist" in updates and updates["allowlist"] is not None:
+            self.safety_rails.allowlisted_names = {name.lower().strip() for name in updates["allowlist"]}
+        if "panic_storm_threshold" in updates and updates["panic_storm_threshold"] is not None:
+            self.safety_rails.panic_distinct_pids = int(updates["panic_storm_threshold"])
+
+        # Propagate settings to active scorers
+        for scorer in self.pipeline.scorers.values():
+            scorer.alpha = self.ewma_alpha
+            scorer.watch_threshold = self.watch_threshold
+            scorer.suspect_threshold = self.suspect_threshold
+            scorer.critical_threshold = self.critical_threshold
+            scorer.critical_confirm_windows = self.critical_confirm_windows
+
+        return self.get_settings()
+
+    def reset_demo_state(self) -> Dict[str, Any]:
+        """Resets all simulation and demo state back to baseline seed."""
+        self.stop_scenario()
+        with self._lock:
+            self.active_processes.clear()
+
+        # Reset response engine and filesystem
+        self.response_engine = SimulatedResponse(default_policy=self.policy)
+        self.pipeline.response_engine = self.response_engine
+        self.pipeline.scorers.clear()
+
+        # Reset safety rails
+        self.safety_rails.reset_storm_state()
+        self.safety_rails.containment_timestamps.clear()
+        self.safety_rails.critical_events.clear()
+
+        # Re-seed baseline database records
+        from backend.app.db.seed import seed_demo_data
+        seed_demo_data(force=True)
+
+        self.bus.publish("demo_reset", {"message": "Demo state reset to clean baseline", "simulated": True})
+        return {"success": True, "message": "Demo state successfully reset to initial baseline", "simulated": True}
 
     # --- Background Model Training ---
 

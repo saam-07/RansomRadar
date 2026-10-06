@@ -7,7 +7,9 @@ import { ScenarioRunnerPage } from './pages/ScenarioRunnerPage';
 import { DetectorComparisonPage } from './pages/DetectorComparisonPage';
 import { DatasetsPage } from './pages/DatasetsPage';
 import { ModelsPage } from './pages/ModelsPage';
-import { StubPage } from './pages/StubPage';
+import { AlertsPage } from './pages/AlertsPage';
+import { SettingsPage } from './pages/SettingsPage';
+import { GuidedDemoModal } from './components/demo/GuidedDemoModal';
 import { api } from './api/client';
 import { SystemStatus, WebSocketEvent } from './types/api';
 import { useWebSocket } from './hooks/useWebSocket';
@@ -25,6 +27,7 @@ export function AppContent() {
   const [currentTab, setCurrentTab] = useState<NavTab>('dashboard');
   const [status, setStatus] = useState<SystemStatus | null>(null);
   const [wsEvents, setWsEvents] = useState<WebSocketEvent[]>([]);
+  const [isGuidedDemoOpen, setIsGuidedDemoOpen] = useState<boolean>(false);
 
   // Fetch system status
   const fetchStatus = useCallback(async () => {
@@ -75,6 +78,7 @@ export function AppContent() {
         wsConnected={isConnected}
         onPolicyChange={handlePolicyChange}
         onResetStorm={handleResetStorm}
+        onOpenGuidedDemo={() => setIsGuidedDemoOpen(true)}
       />
 
       <div className="flex flex-1 overflow-hidden">
@@ -111,20 +115,25 @@ export function AppContent() {
           )}
 
           {currentTab === 'alerts' && (
-            <StubPage
-              title="Forensics & Investigation Hub"
-              description="Comprehensive historical alert records, forensic tree feature contribution graphs, and incident containment logs."
-            />
+            <AlertsPage />
           )}
 
           {currentTab === 'settings' && (
-            <StubPage
-              title="Engine Configuration & Safety Controls"
-              description="Tune EWMA alpha smoothing, risk thresholds (0.3/0.6/0.85), process allowlists, and false-positive storm parameters."
-            />
+            <SettingsPage />
           )}
         </main>
       </div>
+
+      {/* 3-Minute Guided Demo Story Mode Modal */}
+      <GuidedDemoModal
+        isOpen={isGuidedDemoOpen}
+        onClose={() => setIsGuidedDemoOpen(false)}
+        onNavigate={(page) => {
+          if (['dashboard', 'scenarios', 'comparison', 'datasets', 'models', 'alerts', 'settings'].includes(page)) {
+            setCurrentTab(page as NavTab);
+          }
+        }}
+      />
     </div>
   );
 }

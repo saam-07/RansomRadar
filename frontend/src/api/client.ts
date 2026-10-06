@@ -120,4 +120,17 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ features }),
     }),
+
+  // Settings & Demo State
+  getSettings: () => fetchJson('/settings'),
+  updateSettings: (params: Record<string, any>) =>
+    fetchJson('/settings', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    }),
+  resetDemoState: () =>
+    fetchJson('/settings/reset', {
+      method: 'POST',
+    }),
 };
+
