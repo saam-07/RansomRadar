@@ -19,6 +19,8 @@ from .response.containment_manager import (
     unfreeze_pid,
     kill_pid,
 )
+from .response.safety import SafetyRails
+from .state import StateManager
 from .logging.logger import setup_logging, get_logger
 from .logging.alert_logger import AlertLogger
 from .ml.registry import ModelRegistry
@@ -53,4 +55,6 @@ __all__ = [
     "AlertLogger",
     "ModelRegistry",
     "build_classifier",
+    "SafetyRails",
+    "StateManager",
 ]

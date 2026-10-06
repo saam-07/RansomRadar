@@ -157,8 +157,15 @@
   - Made Tier-1/eBPF optional with automatic runtime graceful degradation to Tier-0-only mode when BCC or kernel headers are missing.
   - Added CLI utility (`adaptshield version`, `adaptshield status`, `adaptshield doctor`).
   - Added unit test suites `tests/test_agent_config.py` and `tests/test_agent_tier0_fallback.py`.
-- **Backend & ML Test Suites Passing (69/69 tests passed):**
-  - All 69 pytest tests passing across `tests/` (58 existing + 11 new agent core tests).
+- **Prompt 12 (Per-Process Containment, Safety Rails, State Recovery):**
+  - Replaced the single shared freezer cgroup with dedicated per-PID cgroups (`/sys/fs/cgroup/adaptshield/pid_<pid>`) in `src/adaptshield/response/containment_manager.py`.
+  - Added independent per-PID containment and release (regression tested: containing two PIDs and releasing one keeps the other frozen).
+  - Implemented `SafetyRails` in `src/adaptshield/response/safety.py`: PID 1 immunity, kernel thread immunity (`/proc/<pid>/cmdline` check), agent self/parent/children immunity, system critical process protection (`systemd*`, `sshd`, `dbus`, `login`, etc.), allowlist configuration (process names, executable paths, users), rate limiting (max 10 containments/min), and false-positive storm panic switch (automatically trips to `monitor` mode if >5 containments within 30s).
+  - Implemented `StateManager` in `src/adaptshield/state.py`: atomic JSON state persistence (`/var/run/adaptshield/state.json`), startup crash recovery, dead-process cgroup cleanup, and automatic resolution timeout for operator decisions under manual policy.
+  - Implemented `dry_run` containment mode in `daemon.py` and `containment_manager.py`.
+  - Added comprehensive test suite `tests/test_agent_containment.py` (6 tests).
+- **Backend & ML Test Suites Passing (75/75 tests passed):**
+  - All 75 pytest tests passing across `tests/` (58 demo + 11 agent core + 6 containment tests).
 - **Frontend Test Suite Passing (19/19 tests passed):**
   - All 19 vitest tests passing across `frontend/src/test/`.
 - **Frontend Production Bundle:**
@@ -166,14 +173,14 @@
 
 ## Not Verified (Requires Linux Kernel / Root Privileges)
 - **Real Containment Execution (`RealResponse`):**
-  - `RealResponse` wraps real cgroup freezer and overlay unmount commands. Verified in userspace via `SimulatedResponse`; real execution requires an Ubuntu VM with root.
+  - `RealResponse` wraps real cgroup freezer and overlay unmount commands. Verified in userspace with mocked filesystem tree and dry-run mode; real cgroup v2 freeze requires an Ubuntu VM with kernel >= 5.9 and root.
 - **Live Agent Telemetry Stream (`LiveAgentSource`):**
   - Requires live agent running on Linux writing to `/var/log/adaptshield/alert.jsonl`.
 - **Live Kernel eBPF Kprobe Attachment (`Tier1Tracer`):**
   - Tested graceful fallback to Tier-0-only mode in userspace; real BCC attachment requires Ubuntu VM with kernel >= 5.9 and root.
 
 ## Next
-- **Prompt 12:** Per-Process Containment & Rails (`feat/agent-containment` branch).
+- **Prompt 13:** Protection & Multi-Path Watching (`feat/agent-protection` branch).
 
 ---
 
@@ -191,10 +198,11 @@
 | Prompt 9 | Forensics & Guided Demo | `feat/guided-demo` | **done** | Forensic investigation drawer, engine settings controls, automated 3-minute guided demo narrative |
 | Prompt 10 | Demo Release & Packaging | `feat/demo-release` | **done** | Docker Compose orchestration, Makefile automation, CI suite, acceptance criteria audit, `v0.2.0-demo` tag |
 | Prompt 11 | Agent Packaging, Config, Logging | `feat/agent-core` | **done** | Reorganize into `src/` layout with `pyproject.toml`, YAML config system, structured rotating/journald logging, Tier-0 fallback |
-| Prompt 12 | Per-Process Containment & Rails | `feat/agent-containment` | not started | Dedicated per-PID freezer cgroups, process allowlists, false-positive storm panic switch, persistent state recovery |
+| Prompt 12 | Per-Process Containment & Rails | `feat/agent-containment` | **done** | Dedicated per-PID freezer cgroups, process allowlists, false-positive storm panic switch, persistent state recovery |
 | Prompt 13 | Protection & Multi-Path Watching | `feat/agent-protection` | not started | Multi-mount fanotify monitoring, automated overlayfs protection manager, non-destructive fallbacks |
 | Prompt 14 | Agent Daemon & ML Auto-Selection | `feat/agent-main` | not started | Agent main loop, signal handling (`SIGTERM`/`SIGHUP`), operating modes (`monitor`/`protect`/`learn`), synthetic guard |
 | Prompt 15 | AdaptShield Agent CLI | `feat/agent-cli` | not started | Unified `adaptshield` command-line utility (`status`, `doctor`, `run`, `alerts`, `release`, `confirm`, `simulate`) |
 | Prompt 16 | Installer & Systemd Service | `feat/agent-installer` | not started | Standalone `install.sh` / `uninstall.sh`, systemd service unit, preflight hardware/kernel verification |
 | Prompt 17 | Agent Release & Verification | `feat/agent-release` | not started | Comprehensive test suite, documentation rewrite, acceptance criteria audit, `v0.2.0` agent release tag |
+
 

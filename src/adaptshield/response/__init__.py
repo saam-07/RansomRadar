@@ -5,6 +5,9 @@ from .containment_manager import (
     contain,
     freeze_pid,
     unfreeze_pid,
+    is_pid_frozen,
+    list_frozen_pids,
+    get_pid_cgroup,
     kill_pid,
     compute_overlay_diff,
     quarantine_upper,
@@ -18,6 +21,7 @@ from .containment_manager import (
     ensure_cgroup_ready,
     _control_file,
 )
+from .safety import SafetyRails
 
 __all__ = [
     "ContainmentManager",
@@ -26,6 +30,9 @@ __all__ = [
     "contain",
     "freeze_pid",
     "unfreeze_pid",
+    "is_pid_frozen",
+    "list_frozen_pids",
+    "get_pid_cgroup",
     "kill_pid",
     "compute_overlay_diff",
     "quarantine_upper",
@@ -38,4 +45,5 @@ __all__ = [
     "resolve_manual_decision",
     "ensure_cgroup_ready",
     "_control_file",
+    "SafetyRails",
 ]
