@@ -1,0 +1,68 @@
+# Environments
+.venv/
+venv/
+env/
+ENV/
+
+# Python cache & build
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Node / Frontend
+node_modules/
+frontend/node_modules/
+frontend/dist/
+.npm/
+
+# State, runtime, and logs
+*.log
+logs/
+state/
+*.sqlite
+*.sqlite3
+/var/lib/adaptshield/
+/var/log/adaptshield/
+
+# Large generated data & telemetry
+data/raw/
+telemetry/
+/var/lib/adaptshield/telemetry/
+
+# Secrets & environment
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Archive files & local Windows tooling
+*.zip
+*.tar
+*.tar.gz
+powershell.cmd
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
