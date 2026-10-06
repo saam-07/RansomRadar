@@ -148,8 +148,17 @@
   - Authored honest evasion and limitations report `docs/limitations.md`.
   - Authored Section 10 Acceptance Criteria Audit report `docs/acceptance_report.md` (16 PASS, 2 NOT VERIFIED due to Linux sandbox constraints).
   - Updated `README.md` with quickstart guides, architecture, limitations, and verification instructions.
-- **Backend & ML Test Suites Passing (58/58 tests passed):**
-  - All 58 pytest tests passing across `tests/`.
+- **Prompt 11 (Package layout, config, logging):**
+  - Moved package to standard `src/adaptshield/` layout with `pyproject.toml` and console entry points (`adaptshield`, `adaptshield-agent`).
+  - Implemented `src/adaptshield/config.py` with Pydantic validation and documented defaults. Created `packaging/config.default.yaml`.
+  - Implemented structured logging in `src/adaptshield/logging/logger.py` with rotating file handler and journald support.
+  - Replaced bare `print()` in `AlertLogger` with structured logging and file rotation.
+  - Made `AdaptShieldDaemon` take NO required CLI arguments, driving configuration from defaults and YAML files.
+  - Made Tier-1/eBPF optional with automatic runtime graceful degradation to Tier-0-only mode when BCC or kernel headers are missing.
+  - Added CLI utility (`adaptshield version`, `adaptshield status`, `adaptshield doctor`).
+  - Added unit test suites `tests/test_agent_config.py` and `tests/test_agent_tier0_fallback.py`.
+- **Backend & ML Test Suites Passing (69/69 tests passed):**
+  - All 69 pytest tests passing across `tests/` (58 existing + 11 new agent core tests).
 - **Frontend Test Suite Passing (19/19 tests passed):**
   - All 19 vitest tests passing across `frontend/src/test/`.
 - **Frontend Production Bundle:**
@@ -160,9 +169,11 @@
   - `RealResponse` wraps real cgroup freezer and overlay unmount commands. Verified in userspace via `SimulatedResponse`; real execution requires an Ubuntu VM with root.
 - **Live Agent Telemetry Stream (`LiveAgentSource`):**
   - Requires live agent running on Linux writing to `/var/log/adaptshield/alert.jsonl`.
+- **Live Kernel eBPF Kprobe Attachment (`Tier1Tracer`):**
+  - Tested graceful fallback to Tier-0-only mode in userspace; real BCC attachment requires Ubuntu VM with kernel >= 5.9 and root.
 
 ## Next
-- **Prompt 11:** Agent Packaging, Config, Logging (`feat/agent-core` branch).
+- **Prompt 12:** Per-Process Containment & Rails (`feat/agent-containment` branch).
 
 ---
 
@@ -179,7 +190,7 @@
 | Prompt 8 | Datasets & Models UI | `feat/ml-ui` | **done** | Datasets explorer, model training and registry management, interactive 11-feature "Try it" predictor |
 | Prompt 9 | Forensics & Guided Demo | `feat/guided-demo` | **done** | Forensic investigation drawer, engine settings controls, automated 3-minute guided demo narrative |
 | Prompt 10 | Demo Release & Packaging | `feat/demo-release` | **done** | Docker Compose orchestration, Makefile automation, CI suite, acceptance criteria audit, `v0.2.0-demo` tag |
-| Prompt 11 | Agent Packaging, Config, Logging | `feat/agent-core` | not started | Reorganize into `src/` layout with `pyproject.toml`, YAML config system, structured rotating/journald logging, Tier-0 fallback |
+| Prompt 11 | Agent Packaging, Config, Logging | `feat/agent-core` | **done** | Reorganize into `src/` layout with `pyproject.toml`, YAML config system, structured rotating/journald logging, Tier-0 fallback |
 | Prompt 12 | Per-Process Containment & Rails | `feat/agent-containment` | not started | Dedicated per-PID freezer cgroups, process allowlists, false-positive storm panic switch, persistent state recovery |
 | Prompt 13 | Protection & Multi-Path Watching | `feat/agent-protection` | not started | Multi-mount fanotify monitoring, automated overlayfs protection manager, non-destructive fallbacks |
 | Prompt 14 | Agent Daemon & ML Auto-Selection | `feat/agent-main` | not started | Agent main loop, signal handling (`SIGTERM`/`SIGHUP`), operating modes (`monitor`/`protect`/`learn`), synthetic guard |

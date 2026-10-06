@@ -1,0 +1,116 @@
+# AdaptShield Endpoint Agent — Default Configuration Template
+# Path: /etc/adaptshield/config.yaml (or packaging/config.default.yaml)
+# Version: 1.0.0
+
+# Operating mode:
+#   monitor: Detect and log only. No freezing, killing, or rollback.
+#   protect: Detect and act automatically per response.policy.
+#   learn:   Collect telemetry without response actions.
+mode: "protect"
+
+# Monitor-first period: default to 24 hours before automatically engaging protect mode.
+# Set to 0 to enable protect mode immediately upon boot.
+monitor_first_period_hours: 24
+
+# Filesystem paths and fanotify monitoring targets
+watch:
+  paths:
+    - "/home"
+    - "/srv"
+    - "/var/www"
+    - "/opt/data"
+  excludes:
+    - "/proc"
+    - "/sys"
+    - "/dev"
+    - "/run"
+    - "/tmp"
+    - "/var/lib/adaptshield"
+    - "/var/log/adaptshield"
+    - "/var/cache/apt"
+
+# Overlayfs protected directories (subject to automatic rollback upon confirmed ransomware)
+protect_paths:
+  - "/home"
+
+# Response containment policy:
+#   none:      Freeze process cgroup only (no rollback, no kill).
+#   immediate: Freeze -> quarantine touched files -> rollback overlay -> kill process.
+#   manual:    Freeze process, then await operator decision via CLI.
+response:
+  policy: "immediate"
+  auto_resolve_after_seconds: 300
+  auto_resolve_action: "release" # "release" or "confirm"
+  use_freeze: true
+  quarantine_dir: "/var/lib/adaptshield/quarantine"
+  control_dir: "/var/lib/adaptshield/control"
+
+# Detection pipeline parameters
+detection:
+  window_seconds: 2.0
+  theta0: 0.5
+  use_escalation: true
+  use_tier1: true # If BCC/kernel is unavailable, automatically falls back to Tier-0
+  use_risk_smoothing: true
+  ewma_alpha: 0.3
+  thresholds:
+    elevated: 0.3
+    suspicious: 0.6
+    critical: 0.85
+  consecutive_windows_for_critical: 2
+
+# Safety rails and exclusions
+# Protected system processes and common heavy legitimate writers
+allowlist:
+  process_names:
+    - "systemd"
+    - "systemd-journald"
+    - "systemd-udevd"
+    - "sshd"
+    - "dbus-daemon"
+    - "dockerd"
+    - "containerd"
+    - "rsync"
+    - "tar"
+    - "restic"
+    - "borg"
+    - "mysqld"
+    - "postgres"
+    - "code"
+    - "python"
+    - "adaptshield"
+    - "adaptshield-agent"
+  exe_paths:
+    - "/usr/lib/systemd/*"
+    - "/usr/sbin/sshd"
+  users:
+    - "root"
+
+# Rate limiting and storm panic switch
+safety_rails:
+  max_containments_per_minute: 10
+  storm_threshold_distinct_pids: 5
+  storm_window_seconds: 30
+
+# Classifier auto-selection and registry settings
+classifier:
+  mode: "auto" # "auto", "rule_based", "xgboost", "random_forest"
+  allow_synthetic: false # Models trained on synthetic data require explicit opt-in for auto containment
+  model_name: "xgboost"
+  registry_dir: "models/registry"
+  model_path: null
+
+# Flight telemetry recorder (data flywheel for future retraining)
+telemetry:
+  enabled: false
+  dir: "/var/lib/adaptshield/telemetry"
+  rotation_mb: 50
+
+# Structured logging with file rotation and journald integration
+logging:
+  level: "INFO"
+  file: "/var/log/adaptshield/adaptshield.log"
+  alert_file: "/var/log/adaptshield/alert.jsonl"
+  max_bytes: 10485760 # 10 MB
+  backup_count: 5
+  use_journald: false

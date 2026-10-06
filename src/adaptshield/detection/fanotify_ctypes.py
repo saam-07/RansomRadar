@@ -1,17 +1,5 @@
 """
 Minimal ctypes wrapper around Linux fanotify(7).
-
-Why fanotify and not plain inotify for Tier-0:
-inotify reports WHAT happened to a path but never WHO did it (no PID).
-Since AdaptShield needs to attribute suspicious activity to a specific
-process (to later freeze/contain it), Tier-0 uses fanotify, which attaches
-the originating PID to every event metadata structure.
-
-This module implements the fanotify API with support for:
-1. Modern Linux 5.9+ FAN_REPORT_DFID_NAME (reports PID, directory entry
-   events like CREATE, DELETE, MOVED_FROM, MOVED_TO, and file modifications).
-2. Automatic fallback to fd-based fanotify (FAN_MODIFY, FAN_CLOSE_WRITE)
-   if DFID_NAME mode is not supported by the underlying kernel/filesystem.
 """
 import ctypes
 import ctypes.util

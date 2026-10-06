@@ -1,15 +1,6 @@
 """
-Progressive risk assessment (roadmap Sec 2.3/2.4/8.1 ablation target #3).
-
-Rationale: a single window's classifier output is noisy (a burst of
-legitimate saves can momentarily look suspicious). AdaptShield accumulates
-evidence with an exponentially-weighted moving average across consecutive
-windows for the SAME pid, and only escalates the RISK LEVEL (as opposed to
-the Tier-0->Tier-1 INSTRUMENTATION escalation, which is a separate, earlier
-decision) once sustained evidence crosses thresholds.
-
-Three levels, matching the roadmap's WATCH / SUSPECT / CRITICAL states.
-Only CRITICAL triggers containment_manager.
+Progressive risk assessment with EWMA smoothing.
+Accumulates suspicion evidence over consecutive windows per PID.
 """
 from dataclasses import dataclass, field
 from enum import Enum
@@ -32,14 +23,11 @@ class PidRiskState:
 class RiskScorer:
     def __init__(
         self,
-        alpha: float = 0.4,          # EWMA smoothing factor (swept experimentally)
+        alpha: float = 0.4,
         watch_threshold: float = 0.3,
         suspect_threshold: float = 0.6,
         critical_threshold: float = 0.85,
-        critical_confirm_windows: int = 2,  # require N consecutive windows
-                                             # above critical_threshold before
-                                             # actually declaring CRITICAL,
-                                             # to reduce single-window false alarms
+        critical_confirm_windows: int = 2,
     ):
         self.alpha = alpha
         self.watch_threshold = watch_threshold

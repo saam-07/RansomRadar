@@ -13,7 +13,7 @@ import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from xgboost import XGBClassifier
 
-from .feature_aggregator import FEATURE_COLUMNS
+from adaptshield.feature_aggregator import FEATURE_COLUMNS
 
 LABELS = ["benign", "backup", "oltp", "ransomware"]
 POSITIVE_LABEL = "ransomware"
