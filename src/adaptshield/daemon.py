@@ -21,15 +21,19 @@ from .detection.feature_aggregator import FeatureAggregator, FEATURE_COLUMNS
 from .detection.risk_scorer import RiskScorer, RiskLevel
 from .response.containment_manager import (
     ensure_cgroup_ready, contain, RollbackPolicy,
-    check_manual_decision, resolve_manual_decision,
+    check_manual_decision, resolve_manual_decision, unfreeze_pid,
 )
 from .response.protection import ProtectionManager
-from .logging.logger import get_logger, setup_logging
-from .logging.alert_logger import AlertLogger
 from .response.safety import SafetyRails
 from .state import StateManager
+from .logging.logger import get_logger, setup_logging
+from .logging.alert_logger import AlertLogger
+from .mode import ModeManager
+from .telemetry import TelemetryWriter
 from .ml.classifier import build_classifier
 from .ml.registry import ModelRegistry
+from .ml.selector import select_classifier
+from .ml.explain import explain_alert
 
 logger = get_logger("adaptshield.daemon")
 
@@ -109,25 +113,15 @@ class AdaptShieldDaemon:
         # 3. Feature Aggregator
         self.aggregator = FeatureAggregator(window_seconds=window_seconds)
 
-        # 4. Classifier
+        # 4. Classifier & Synthetic Guard Auto-Selection
         if model is not None:
             self.classifier = model
+            self.classifier_metadata = {"name": "custom_instance", "synthetic": False}
         elif model_path and os.path.exists(model_path):
             self.classifier = build_classifier(classifier_name).load(model_path)
+            self.classifier_metadata = {"name": Path(model_path).stem, "synthetic": False}
         else:
-            # Check model registry
-            registry_dir = self.config.classifier.registry_dir
-            if os.path.exists(registry_dir):
-                try:
-                    registry = ModelRegistry(registry_dir)
-                    clf, manifest = registry.get_active_model()
-                    self.classifier = clf
-                    logger.info("Loaded active classifier '%s' from registry.", manifest.get("name"))
-                except Exception as e:
-                    logger.warning("Could not load active model from registry (%s); using default %s", e, classifier_name)
-                    self.classifier = build_classifier(classifier_name)
-            else:
-                self.classifier = build_classifier(classifier_name)
+            self.classifier, self.classifier_metadata = select_classifier(self.config)
 
         # 5. Risk Scorer
         self.risk_scorer = RiskScorer(
@@ -136,6 +130,14 @@ class AdaptShieldDaemon:
             suspect_threshold=self.config.detection.thresholds.suspicious,
             critical_threshold=self.config.detection.thresholds.critical,
             critical_confirm_windows=self.config.detection.consecutive_windows_for_critical,
+        )
+
+        # 6. Mode Manager & Telemetry Writer
+        self.mode_mgr = ModeManager(self.config)
+        self.telemetry = TelemetryWriter(
+            telemetry_dir=self.config.telemetry.dir,
+            rotation_mb=self.config.telemetry.rotation_mb,
+            enabled=self.config.telemetry.enabled,
         )
 
         # 6. Logger & Cgroups
@@ -245,13 +247,34 @@ class AdaptShieldDaemon:
                 ewma = float(p)
 
             if level == RiskLevel.CRITICAL and pid not in self._contained_pids:
-                # 1. Safety rails check: immunity for PID 1, system processes, agent itself, allowlists
+                # 1. Operating mode check & forensic explanation
+                active_mode = self.mode_mgr.get_active_mode()
+                expl = explain_alert(
+                    self.classifier,
+                    row,
+                    self.classifier_metadata.get("classifier_type", "xgboost"),
+                )
+
+                if active_mode in ("monitor", "learn"):
+                    self.logger.log("alert_critical", pid=pid, risk_ewma=ewma, mode=active_mode, evidence=row, explanation=expl)
+                    self.telemetry.record(
+                        pid=pid,
+                        mode=active_mode,
+                        risk_score=ewma,
+                        risk_level="CRITICAL",
+                        action=f"{active_mode}_alert_only",
+                        features=row,
+                        explanation=expl,
+                    )
+                    continue
+
+                # 2. Safety rails check: immunity for PID 1, system processes, agent itself, allowlists
                 is_immune, reason = self.safety.is_immune(pid, process_name=row.get("process_name"))
                 if is_immune:
                     logger.info("[SAFETY RAILS] PID=%s is immune from containment (%s). Action suppressed.", pid, reason)
                     continue
 
-                # 2. Rate limit & False-Positive Storm Panic Switch
+                # 3. Rate limit & False-Positive Storm Panic Switch
                 permitted, permit_reason = self.safety.check_containment_permitted(pid)
                 if not permitted:
                     logger.warning("[SAFETY RAILS] Containment suppressed for PID=%s: %s", pid, permit_reason)
@@ -259,10 +282,19 @@ class AdaptShieldDaemon:
                         self.logger.log("storm_panic_switch_tripped", pid=pid, reason=permit_reason)
                     continue
 
-                self.logger.log("alert_critical", pid=pid, risk_ewma=ewma, evidence=row)
+                self.logger.log("alert_critical", pid=pid, risk_ewma=ewma, mode=active_mode, evidence=row, explanation=expl)
                 if self.dry_run:
                     logger.info("[DRY-RUN] Would contain PID=%s with policy=%s", pid, self.rollback_policy.value)
                     self._contained_pids.add(pid)
+                    self.telemetry.record(
+                        pid=pid,
+                        mode=active_mode,
+                        risk_score=ewma,
+                        risk_level="CRITICAL",
+                        action="dry_run",
+                        features=row,
+                        explanation=expl,
+                    )
                     continue
 
                 target = self.protection.get_target_for_path(self.watch_path) if hasattr(self, "protection") else None
@@ -281,8 +313,17 @@ class AdaptShieldDaemon:
                 if result.awaiting_manual_decision:
                     self._awaiting_manual.add(pid)
                 self._log_containment_result(pid, result)
+                self.telemetry.record(
+                    pid=pid,
+                    mode=active_mode,
+                    risk_score=ewma,
+                    risk_level="CRITICAL",
+                    action="contained" if result.rolled_back or result.frozen_ts else "quarantined",
+                    features=row,
+                    explanation=expl,
+                )
 
-                # 3. Persist runtime state
+                # 4. Persist runtime state
                 status = "awaiting_manual" if result.awaiting_manual_decision else ("quarantined" if result.rolled_back else "frozen")
                 self.state_mgr.record_containment(
                     pid=pid,
@@ -337,8 +378,70 @@ class AdaptShieldDaemon:
         except KeyboardInterrupt:
             logger.info("Daemon interrupted by operator.")
         finally:
-            if self.tier0:
+            self.stop(thaw_processes=False)
+
+    def stop(self, thaw_processes: bool = False):
+        """Clean shutdown handler."""
+        logger.info("Stopping AdaptShieldDaemon...")
+        if self.tier0:
+            try:
                 self.tier0.stop()
+            except Exception:
+                pass
+        if self.tier1:
+            try:
+                self.tier1.stop()
+            except Exception:
+                pass
+        if hasattr(self, "protection"):
+            try:
+                self.protection.cleanup_all(unmount=True)
+            except Exception:
+                pass
+        if hasattr(self, "telemetry"):
+            try:
+                self.telemetry.flush()
+                self.telemetry.close()
+            except Exception:
+                pass
+        if thaw_processes:
+            for pid in list(self._contained_pids):
+                try:
+                    unfreeze_pid(pid)
+                except Exception:
+                    pass
+        logger.info("AdaptShieldDaemon stopped cleanly.")
+
+    def reload_config(self, new_config: Optional[AdaptShieldConfig] = None):
+        """Hot reload configuration and active model atomically."""
+        logger.info("[RELOAD] Initiating hot reload...")
+        if new_config is None:
+            new_config = load_config()
+        self.config = new_config
+
+        # 1. Update mode manager
+        self.mode_mgr.reload_config(new_config)
+
+        # 2. Update safety rails
+        self.safety = SafetyRails(new_config)
+
+        # 3. Update risk scorer parameters
+        self.risk_scorer.alpha = new_config.detection.ewma_alpha
+        self.risk_scorer.watch_threshold = new_config.detection.thresholds.elevated
+        self.risk_scorer.suspect_threshold = new_config.detection.thresholds.suspicious
+        self.risk_scorer.critical_threshold = new_config.detection.thresholds.critical
+        self.risk_scorer.critical_confirm_windows = new_config.detection.consecutive_windows_for_critical
+
+        # 4. Atomic model reload
+        try:
+            new_clf, new_meta = select_classifier(new_config)
+            self.classifier = new_clf
+            self.classifier_metadata = new_meta
+            logger.info("[RELOAD] Model successfully reloaded: %s", new_meta.get("name"))
+        except Exception as e:
+            logger.warning("[RELOAD FAILED] Could not reload new model (%s). Keeping active model %s.", e, self.classifier_metadata.get("name"))
+
+        logger.info("[RELOAD] Hot reload completed successfully.")
 
 
 def main():

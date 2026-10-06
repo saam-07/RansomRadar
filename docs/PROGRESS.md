@@ -170,8 +170,15 @@
   - Implemented non-destructive fallback: when overlayfs cannot be mounted (unsupported filesystem, unprivileged environment, or conflict), AdaptShield logs the reason, gracefully engages `fallback_quarantine_only` (quarantine-copy-on-detect + freeze/kill), and explicitly reports `"rollback unavailable"` in status.
   - Documented kernel and filesystem limitations honestly in `docs/filesystem_limitations.md`.
   - Added unit test suite `tests/test_agent_protection.py` (7 tests) using temporary directories and loopback mocks without touching real user data.
-- **Backend & ML Test Suites Passing (82/82 tests passed):**
-  - All 82 pytest tests passing across `tests/` (58 demo + 11 agent core + 6 containment + 7 protection tests).
+- **Prompt 14 (Agent Main Loop, Operating Modes, ML Auto-Selection, Hot Reload):**
+  - Integrated agent service main loop in `src/adaptshield/agent.py` with preflight validation (kernel, cgroups v2, freezer, fanotify, BCC, root privileges, detector model), graceful shutdown (`SIGTERM`/`SIGINT`), and atomic hot reload (`SIGHUP`).
+  - Implemented runtime operating modes (`monitor`, `protect`, `learn`) and monitor-first grace period (default 24h before auto-switching to protect) in `src/adaptshield/mode.py`.
+  - Built detector auto-selection and synthetic guard in `src/adaptshield/ml/selector.py`: enforces feature schema compatibility, guards against synthetic models executing containment in `protect` mode without authorization (`classifier.allow_synthetic: false`), and safely falls back to `RuleBasedClassifier` without crashing.
+  - Built size-rotating telemetry writer in `src/adaptshield/telemetry.py` recording feature rows and containment actions under `/var/lib/adaptshield/telemetry/`.
+  - Built forensic alert explanations module in `src/adaptshield/ml/explain.py` for heuristic and tree-based alerts.
+  - Implemented unit test suite `tests/test_agent_main.py` (6 tests).
+- **Backend & ML Test Suites Passing (88/88 tests passed):**
+  - All 88 pytest tests passing across `tests/` (58 demo + 11 agent core + 6 containment + 7 protection + 6 agent main loop tests).
 - **Frontend Test Suite Passing (19/19 tests passed):**
   - All 19 vitest tests passing across `frontend/src/test/`.
 - **Frontend Production Bundle:**
@@ -188,7 +195,7 @@
   - Tested graceful fallback to Tier-0-only mode in userspace; real BCC attachment requires Ubuntu VM with kernel >= 5.9 and root.
 
 ## Next
-- **Prompt 14:** Agent main loop, modes, ML auto-selection, hot reload (`feat/agent-main` branch).
+- **Prompt 15:** The `adaptshield` CLI (`feat/agent-cli` branch).
 
 ---
 
@@ -208,10 +215,11 @@
 | Prompt 11 | Agent Packaging, Config, Logging | `feat/agent-core` | **done** | Reorganize into `src/` layout with `pyproject.toml`, YAML config system, structured rotating/journald logging, Tier-0 fallback |
 | Prompt 12 | Per-Process Containment & Rails | `feat/agent-containment` | **done** | Dedicated per-PID freezer cgroups, process allowlists, false-positive storm panic switch, persistent state recovery |
 | Prompt 13 | Protection & Multi-Path Watching | `feat/agent-protection` | **done** | Multi-mount fanotify monitoring, automated overlayfs protection manager, non-destructive fallbacks |
-| Prompt 14 | Agent Daemon & ML Auto-Selection | `feat/agent-main` | not started | Agent main loop, signal handling (`SIGTERM`/`SIGHUP`), operating modes (`monitor`/`protect`/`learn`), synthetic guard |
+| Prompt 14 | Agent Daemon & ML Auto-Selection | `feat/agent-main` | **done** | Agent main loop, signal handling (`SIGTERM`/`SIGHUP`), operating modes (`monitor`/`protect`/`learn`), synthetic guard |
 | Prompt 15 | AdaptShield Agent CLI | `feat/agent-cli` | not started | Unified `adaptshield` command-line utility (`status`, `doctor`, `run`, `alerts`, `release`, `confirm`, `simulate`) |
 | Prompt 16 | Installer & Systemd Service | `feat/agent-installer` | not started | Standalone `install.sh` / `uninstall.sh`, systemd service unit, preflight hardware/kernel verification |
 | Prompt 17 | Agent Release & Verification | `feat/agent-release` | not started | Comprehensive test suite, documentation rewrite, acceptance criteria audit, `v0.2.0` agent release tag |
+
 
 
 

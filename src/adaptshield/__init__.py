@@ -26,6 +26,10 @@ from .logging.logger import setup_logging, get_logger
 from .logging.alert_logger import AlertLogger
 from .ml.registry import ModelRegistry
 from .ml.classifier import build_classifier
+from .ml.selector import select_classifier
+from .ml.explain import explain_alert
+from .mode import ModeManager
+from .telemetry import TelemetryWriter
 
 __all__ = [
     "__version__",
@@ -60,4 +64,8 @@ __all__ = [
     "StateManager",
     "ProtectionManager",
     "ProtectionTarget",
+    "select_classifier",
+    "explain_alert",
+    "ModeManager",
+    "TelemetryWriter",
 ]
