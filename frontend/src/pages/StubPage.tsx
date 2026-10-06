@@ -2,13 +2,11 @@ import { Construction } from 'lucide-react';
 
 interface StubPageProps {
   title: string;
-  promptStage: string;
   description: string;
 }
 
 export const StubPage: React.FC<StubPageProps> = ({
   title,
-  promptStage,
   description,
 }) => {
   return (
@@ -18,8 +16,8 @@ export const StubPage: React.FC<StubPageProps> = ({
       </div>
 
       <h2 className="text-xl font-bold text-white mb-2">{title}</h2>
-      <div className="px-3 py-1 rounded-full text-xs font-mono font-semibold bg-slate-800 text-slate-300 border border-slate-700 mb-4">
-        Scheduled for {promptStage}
+      <div className="px-3 py-1 rounded-full text-xs font-mono font-semibold bg-slate-800 text-blue-400 border border-slate-700 mb-4">
+        Will implement in future
       </div>
 
       <p className="text-sm text-slate-400 max-w-md leading-relaxed">

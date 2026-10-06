@@ -113,6 +113,16 @@ class DetectionPipeline:
         }
         self.event_bus.publish("window_scored", window_event)
 
+        if damage_occurred:
+            self.event_bus.publish("file_damage", {
+                "pid": pid,
+                "process_name": pname,
+                "affected_files": damage_occurred,
+                "count": len(damage_occurred),
+                "timestamp": window_data.get("timestamp"),
+                "simulated": True,
+            })
+
         containment_result: Optional[Dict[str, Any]] = None
 
         # 5. Risk escalation & Containment
@@ -150,6 +160,19 @@ class DetectionPipeline:
                 containment_result = self.response_engine.freeze(pid)
                 self.safety_rails.record_containment_action(pid)
                 self.event_bus.publish("containment", containment_result)
+
+                # If immediate policy or rollback executed, publish rollback event
+                if isinstance(self.response_engine, SimulatedResponse):
+                    proc_st = self.response_engine.processes.get(pid)
+                    if proc_st and proc_st.is_rolled_back:
+                        self.event_bus.publish("rollback", {
+                            "pid": pid,
+                            "is_rolled_back": True,
+                            "files_restored": len(proc_st.files_restored),
+                            "bytes_restored": proc_st.bytes_at_risk,
+                            "timestamp": window_data.get("timestamp"),
+                            "simulated": True,
+                        })
             else:
                 containment_result = {
                     "pid": pid,

@@ -281,3 +281,37 @@ class ModelPredictResponse(BaseModel):
     model_name: str
     data_source: str = "synthetic"
     simulated: bool = True
+
+
+# --- Settings & Configuration ---
+
+class SettingsResponse(BaseModel):
+    theta0: float = 0.5
+    window: float = 2.0
+    ewma_alpha: float = 0.4
+    watch_threshold: float = 0.3
+    suspect_threshold: float = 0.6
+    critical_threshold: float = 0.85
+    critical_confirm_windows: int = 2
+    policy: str = "immediate"  # immediate | manual | none
+    auto_resolve_timeout: float = 10.0
+    allowlist: List[str] = Field(default_factory=list)
+    panic_storm_threshold: int = 5
+    mode: str = "simulated"
+    simulated: bool = True
+
+
+class SettingsUpdateRequest(BaseModel):
+    theta0: Optional[float] = None
+    window: Optional[float] = None
+    ewma_alpha: Optional[float] = None
+    watch_threshold: Optional[float] = None
+    suspect_threshold: Optional[float] = None
+    critical_threshold: Optional[float] = None
+    critical_confirm_windows: Optional[int] = None
+    policy: Optional[str] = None
+    auto_resolve_timeout: Optional[float] = None
+    allowlist: Optional[List[str]] = None
+    panic_storm_threshold: Optional[int] = None
+    mode: Optional[str] = None
+

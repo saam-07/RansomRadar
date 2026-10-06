@@ -15,13 +15,19 @@ from backend.app.db.models import ScenarioRunRecord, AlertRecord, ContainmentRec
 logger = logging.getLogger(__name__)
 
 
-def seed_demo_data() -> None:
-    """Seeds historical scenario runs and alerts if DB has no runs."""
+def seed_demo_data(force: bool = False) -> None:
+    """Seeds historical scenario runs and alerts if DB has no runs or if forced."""
     db: Session = SessionLocal()
     try:
         run_count = db.query(ScenarioRunRecord).count()
-        if run_count > 0:
+        if run_count > 0 and not force:
             return  # Already seeded or has user runs
+
+        if force:
+            db.query(AlertRecord).delete()
+            db.query(ContainmentRecord).delete()
+            db.query(ScenarioRunRecord).delete()
+            db.commit()
 
         now = datetime.datetime.utcnow()
 

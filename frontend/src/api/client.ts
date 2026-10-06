@@ -75,15 +75,62 @@ export const api = {
       body: JSON.stringify({ scenario_name, ...options }),
     }),
   stopScenario: () => fetchJson('/scenarios/stop', { method: 'POST' }),
+  resetScenarioState: () => fetchJson('/scenarios/reset', { method: 'POST' }),
   getScenarioRuns: (): Promise<ScenarioRunDetail[]> => fetchJson('/scenarios/runs'),
   getScenarioRunDetail: (runId: string): Promise<ScenarioRunDetail> => fetchJson(`/scenarios/runs/${runId}`),
+  getVirtualFilesystem: (): Promise<{ summary: any; simulated: boolean }> => fetchJson('/scenarios/filesystem'),
+  compareDetectors: (params: { scenario_name: string; seed?: number }): Promise<{ scenario: string; seed: number; comparison: Record<string, any>; simulated: boolean }> =>
+    fetchJson('/scenarios/compare', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    }),
 
-  // Datasets & Models
+  // Datasets
   getDatasets: () => fetchJson('/datasets'),
+  getDatasetCard: (): Promise<{ content: string; simulated: boolean }> => fetchJson('/datasets/card'),
+  getDatasetSample: (split: string, limit = 20, label?: string): Promise<{ split: string; total_rows: number; sample_size: number; rows: Record<string, any>[]; simulated: boolean }> => {
+    let url = `/datasets/${split}/sample?limit=${limit}`;
+    if (label) url += `&label=${label}`;
+    return fetchJson(url);
+  },
+  getDatasetStats: (split: string): Promise<{ split: string; total_rows: number; class_distribution: Record<string, number>; feature_statistics: Record<string, any>; simulated: boolean }> =>
+    fetchJson(`/datasets/${split}/stats`),
+  generateDataset: (params: { seed?: number; imbalanced?: boolean }) =>
+    fetchJson('/datasets/generate', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    }),
+
+  // Models
   getModels: () => fetchJson('/models'),
+  getModelEvaluation: (model_name: string) => fetchJson(`/models/${model_name}/evaluation`),
   activateModel: (model_name: string) =>
     fetchJson('/models/activate', {
       method: 'POST',
       body: JSON.stringify({ model_name }),
     }),
+  trainModel: (params: { classifier_type: string; model_name?: string; hyperparameters?: Record<string, any> }) =>
+    fetchJson('/models/train', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    }),
+  getTrainingJobStatus: (jobId: string) => fetchJson(`/models/training/${jobId}`),
+  predictFeatures: (features: Record<string, any>) =>
+    fetchJson('/models/predict', {
+      method: 'POST',
+      body: JSON.stringify({ features }),
+    }),
+
+  // Settings & Demo State
+  getSettings: () => fetchJson('/settings'),
+  updateSettings: (params: Record<string, any>) =>
+    fetchJson('/settings', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    }),
+  resetDemoState: () =>
+    fetchJson('/settings/reset', {
+      method: 'POST',
+    }),
 };
+
