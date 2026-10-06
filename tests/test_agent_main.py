@@ -2,20 +2,17 @@
 Unit tests for AdaptShield agent main loop, modes, ML auto-selection, and signal handling.
 """
 import json
-import os
 import tempfile
 import time
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from adaptshield.config import AdaptShieldConfig
 from adaptshield.daemon import AdaptShieldDaemon
 from adaptshield.ml.classifier import RuleBasedClassifier
 from adaptshield.ml.explain import explain_alert
-from adaptshield.ml.schema import FEATURE_COLUMNS
 from adaptshield.ml.registry import ModelRegistry
+from adaptshield.ml.schema import FEATURE_COLUMNS
 from adaptshield.ml.selector import select_classifier
 from adaptshield.mode import ModeManager
 from adaptshield.telemetry import TelemetryWriter
@@ -171,3 +168,52 @@ def test_daemon_stop_and_hot_reload():
 
         # Test graceful stop
         daemon.stop(thaw_processes=True)
+
+
+def test_mock_agent_event_cycle():
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        cfg = AdaptShieldConfig()
+        cfg.response.control_dir = str(Path(tmp_dir) / "control")
+        cfg.response.quarantine_dir = str(Path(tmp_dir) / "quarantine")
+        alert_file = Path(tmp_dir) / "alert.jsonl"
+        cfg.logging.alert_file = str(alert_file)
+        cfg.mode = "monitor"
+        cfg.monitor_first_period_hours = 0
+        cfg.classifier.mode = "rule_based"
+        cfg.detection.use_risk_smoothing = False
+        cfg.detection.consecutive_windows_for_critical = 1
+
+        daemon = AdaptShieldDaemon.from_config(cfg, dry_run=True)
+
+        # High risk row for test pid with canonical 11 features
+        row_critical = {
+            "pid": 8888,
+            "mod_rate": 100.0,
+            "rename_rate": 50.0,
+            "create_del_rate": 20.0,
+            "event_count": 200.0,
+            "concentration_gini": 0.85,
+            "t1_write_rate": 80.0,
+            "t1_mean_entropy": 7.9,
+            "t1_entropy_std": 0.1,
+            "t1_unlink_rate": 10.0,
+            "t1_rename_rate": 40.0,
+            "t1_mean_write_size": 4096.0,
+        }
+
+        # Run _classify_and_score in monitor mode
+        daemon._classify_and_score([row_critical])
+
+        # In monitor mode, PID should NOT be contained in response
+        assert 8888 not in daemon._contained_pids
+
+        # Switch to protect mode with dry-run
+        daemon.config.mode = "protect"
+        daemon.mode_mgr.set_mode("protect")
+        daemon._classify_and_score([row_critical])
+
+        # In protect mode with dry-run, PID is marked in _contained_pids
+        assert 8888 in daemon._contained_pids
+
+        daemon.stop()
+

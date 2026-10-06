@@ -7,6 +7,7 @@ can swap configurations without touching pipeline code:
   - XGBClassifierWrapper  -> the strongest baseline / AdaptShield's primary model
 """
 from __future__ import annotations
+
 import joblib
 import numpy as np
 import pandas as pd

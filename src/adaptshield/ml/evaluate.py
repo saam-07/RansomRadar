@@ -13,13 +13,13 @@ Computes comprehensive validation and test metrics for registered classifiers:
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
+
 import numpy as np
 import pandas as pd
 from sklearn.metrics import (
     accuracy_score,
     average_precision_score,
-    classification_report,
     confusion_matrix,
     f1_score,
     precision_recall_curve,
@@ -57,7 +57,7 @@ def extract_ransomware_prob(clf: Any, X: pd.DataFrame) -> np.ndarray:
 
 def subsample_curve_points(
     x_vals: np.ndarray, y_vals: np.ndarray, max_points: int = 30
-) -> List[Dict[str, float]]:
+) -> list[dict[str, float]]:
     """Subsamples ROC or PR curve arrays to a JSON-serializable list of points."""
     n = len(x_vals)
     if n <= max_points:
@@ -77,18 +77,18 @@ def subsample_curve_points(
 def replay_risk_scorer(
     clf: Any,
     df: pd.DataFrame,
-    columns: List[str] | None = None,
+    columns: list[str] | None = None,
     windows: int = 15,
     n_pids: int = 50,
     seed: int = 42,
-) -> Dict[str, Dict[str, Any]]:
+) -> dict[str, dict[str, Any]]:
     """
     Replays feature rows through the exact EWMA RiskScorer used by the live daemon.
     Reports the fraction of simulated runs reaching CRITICAL and the mean windows to detect.
     """
     rng = np.random.default_rng(seed)
     feature_cols = list(columns or FEATURE_COLUMNS)
-    results: Dict[str, Dict[str, Any]] = {}
+    results: dict[str, dict[str, Any]] = {}
 
     labels = ["benign", "backup", "oltp", "ransomware"]
     for label in labels:
@@ -97,7 +97,7 @@ def replay_risk_scorer(
             continue
 
         critical_count = 0
-        windows_to_detect: List[int] = []
+        windows_to_detect: list[int] = []
 
         for _ in range(n_pids):
             scorer = RiskScorer(alpha=0.4, critical_confirm_windows=2)
@@ -106,13 +106,11 @@ def replay_risk_scorer(
             X_clean = validate_features(rows, expected_columns=feature_cols)
             probs = extract_ransomware_prob(clf, X_clean)
 
-            detected = False
             for w_idx, prob in enumerate(probs, start=1):
                 level = scorer.update(1, float(prob))
                 if level == RiskLevel.CRITICAL:
                     critical_count += 1
                     windows_to_detect.append(w_idx)
-                    detected = True
                     break
 
         mean_w = float(np.mean(windows_to_detect)) if windows_to_detect else None
@@ -130,10 +128,10 @@ def evaluate_classifier(
     clf: Any,
     test_df: pd.DataFrame,
     hard_test_df: pd.DataFrame | None = None,
-    columns: List[str] | None = None,
+    columns: list[str] | None = None,
     imbalanced_ratio: float = 0.999,
     seed: int = 42,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Computes all standard metrics, breakdown charts, false-alarm estimates,
     and risk-scorer replays for a classifier.
@@ -177,7 +175,7 @@ def evaluate_classifier(
         pr_points = []
 
     # Per-scenario breakdown
-    scenario_metrics: Dict[str, Dict[str, Any]] = {}
+    scenario_metrics: dict[str, dict[str, Any]] = {}
     if "scenario" in test_df.columns:
         for sc in sorted(test_df["scenario"].unique()):
             mask = (test_df["scenario"] == sc).values
@@ -190,7 +188,7 @@ def evaluate_classifier(
             }
 
     # Per-class metrics
-    class_report: Dict[str, Any] = {}
+    class_report: dict[str, Any] = {}
     if "label" in test_df.columns:
         for lbl in ["benign", "backup", "oltp", "ransomware"]:
             mask = (test_df["label"] == lbl).values
@@ -202,7 +200,7 @@ def evaluate_classifier(
                 }
 
     # Feature importances
-    feature_importances: List[Dict[str, Any]] = []
+    feature_importances: list[dict[str, Any]] = []
     if hasattr(clf, "model") and hasattr(clf.model, "feature_importances_"):
         imps = clf.model.feature_importances_
         sorted_pairs = sorted(zip(feature_cols, imps), key=lambda x: -x[1])
@@ -226,7 +224,7 @@ def evaluate_classifier(
     # Risk-Scorer Replay
     risk_replay = replay_risk_scorer(clf, test_df, columns=feature_cols, seed=seed)
 
-    metrics_payload: Dict[str, Any] = {
+    metrics_payload: dict[str, Any] = {
         "accuracy": round(acc, 4),
         "precision": round(prec, 4),
         "recall": round(rec, 4),

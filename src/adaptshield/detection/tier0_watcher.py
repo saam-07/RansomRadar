@@ -2,17 +2,21 @@
 Tier 0 -- always-on, cheap watcher.
 Computes windowed features per PID without reading contents or computing entropy.
 """
-import argparse
 import os
-import sys
-import time
 import threading
+import time
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
 
 from .fanotify_ctypes import (
-    Fanotify, FAN_MODIFY, FAN_CLOSE_WRITE, FAN_MOVED_FROM, FAN_MOVED_TO,
-    FAN_CREATE, FAN_DELETE, is_path_excluded,
+    FAN_CLOSE_WRITE,
+    FAN_CREATE,
+    FAN_DELETE,
+    FAN_MODIFY,
+    FAN_MOVED_FROM,
+    FAN_MOVED_TO,
+    Fanotify,
+    is_path_excluded,
 )
 
 MOD_MASK = FAN_MODIFY | FAN_CLOSE_WRITE

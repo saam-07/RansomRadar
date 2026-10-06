@@ -1,22 +1,22 @@
 from .fanotify_ctypes import Fanotify, FanotifyEvent
-from .tier0_watcher import Tier0Watcher, tier0_suspicion_score
-from .tier1_bridge import Tier1Tracer, is_tier1_available, get_tier1_status
-from .feature_aggregator import FeatureAggregator, FEATURE_COLUMNS, build_feature_row
-from .risk_scorer import RiskScorer, RiskLevel
+from .feature_aggregator import FEATURE_COLUMNS, FeatureAggregator, build_feature_row
 from .math_utils import shannon_entropy
+from .risk_scorer import RiskLevel, RiskScorer
+from .tier0_watcher import Tier0Watcher, tier0_suspicion_score
+from .tier1_bridge import Tier1Tracer, get_tier1_status, is_tier1_available
 
 __all__ = [
+    "FEATURE_COLUMNS",
     "Fanotify",
     "FanotifyEvent",
-    "Tier0Watcher",
-    "tier0_suspicion_score",
-    "Tier1Tracer",
-    "is_tier1_available",
-    "get_tier1_status",
     "FeatureAggregator",
-    "FEATURE_COLUMNS",
-    "build_feature_row",
-    "RiskScorer",
     "RiskLevel",
+    "RiskScorer",
+    "Tier0Watcher",
+    "Tier1Tracer",
+    "build_feature_row",
+    "get_tier1_status",
+    "is_tier1_available",
     "shannon_entropy",
+    "tier0_suspicion_score",
 ]

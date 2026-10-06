@@ -2,7 +2,7 @@
 Progressive risk assessment with EWMA smoothing.
 Accumulates suspicion evidence over consecutive windows per PID.
 """
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 
 

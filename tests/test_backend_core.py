@@ -1,11 +1,8 @@
-import time
-import pytest
 
 from backend.app.core.bus import EventBus
 from backend.app.core.pipeline import DetectionPipeline
 from backend.app.core.response import SimulatedResponse
 from backend.app.core.safety import SafetyRails
-from backend.app.core.sources import SimulatedSource
 
 
 def test_scenario_runs_are_deterministic_with_seed():

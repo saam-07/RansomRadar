@@ -9,31 +9,33 @@ import argparse
 import os
 import time
 from pathlib import Path
-from typing import Optional
 
+import numpy as np
 import pandas as pd
 
 from .config import AdaptShieldConfig, load_config
-from .detection.fanotify_ctypes import Fanotify
+from .detection.feature_aggregator import FEATURE_COLUMNS, FeatureAggregator
+from .detection.risk_scorer import RiskLevel, RiskScorer
 from .detection.tier0_watcher import Tier0Watcher, tier0_suspicion_score
-from .detection.tier1_bridge import Tier1Tracer, is_tier1_available, get_tier1_status
-from .detection.feature_aggregator import FeatureAggregator, FEATURE_COLUMNS
-from .detection.risk_scorer import RiskScorer, RiskLevel
+from .detection.tier1_bridge import Tier1Tracer, is_tier1_available
+from .logging.alert_logger import AlertLogger
+from .logging.logger import get_logger, setup_logging
+from .ml.classifier import build_classifier
+from .ml.explain import explain_alert
+from .ml.selector import select_classifier
+from .mode import ModeManager
 from .response.containment_manager import (
-    ensure_cgroup_ready, contain, RollbackPolicy,
-    check_manual_decision, resolve_manual_decision, unfreeze_pid,
+    RollbackPolicy,
+    check_manual_decision,
+    contain,
+    ensure_cgroup_ready,
+    resolve_manual_decision,
+    unfreeze_pid,
 )
 from .response.protection import ProtectionManager
 from .response.safety import SafetyRails
 from .state import StateManager
-from .logging.logger import get_logger, setup_logging
-from .logging.alert_logger import AlertLogger
-from .mode import ModeManager
 from .telemetry import TelemetryWriter
-from .ml.classifier import build_classifier
-from .ml.registry import ModelRegistry
-from .ml.selector import select_classifier
-from .ml.explain import explain_alert
 
 logger = get_logger("adaptshield.daemon")
 
@@ -169,7 +171,7 @@ class AdaptShieldDaemon:
             logger.warning("Error recovering state on startup: %s", e)
 
     @classmethod
-    def from_config(cls, cfg: AdaptShieldConfig | None = None, dry_run: bool = False) -> "AdaptShieldDaemon":
+    def from_config(cls, cfg: AdaptShieldConfig | None = None, dry_run: bool = False) -> AdaptShieldDaemon:
         if cfg is None:
             cfg = load_config()
 
@@ -232,8 +234,11 @@ class AdaptShieldDaemon:
         if not rows:
             return
         df = pd.DataFrame(rows)
-        # Drop non-feature metadata columns
-        feature_df = df[[c for c in FEATURE_COLUMNS if c in df.columns]]
+        # Ensure all canonical feature columns exist with safe defaults
+        for col in FEATURE_COLUMNS:
+            if col not in df.columns:
+                df[col] = np.nan if col.startswith("t1_") else 0.0
+        feature_df = df[FEATURE_COLUMNS]
         proba = self.classifier.predict_proba(feature_df)
         p_ransomware = proba[:, 1] if proba.shape[1] == 2 else proba[:, -1]
 
@@ -412,7 +417,7 @@ class AdaptShieldDaemon:
                     pass
         logger.info("AdaptShieldDaemon stopped cleanly.")
 
-    def reload_config(self, new_config: Optional[AdaptShieldConfig] = None):
+    def reload_config(self, new_config: AdaptShieldConfig | None = None):
         """Hot reload configuration and active model atomically."""
         logger.info("[RELOAD] Initiating hot reload...")
         if new_config is None:

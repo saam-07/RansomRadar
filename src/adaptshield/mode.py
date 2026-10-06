@@ -7,7 +7,7 @@ monitor-first transition period (default 24 hours before auto-switching to prote
 from __future__ import annotations
 
 import time
-from typing import Any, Dict
+from typing import Any
 
 from .config import AdaptShieldConfig
 from .logging.logger import get_logger
@@ -78,7 +78,7 @@ class ModeManager:
         self.monitor_first_period_hours = float(config.monitor_first_period_hours)
         self._manual_override = None
 
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self) -> dict[str, Any]:
         """Provides status report on active mode and grace period."""
         active = self.get_active_mode()
         monitor_first = self.is_monitor_first_active()

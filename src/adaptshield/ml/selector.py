@@ -9,18 +9,18 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Any, Dict, Tuple
+from typing import Any
 
 from ..config import AdaptShieldConfig
 from ..logging.logger import get_logger
 from .classifier import RuleBasedClassifier, build_classifier
-from .schema import FEATURE_COLUMNS
 from .registry import ModelRegistry
+from .schema import FEATURE_COLUMNS
 
 logger = get_logger("adaptshield.ml.selector")
 
 
-def select_classifier(config: AdaptShieldConfig) -> Tuple[Any, Dict[str, Any]]:
+def select_classifier(config: AdaptShieldConfig) -> tuple[Any, dict[str, Any]]:
     """
     Selects and validates the classifier to use based on configuration,
     model registry state, and synthetic guard rules.

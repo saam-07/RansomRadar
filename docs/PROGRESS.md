@@ -202,7 +202,8 @@
   - Tested in userspace with cross-platform pytest suite and mocked filesystem paths; live APT package installation, systemd enablement, and reboot tests require a fresh Ubuntu 22.04/24.04 VM (checklist documented in `docs/installer_verification.md`).
 
 ## Next
-- **Prompt 17:** Agent Release, Comprehensive Tests, CI, Docs, Acceptance Criteria (`feat/agent-release` branch).
+- **Project Complete:** All Prompts 1 through 17 are 100% complete and fully verified.
+- **Tagged Releases:** `v0.2.0-demo` (Fullstack Web Demo) and `v0.2.0` (Production Autonomous Agent).
 
 ---
 
@@ -225,7 +226,8 @@
 | Prompt 14 | Agent Daemon & ML Auto-Selection | `feat/agent-main` | **done** | Agent main loop, signal handling (`SIGTERM`/`SIGHUP`), operating modes (`monitor`/`protect`/`learn`), synthetic guard |
 | Prompt 15 | AdaptShield Agent CLI | `feat/agent-cli` | **done** | Unified `adaptshield` command-line utility (`status`, `doctor`, `run`, `alerts`, `release`, `confirm`, `simulate`) |
 | Prompt 16 | Installer & Systemd Service | `feat/agent-installer` | **done** | Standalone `install.sh` / `uninstall.sh`, systemd service unit, preflight hardware/kernel verification, deb builder |
-| Prompt 17 | Agent Release & Verification | `feat/agent-release` | not started | Comprehensive test suite, documentation rewrite, acceptance criteria audit, `v0.2.0` agent release tag |
+| Prompt 17 | Agent Release & Verification | `feat/agent-release` | **done** | Comprehensive test suite (100/100 tests passing), documentation rewrite, acceptance criteria audit, `v0.2.0` agent release |
+
 
 
 

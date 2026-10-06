@@ -6,7 +6,8 @@ Generates human-interpretable forensic attributions for high-risk alerts:
 """
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any
+
 import numpy as np
 import pandas as pd
 
@@ -26,9 +27,9 @@ FEATURE_NARRATIVES = {
 
 def explain_alert(
     classifier: Any,
-    feature_row: Dict[str, Any] | pd.Series,
+    feature_row: dict[str, Any] | pd.Series,
     classifier_name: str = "xgboost",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Produces an explanation for a high-risk alert.
     """
@@ -56,10 +57,10 @@ def explain_alert(
         }
 
     # 2. Tree-based explanation (XGBoost / Random Forest)
-    contributions: List[Dict[str, Any]] = []
+    contributions: list[dict[str, Any]] = []
 
     # Get feature importances if available
-    importances: Dict[str, float] = {}
+    importances: dict[str, float] = {}
     if hasattr(classifier, "model") and hasattr(classifier.model, "feature_importances_"):
         cols = getattr(classifier, "columns", list(row_dict.keys()))
         imps = classifier.model.feature_importances_

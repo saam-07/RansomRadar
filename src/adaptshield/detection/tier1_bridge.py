@@ -3,8 +3,6 @@ Tier 1 control plane: loads eBPF program via BCC, attaches kprobes,
 and streams perf-buffer events into Python.
 Supports graceful degradation when BCC or kernel headers are missing.
 """
-import os
-import time
 import ctypes
 from pathlib import Path
 
@@ -66,7 +64,7 @@ class Tier1Tracer:
         ]:
             try:
                 self.bpf.attach_kprobe(event=sym, fn_name=fn)
-            except Exception as e:
+            except Exception:
                 pass
 
         self._events_buffer = []

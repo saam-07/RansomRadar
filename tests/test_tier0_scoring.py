@@ -1,4 +1,4 @@
-from adaptshield.tier0_watcher import tier0_suspicion_score, gini_of_gaps
+from adaptshield.tier0_watcher import gini_of_gaps, tier0_suspicion_score
 
 
 def test_gini_uniform_spacing_is_low():

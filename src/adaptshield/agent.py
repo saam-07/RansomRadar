@@ -13,9 +13,8 @@ import os
 import platform
 import signal
 import sys
-import time
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 from .config import AdaptShieldConfig, load_config
 from .daemon import AdaptShieldDaemon
@@ -26,7 +25,7 @@ from .ml.selector import select_classifier
 logger = get_logger("adaptshield.agent")
 
 
-def run_preflight_checks(config: AdaptShieldConfig) -> Dict[str, Any]:
+def run_preflight_checks(config: AdaptShieldConfig) -> dict[str, Any]:
     """
     Executes preflight validation checks for the endpoint environment:
     - Kernel version
@@ -36,7 +35,7 @@ def run_preflight_checks(config: AdaptShieldConfig) -> Dict[str, Any]:
     - Process privileges (root / CAP_SYS_ADMIN)
     - Model registry and active detector
     """
-    results: Dict[str, Any] = {
+    results: dict[str, Any] = {
         "platform": sys.platform,
         "os_release": platform.uname().release,
         "is_root": getattr(os, "geteuid", lambda: -1)() == 0,

@@ -4,13 +4,10 @@ Verifies argument parsing, output formats, and subcommand dispatching.
 """
 import io
 import json
-import os
 import sys
 import tempfile
 from pathlib import Path
-from unittest.mock import patch
 
-import pytest
 import yaml
 
 from adaptshield.cli import main as cli_main

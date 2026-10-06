@@ -1,4 +1,4 @@
-from adaptshield.risk_scorer import RiskScorer, RiskLevel
+from adaptshield.risk_scorer import RiskLevel, RiskScorer
 
 
 def test_low_probability_stays_none():

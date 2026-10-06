@@ -6,20 +6,14 @@ never touches real user filesystems or root mounts.
 import json
 import os
 import tempfile
-import time
 from pathlib import Path
-from unittest.mock import MagicMock
-
-import pytest
 
 from adaptshield.config import AdaptShieldConfig
-from adaptshield.detection.fanotify_ctypes import FanotifyEvent, is_path_excluded
+from adaptshield.detection.fanotify_ctypes import is_path_excluded
 from adaptshield.detection.tier0_watcher import Tier0Watcher
 from adaptshield.response.containment_manager import RollbackPolicy, contain
 from adaptshield.response.protection import (
     ProtectionManager,
-    ProtectionTarget,
-    is_overlay_mount_active,
 )
 
 
@@ -153,7 +147,7 @@ def test_protection_manager_quarantine_and_rollback_flow():
             overlay_root=overlay_root,
             quarantine_dir=quarantine_dir,
             state_file=state_file,
-            mount_fn=lambda l, u, w, m: None,
+            mount_fn=lambda lower, upper, work, merged: None,
         )
         mgr.setup_all()
         target = mgr.targets[str(protect_target)]

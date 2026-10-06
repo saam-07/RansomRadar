@@ -238,7 +238,7 @@ class Fanotify:
             )
             if event_len < _META_SIZE:
                 break
-            
+
             resolved_path = None
             if fd >= 0:
                 try:

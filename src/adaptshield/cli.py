@@ -25,28 +25,24 @@ import argparse
 import json
 import os
 import platform
-import shutil
 import subprocess
 import sys
+import tempfile
 import time
 from dataclasses import asdict
 from pathlib import Path
-from typing import Any, Dict, List, Optional
 
 import yaml
 
 from .config import AdaptShieldConfig, load_config
 from .daemon import AdaptShieldDaemon
-from .detection.tier1_bridge import get_tier1_status, is_tier1_available
+from .detection.tier1_bridge import get_tier1_status
 from .logging.logger import get_logger, setup_logging
 from .ml.classifier import build_classifier
 from .ml.registry import ModelRegistry
-from .ml.schema import FEATURE_COLUMNS, validate_features
 from .ml.selector import select_classifier
 from .response.containment_manager import (
     ContainmentManager,
-    RollbackPolicy,
-    check_manual_decision,
     clear_manual_decision,
     resolve_manual_decision,
     unfreeze_pid,
@@ -364,7 +360,7 @@ def cmd_confirm(args):
     print(f"Confirmed ransomware for PID {args.pid}.")
     print(f"  Quarantine:  {result.quarantine_path} ({result.quarantined_files} files preserved)")
     print(f"  Rollback:    {'Completed' if result.rolled_back else 'Unavailable'}")
-    print(f"  Process:     Terminated")
+    print("  Process:     Terminated")
 
 
 # -----------------------------------------------------------------------------
@@ -542,11 +538,12 @@ def cmd_model(args):
 def cmd_train(args):
     print(f"Launching training job (classifier={args.classifier}, data={args.data or 'default splits'})...")
     try:
-        from .ml.train import train_classifier
         import pandas as pd
+
+        from .ml.train import train_classifier
         train_path = args.data or "data/raw/traces_train.csv"
         df = pd.read_csv(train_path)
-        clf = train_classifier(args.classifier or "random_forest", df)
+        train_classifier(args.classifier or "random_forest", df)
         print(f"Successfully trained {args.classifier or 'random_forest'} on {len(df)} rows.")
     except Exception as e:
         print(f"Training failed: {e}")
@@ -555,8 +552,9 @@ def cmd_train(args):
 def cmd_evaluate(args):
     print("Evaluating models against test datasets...")
     try:
-        from .ml.evaluate import evaluate_classifier
         import pandas as pd
+
+        from .ml.evaluate import evaluate_classifier
         test_path = args.data or "data/raw/traces_test.csv"
         df = pd.read_csv(test_path)
         clf = build_classifier("rule_based")

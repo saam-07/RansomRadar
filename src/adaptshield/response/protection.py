@@ -10,17 +10,20 @@ from __future__ import annotations
 import json
 import os
 import re
-import shutil
 import subprocess
 import sys
 import time
-from dataclasses import asdict, dataclass
+from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any
 
 from ..config import AdaptShieldConfig, load_config
 from ..logging.logger import get_logger
-from .containment_manager import compute_overlay_diff, quarantine_upper, rollback_overlay
+from .containment_manager import (
+    quarantine_upper,
+    rollback_overlay,
+)
 
 logger = get_logger("adaptshield.protection")
 
@@ -35,12 +38,12 @@ class ProtectionTarget:
     is_mounted: bool = False
     rollback_available: bool = False
     status: str = "unmounted"  # "protected", "fallback_quarantine_only", "unmounted", "failed"
-    reason: Optional[str] = None
-    mounted_at: Optional[float] = None
+    reason: str | None = None
+    mounted_at: float | None = None
     quarantine_count: int = 0
     quarantine_bytes: int = 0
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "target_path": self.target_path,
             "status": self.status,
@@ -114,12 +117,12 @@ class ProtectionManager:
     """
     def __init__(
         self,
-        config: Optional[AdaptShieldConfig] = None,
-        overlay_root: Optional[str | Path] = None,
-        quarantine_dir: Optional[str | Path] = None,
-        state_file: Optional[str | Path] = None,
-        mount_fn: Optional[Callable[[str, str, str, str], None]] = None,
-        unmount_fn: Optional[Callable[[str], None]] = None,
+        config: AdaptShieldConfig | None = None,
+        overlay_root: str | Path | None = None,
+        quarantine_dir: str | Path | None = None,
+        state_file: str | Path | None = None,
+        mount_fn: Callable[[str, str, str, str], None] | None = None,
+        unmount_fn: Callable[[str], None] | None = None,
     ):
         self.config = config or load_config()
         self.overlay_root = Path(overlay_root or "/var/lib/adaptshield/overlay")
@@ -130,7 +133,7 @@ class ProtectionManager:
         self._mount_fn = mount_fn or system_mount_overlay
         self._unmount_fn = unmount_fn or system_unmount_overlay
 
-        self.targets: Dict[str, ProtectionTarget] = {}
+        self.targets: dict[str, ProtectionTarget] = {}
 
     def save_manifest(self):
         """Persists protection targets to disk to support reboot remounting."""
@@ -146,7 +149,7 @@ class ProtectionManager:
         except Exception as e:
             logger.warning("Could not persist protection manifest to %s: %s", self.state_file, e)
 
-    def load_manifest(self) -> Dict[str, Any]:
+    def load_manifest(self) -> dict[str, Any]:
         """Loads previously saved protection targets from manifest."""
         if not self.state_file.exists():
             return {}
@@ -244,14 +247,14 @@ class ProtectionManager:
         self.save_manifest()
         return target
 
-    def setup_all(self) -> Dict[str, ProtectionTarget]:
+    def setup_all(self) -> dict[str, ProtectionTarget]:
         """Sets up protection for all directories configured in config.protect_paths."""
         paths = self.config.protect_paths or ["/home"]
         for p in paths:
             self.setup_target(p)
         return self.targets
 
-    def remount_after_reboot(self) -> Dict[str, Any]:
+    def remount_after_reboot(self) -> dict[str, Any]:
         """
         Discovers previously protected paths from manifest and remounts any
         that are no longer active after a system reboot.
@@ -285,7 +288,7 @@ class ProtectionManager:
 
         return {"remounted": remounted, "failed": failed}
 
-    def get_target_for_path(self, file_path: str) -> Optional[ProtectionTarget]:
+    def get_target_for_path(self, file_path: str) -> ProtectionTarget | None:
         """Finds the matching ProtectionTarget covering the given file path."""
         norm_file = str(Path(file_path).resolve())
         best_match = None
@@ -300,9 +303,9 @@ class ProtectionManager:
     def quarantine_and_rollback(
         self,
         pid: int,
-        target_path: Optional[str] = None,
-        quarantine_root: Optional[str] = None,
-    ) -> Tuple[bool, Optional[str], int, int]:
+        target_path: str | None = None,
+        quarantine_root: str | None = None,
+    ) -> tuple[bool, str | None, int, int]:
         """
         Executes quarantine and rollback for a contained process.
         - If overlay is active (rollback_available=True):
@@ -367,7 +370,7 @@ class ProtectionManager:
                     logger.warning("Could not unmount overlay for '%s': %s", path, e)
         self.save_manifest()
 
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self) -> dict[str, Any]:
         """Provides status summary for CLI, status API, and health checks."""
         total = len(self.targets)
         protected = sum(1 for t in self.targets.values() if t.status == "protected")

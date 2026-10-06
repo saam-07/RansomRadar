@@ -7,11 +7,10 @@ with file size rotation for offline data labeling, auditing, and retraining.
 from __future__ import annotations
 
 import json
-import os
 import threading
 import time
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 from .logging.logger import get_logger
 
@@ -33,7 +32,7 @@ class TelemetryWriter:
         self.rotation_bytes = max(1, rotation_mb) * 1024 * 1024
         self.enabled = enabled
         self._lock = threading.Lock()
-        self._current_file: Optional[Path] = None
+        self._current_file: Path | None = None
         self._file_handle = None
         self._current_bytes = 0
 
@@ -72,10 +71,10 @@ class TelemetryWriter:
         risk_score: float,
         risk_level: str,
         action: str,
-        features: Dict[str, Any],
-        comm: Optional[str] = None,
-        exe_path: Optional[str] = None,
-        explanation: Optional[Dict[str, Any]] = None,
+        features: dict[str, Any],
+        comm: str | None = None,
+        exe_path: str | None = None,
+        explanation: dict[str, Any] | None = None,
     ):
         """Records a single telemetry record."""
         if not self.enabled or not self._file_handle:

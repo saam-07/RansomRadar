@@ -1,2 +1,2 @@
 """Compatibility shim for adaptshield.fanotify_ctypes."""
-from .detection.fanotify_ctypes import *
+from .detection.fanotify_ctypes import *  # noqa: F403

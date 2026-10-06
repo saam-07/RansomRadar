@@ -1,4 +1,3 @@
-import hashlib
 import json
 from pathlib import Path
 
@@ -10,8 +9,8 @@ from sklearn.metrics import accuracy_score
 from adaptshield.feature_aggregator import FEATURE_COLUMNS
 from scripts.make_datasets import (
     SCHEMA_COLUMNS,
-    generate_trace_dataset,
     compute_sha256,
+    generate_trace_dataset,
 )
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"

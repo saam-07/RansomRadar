@@ -6,17 +6,17 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Any, List, Optional
+
 import yaml
 from pydantic import BaseModel, Field, field_validator
 
 
 class WatchConfig(BaseModel):
-    paths: List[str] = Field(
+    paths: list[str] = Field(
         default_factory=lambda: ["/home", "/srv", "/var/www", "/opt/data"],
         description="Directories monitored by fanotify",
     )
-    excludes: List[str] = Field(
+    excludes: list[str] = Field(
         default_factory=lambda: [
             "/proc",
             "/sys",
@@ -93,7 +93,7 @@ class DetectionConfig(BaseModel):
 
 
 class AllowlistConfig(BaseModel):
-    process_names: List[str] = Field(
+    process_names: list[str] = Field(
         default_factory=lambda: [
             "systemd",
             "systemd-journald",
@@ -114,13 +114,13 @@ class AllowlistConfig(BaseModel):
             "adaptshield-agent",
         ]
     )
-    exe_paths: List[str] = Field(
+    exe_paths: list[str] = Field(
         default_factory=lambda: [
             "/usr/lib/systemd/*",
             "/usr/sbin/sshd",
         ]
     )
-    users: List[str] = Field(default_factory=lambda: ["root"])
+    users: list[str] = Field(default_factory=lambda: ["root"])
 
 
 class SafetyRailsConfig(BaseModel):
@@ -134,7 +134,7 @@ class ClassifierConfig(BaseModel):
     allow_synthetic: bool = Field(default=False)
     model_name: str = Field(default="xgboost")
     registry_dir: str = Field(default="models/registry")
-    model_path: Optional[str] = Field(default=None)
+    model_path: str | None = Field(default=None)
 
     @field_validator("mode")
     @classmethod
@@ -166,7 +166,7 @@ class AdaptShieldConfig(BaseModel):
     mode: str = Field(default="protect")
     monitor_first_period_hours: int = Field(default=24, ge=0)
     watch: WatchConfig = Field(default_factory=WatchConfig)
-    protect_paths: List[str] = Field(default_factory=lambda: ["/home"])
+    protect_paths: list[str] = Field(default_factory=lambda: ["/home"])
     response: ResponseConfig = Field(default_factory=ResponseConfig)
     detection: DetectionConfig = Field(default_factory=DetectionConfig)
     allowlist: AllowlistConfig = Field(default_factory=AllowlistConfig)

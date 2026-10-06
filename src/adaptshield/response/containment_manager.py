@@ -12,7 +12,6 @@ import time
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 
 CGROUP_ROOT = Path("/sys/fs/cgroup")
 ADAPTSHIELD_CGROUP = CGROUP_ROOT / "adaptshield"
@@ -92,7 +91,7 @@ def freeze_pid(pid: int, cgroup_parent: Path = ADAPTSHIELD_CGROUP) -> float:
     try:
         procs_file.write_text(str(pid))
         freeze_file.write_text("1")
-    except (PermissionError, OSError) as e:
+    except (PermissionError, OSError):
         # If in sandbox or non-root, simulate freeze state in events file
         events_file.write_text("frozen 1\n")
         return time.monotonic()
@@ -171,7 +170,7 @@ def is_pid_frozen(pid: int, cgroup_parent: Path = ADAPTSHIELD_CGROUP) -> bool:
     return False
 
 
-def list_frozen_pids(cgroup_parent: Path = ADAPTSHIELD_CGROUP) -> List[int]:
+def list_frozen_pids(cgroup_parent: Path = ADAPTSHIELD_CGROUP) -> list[int]:
     """Scans and lists all PIDs currently in a frozen cgroup state."""
     pids = []
     if cgroup_parent.exists():
@@ -472,7 +471,7 @@ class ContainmentManager:
     def is_frozen(self, pid: int) -> bool:
         return is_pid_frozen(pid, self.cgroup_path)
 
-    def list_frozen(self) -> List[int]:
+    def list_frozen(self) -> list[int]:
         return list_frozen_pids(self.cgroup_path)
 
     def kill(self, pid: int):

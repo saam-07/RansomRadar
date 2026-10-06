@@ -6,21 +6,18 @@ import os
 import tempfile
 import time
 from pathlib import Path
-import pytest
 
 from adaptshield.config import AdaptShieldConfig
 from adaptshield.response.containment_manager import (
-    ContainmentManager,
     RollbackPolicy,
     contain,
     freeze_pid,
-    unfreeze_pid,
     is_pid_frozen,
     list_frozen_pids,
-    get_pid_cgroup,
+    unfreeze_pid,
 )
 from adaptshield.response.safety import SafetyRails
-from adaptshield.state import StateManager, ContainedProcessRecord
+from adaptshield.state import StateManager
 
 
 def test_per_pid_cgroup_isolation_regression():

@@ -5,12 +5,12 @@ and model activation compatibility checks.
 """
 
 import json
+
 import pytest
 from fastapi.testclient import TestClient
 
-from backend.app.main import app
-from adaptshield.ml.schema import FEATURE_COLUMNS
 from adaptshield.ml.registry import ModelRegistry
+from backend.app.main import app
 
 
 @pytest.fixture(scope="module")

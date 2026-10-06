@@ -1,2 +1,2 @@
 """Compatibility shim for adaptshield.classifier."""
-from .ml.classifier import *
+from .ml.classifier import *  # noqa: F403

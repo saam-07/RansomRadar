@@ -2,9 +2,13 @@ import json
 import os
 
 from adaptshield.containment_manager import (
-    compute_overlay_diff, quarantine_upper, rollback_overlay,
-    request_manual_decision, check_manual_decision, clear_manual_decision,
     _control_file,
+    check_manual_decision,
+    clear_manual_decision,
+    compute_overlay_diff,
+    quarantine_upper,
+    request_manual_decision,
+    rollback_overlay,
 )
 
 
