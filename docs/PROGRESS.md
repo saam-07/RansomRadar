@@ -129,8 +129,12 @@
 - **Frontend Test Suite Passing (10/10 tests passed via Vitest):**
   - `src/test/dashboard.test.tsx` (4/4 passed)
   - `src/test/scenarios.test.tsx` (6/6 passed)
+  - `src/test/ml_ui.test.tsx` (4/4 passed)
 - **Playwright E2E Smoke Test Passing (1/1 test passed):**
   - `frontend/e2e/scenario_smoke.spec.ts`: loads application, navigates to Scenario Runner, triggers `Fast Ransomware Outbreak`, asserts containment (`OVERLAY FROZEN` / `Locked` / `Restored`), captures `docs/demo/filesystem_rollback.png`, navigates to Detector Comparison, executes side-by-side benchmark, asserts comparative table, and captures `docs/demo/detector_comparison.png`.
+- **UI Screenshots Verified:**
+  - `docs/demo/datasets_explorer.png`: Datasets explorer with train/val/test/hard_test split cards, class balance breakdown, feature schema specification, and rendered Dataset Card.
+  - `docs/demo/models_studio.png`: Model registry table with active status, evaluation curves, hard test degradation alert, and interactive 11-feature "Try it" predictor with presets.
 - **Backend & ML Test Suites Passing (58/58 tests passed):**
   - All 58 pytest tests passing across `tests/`.
 
@@ -141,7 +145,7 @@
   - Requires live agent running on Linux writing to `/var/log/adaptshield/alert.jsonl`.
 
 ## Next
-- **Prompt 8:** Datasets page, Models and Training page, "Try it" widget (`feat/ml-ui` branch).
+- **Prompt 9:** Alerts and forensics, settings, Guided Demo (`feat/guided-demo` branch).
 
 ---
 
@@ -155,8 +159,8 @@
 | Prompt 5 | Backend API & WebSocket | `feat/api` | **done** | FastAPI REST API, SQLite database, WebSocket stream (`/api/stream`), OpenAPI documentation |
 | Prompt 6 | Frontend Foundation & Dashboard | `feat/dashboard` | **done** | Vite + React + TS UI, Tailwind CSS, live dashboard, process table, risk timeline, alert drawer |
 | Prompt 7 | Scenario Runner & Restoration Visual | `feat/scenarios` | **done** | Scenario runner page, live file encryption/rollback visualization, side-by-side detector comparison |
-| Prompt 8 | Datasets & Models UI | `feat/ml-ui` | not started | Datasets explorer, model training and registry management, interactive 11-feature "Try it" predictor |
-| Prompt 9 | Forensics & Guided Demo | `feat/guided-demo` | not started | Forensic investigation drawer, engine settings controls, automated 3-minute guided demo narrative |
+| Prompt 8 | Datasets & Models UI | `feat/ml-ui` | **done** | Datasets explorer, model training and registry management, interactive 11-feature "Try it" predictor |
+| Prompt 9 | Forensics & Guided Demo | `feat/guided-demo` | in progress | Forensic investigation drawer, engine settings controls, automated 3-minute guided demo narrative |
 | Prompt 10 | Demo Release & Packaging | `feat/demo-release` | not started | Docker Compose orchestration, Makefile automation, CI suite, acceptance criteria audit, `v0.2.0-demo` tag |
 | Prompt 11 | Agent Packaging, Config, Logging | `feat/agent-core` | not started | Reorganize into `src/` layout with `pyproject.toml`, YAML config system, structured rotating/journald logging, Tier-0 fallback |
 | Prompt 12 | Per-Process Containment & Rails | `feat/agent-containment` | not started | Dedicated per-PID freezer cgroups, process allowlists, false-positive storm panic switch, persistent state recovery |
@@ -165,3 +169,4 @@
 | Prompt 15 | AdaptShield Agent CLI | `feat/agent-cli` | not started | Unified `adaptshield` command-line utility (`status`, `doctor`, `run`, `alerts`, `release`, `confirm`, `simulate`) |
 | Prompt 16 | Installer & Systemd Service | `feat/agent-installer` | not started | Standalone `install.sh` / `uninstall.sh`, systemd service unit, preflight hardware/kernel verification |
 | Prompt 17 | Agent Release & Verification | `feat/agent-release` | not started | Comprehensive test suite, documentation rewrite, acceptance criteria audit, `v0.2.0` agent release tag |
+

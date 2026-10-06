@@ -60,7 +60,7 @@ export const ScenarioRunnerPage: React.FC<ScenarioRunnerPageProps> = ({
 
         setFiles((prev) =>
           prev.map((f) => {
-            if (affectedIds.includes(f.id)) {
+            if (f.id && affectedIds.includes(f.id)) {
               return {
                 ...f,
                 status: 'encrypted',

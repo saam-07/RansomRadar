@@ -5,6 +5,8 @@ import { Sidebar, NavTab } from './components/layout/Sidebar';
 import { DashboardPage } from './pages/DashboardPage';
 import { ScenarioRunnerPage } from './pages/ScenarioRunnerPage';
 import { DetectorComparisonPage } from './pages/DetectorComparisonPage';
+import { DatasetsPage } from './pages/DatasetsPage';
+import { ModelsPage } from './pages/ModelsPage';
 import { StubPage } from './pages/StubPage';
 import { api } from './api/client';
 import { SystemStatus, WebSocketEvent } from './types/api';
@@ -101,17 +103,11 @@ export function AppContent() {
           )}
 
           {currentTab === 'datasets' && (
-            <StubPage
-              title="Benchmark Datasets Explorer"
-              description="Interactive feature distributions, class overlap histograms, raw trace samples, and dataset generation tool."
-            />
+            <DatasetsPage />
           )}
 
           {currentTab === 'models' && (
-            <StubPage
-              title="Model Registry & Training Studio"
-              description="Active model registry, background training job dispatch, evaluation curves, and interactive 11-feature 'Try It' prediction widget."
-            />
+            <ModelsPage />
           )}
 
           {currentTab === 'alerts' && (

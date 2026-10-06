@@ -43,6 +43,19 @@ def get_datasets_overview():
     )
 
 
+@router.get("/datasets/card")
+def get_dataset_card():
+    """Returns the markdown text of DATASET_CARD.md."""
+    card_path = DATA_DIR / "DATASET_CARD.md"
+    if not card_path.exists():
+        raise HTTPException(status_code=404, detail="DATASET_CARD.md not found")
+
+    with open(card_path, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    return {"content": content, "simulated": True}
+
+
 @router.get("/datasets/{split}/sample", response_model=DatasetSampleResponse)
 def get_dataset_sample(
     split: str,
