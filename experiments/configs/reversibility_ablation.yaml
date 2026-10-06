@@ -1,0 +1,21 @@
+# Reversibility ablation (roadmap Sec 8.1 item 4, extended with the new
+# policy-driven containment). Compares three containment configurations
+# on the SAME detection pipeline, so any difference is attributable only
+# to the containment policy, not to detection accuracy:
+#   - adaptshield             : freeze only, no rollback (previous behavior)
+#   - adaptshield_reversible  : freeze + quarantine + rollback + kill
+#   - rule_based with --kill-instead-of-freeze passed manually for a true
+#     irreversible-kill comparison (run separately -- see README Phase 8)
+#
+# Metrics to compare from results/processed/summary.csv after running this:
+#   - bytes_at_risk (should be similar between adaptshield and
+#     adaptshield_reversible -- same detection, same measurement point)
+#   - quarantined_bytes / quarantined_files (only nonzero for _reversible)
+#   - freeze_latency_s (should be nearly identical -- rollback happens
+#     AFTER freeze, so it should not affect freeze speed itself)
+workloads: ["benign", "ransomware"]
+filesystems: ["ext4"]
+configurations: ["adaptshield", "adaptshield_reversible"]
+seeds_per_cell: 10
+window_s: 2.0
+duration_s: 60

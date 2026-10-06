@@ -1,0 +1,10 @@
+# Full matrix as specified in the roadmap, Sec 7.1:
+# 4 workloads x 3 filesystems x 4 configurations x 10 seeds = 480 runs.
+# Run the window-size sweep (Sec 7.1) separately with a second config file
+# that fixes configurations to ["adaptshield"] and varies window_s.
+workloads: ["benign", "backup", "oltp", "ransomware"]
+filesystems: ["ext4", "btrfs", "xfs"]
+configurations: ["rule_based", "always_on_tier1", "ml_no_escalation", "adaptshield"]
+seeds_per_cell: 10
+window_s: 2.0
+duration_s: 60

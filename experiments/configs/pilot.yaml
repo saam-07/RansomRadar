@@ -1,0 +1,8 @@
+# Pilot config -- small scale, run this FIRST to catch integration bugs
+# before committing to the full 480+180-run matrix.
+workloads: ["benign", "ransomware"]
+filesystems: ["ext4"]
+configurations: ["rule_based", "adaptshield"]
+seeds_per_cell: 2
+window_s: 2.0
+duration_s: 30
