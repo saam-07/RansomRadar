@@ -69,11 +69,43 @@
   - `tests/test_containment_manager.py` (7/7 passed)
   - `tests/test_feature_aggregator.py` (5/5 passed)
   - `tests/test_risk_scorer.py` (4/4 passed)
+- **Prompt 6 (Frontend Foundation & Live Dashboard):**
+  - Initialized `frontend/` with React 18, TypeScript, Vite 6, Tailwind CSS, Recharts, and TanStack React Query.
+  - Built dark mode SOC theme layout with sticky `Navbar` displaying a prominent, persistent `SIMULATED DEMO DATA` badge, operating mode, policy selector, active model with synthetic data origin tag, and WebSocket stream status pill.
+  - Implemented responsive `Sidebar` navigation with active route to `Live Dashboard` and clean stub placeholders for upcoming features (`Scenario Runner`, `Detector Comparison`, `Datasets Explorer`, `Models & Training`, `Alerts & Forensics`, `System Settings`).
+  - Built typed API client (`frontend/src/api/client.ts`) and auto-reconnecting WebSocket hook (`frontend/src/hooks/useWebSocket.ts`) with heartbeat ping/pong and batched event handling.
+  - Implemented Live Dashboard components:
+    - `KpiCards`: Monitored Processes, Active Threat Alerts, Contained PIDs, Files Protected/Restored.
+    - `RiskTimelineChart`: Recharts EWMA risk and raw probability timeline with threshold reference lines at 0.3 (Elevated), 0.6 (Suspicious), and 0.85 (Critical Containment).
+    - `ProcessTable`: Real-time monitored processes table with colored EWMA progress bars, risk chips (`NORMAL`/`ELEVATED`/`CRITICAL`), status chips (`normal`/`monitored`/`frozen`/`quarantined`/`killed`), and interactive manual `Release`/`Confirm` controls.
+    - `AlertFeed`: Forensic alert feed showing real-time containment triggers.
+    - `EvidenceDrawer`: Forensic slide-over investigation drawer displaying tree feature contributions, impact scores, observed window feature vectors, and containment action buttons.
+  - Added component test suite in `frontend/src/test/dashboard.test.tsx` (4/4 tests passed via Vitest).
+  - Built production bundle (`npm run build` -> `dist/`) without TypeScript warnings or errors.
+  - Captured live dashboard screenshot preview in `docs/demo/dashboard_live.png`.
+
+## Verified
+- **Frontend Test Suite Passing (4/4 tests passed via Vitest):**
+  - `Navbar Component`: validates brand, persistent SIMULATED DEMO DATA badge, active model, and live stream pill.
+  - `KpiCards Component`: validates metric counts for processes, critical alerts, contained threats, and protected/restored files.
+  - `ProcessTable Component`: validates table rendering, risk EWMA scores, status chips, and callback triggers for `Release` and `Confirm`.
+  - `EvidenceDrawer Component`: validates attribution narrative, feature contribution breakdown, observed metrics, and drawer closing.
+- **Production Build:**
+  - `npm --prefix frontend run build`: cleanly bundled with Vite and TypeScript compiler without errors (`dist/index.html`, `dist/assets/`).
+- **Live Backend & Frontend Integration:**
+  - Started backend at `http://127.0.0.1:8000` and frontend at `http://127.0.0.1:3000`.
+  - Triggered `fast_ransomware` scenario via API (`POST /api/scenarios/run`): completed in 5.4s, contained attacker PID 4099 at window 4 (8.0s), rolled back and restored 55 files, intact 300 files.
+  - Saved live dashboard preview screenshot to `docs/demo/dashboard_live.png`.
+- **Backend & ML Test Suites Passing (58/58 tests passed):**
+  - `tests/test_api.py` (14/14 passed)
+  - `tests/test_backend_core.py` (7/7 passed)
+  - `tests/test_ml.py` (6/6 passed)
+  - `tests/test_datasets.py` (8/8 passed)
+  - `tests/test_classifier.py` (3/3 passed)
+  - `tests/test_containment_manager.py` (7/7 passed)
+  - `tests/test_feature_aggregator.py` (5/5 passed)
+  - `tests/test_risk_scorer.py` (4/4 passed)
   - `tests/test_tier0_scoring.py` (4/4 passed)
-- **Live Server & Curl Verification:**
-  - Started uvicorn server at `http://127.0.0.1:8000`.
-  - Verified OpenAPI documentation (`/docs`) returns HTTP 200 OK.
-  - Executed `fast_ransomware` scenario via POST to `/api/scenarios/run` and monitored completion via GET `/api/scenarios/runs/{id}`: contained PID 4099 at window 4 (8.0s), restored 55 files, completed with `simulated: true`.
 
 ## Not Verified (Requires Linux Kernel / Root Privileges)
 - **Real Containment Execution (`RealResponse`):**
@@ -82,7 +114,7 @@
   - Requires live agent running on Linux writing to `/var/log/adaptshield/alert.jsonl`.
 
 ## Next
-- **Prompt 6:** Frontend foundation and live dashboard (`feat/dashboard` branch).
+- **Prompt 7:** Scenario runner, file-restore visual, detector comparison (`feat/scenarios` branch).
 
 ---
 
@@ -94,7 +126,7 @@
 | Prompt 3 | Model Training, Evaluation, Registry | `feat/ml` | **done** | Refactor ML pipeline into `ml/`, implement schema contract, build `models/registry/`, train RF/XGB/Tier-0/rule-based models |
 | Prompt 4 | Backend Core | `feat/backend-core` | **done** | Implement `EventSource` (simulated/replay/live), `ResponseEngine`, pipeline execution, per-PID containment, CLI scenario runner |
 | Prompt 5 | Backend API & WebSocket | `feat/api` | **done** | FastAPI REST API, SQLite database, WebSocket stream (`/api/stream`), OpenAPI documentation |
-| Prompt 6 | Frontend Foundation & Dashboard | `feat/dashboard` | not started | Vite + React + TS UI, Tailwind CSS, live dashboard, process table, risk timeline, alert drawer |
+| Prompt 6 | Frontend Foundation & Dashboard | `feat/dashboard` | **done** | Vite + React + TS UI, Tailwind CSS, live dashboard, process table, risk timeline, alert drawer |
 | Prompt 7 | Scenario Runner & Restoration Visual | `feat/scenarios` | not started | Scenario runner page, live file encryption/rollback visualization, side-by-side detector comparison |
 | Prompt 8 | Datasets & Models UI | `feat/ml-ui` | not started | Datasets explorer, model training and registry management, interactive 11-feature "Try it" predictor |
 | Prompt 9 | Forensics & Guided Demo | `feat/guided-demo` | not started | Forensic investigation drawer, engine settings controls, automated 3-minute guided demo narrative |
