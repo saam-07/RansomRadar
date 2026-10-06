@@ -46,7 +46,7 @@ export const AlertFeed: React.FC<AlertFeedProps> = ({ alerts, onSelectAlert }) =
                   <div>
                     <div className="flex items-center space-x-2">
                       <span className="text-xs font-bold text-white font-mono">
-                        PID {alert.pid} ({alert.process_name})
+                        PID {alert.pid || '—'} {alert.process_name ? `(${alert.process_name})` : ''}
                       </span>
                       <span className="px-1.5 py-0.2 rounded text-[10px] uppercase font-mono bg-red-500/20 text-red-400 border border-red-500/40">
                         {alert.risk_level}
@@ -57,7 +57,7 @@ export const AlertFeed: React.FC<AlertFeedProps> = ({ alerts, onSelectAlert }) =
                       {summary}
                     </p>
                     <div className="flex items-center space-x-3 mt-1.5 text-[10px] font-mono text-slate-400">
-                      <span>EWMA: <strong className="text-red-400">{alert.ewma_score.toFixed(3)}</strong></span>
+                      <span>EWMA: <strong className="text-red-400">{Number(alert.ewma_score || 0).toFixed(3)}</strong></span>
                       <span>Detector: <strong className="text-emerald-400">{alert.model_name}</strong></span>
                       <span>Action: <strong className="text-amber-400">{alert.action_taken}</strong></span>
                     </div>

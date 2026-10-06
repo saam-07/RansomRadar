@@ -19,7 +19,15 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
     let errorDetail = response.statusText;
     try {
       const errJson = await response.json();
-      errorDetail = errJson.detail || JSON.stringify(errJson);
+      if (typeof errJson.detail === 'string') {
+        errorDetail = errJson.detail;
+      } else if (Array.isArray(errJson.detail)) {
+        errorDetail = errJson.detail.map((d: any) => d.msg || JSON.stringify(d)).join('; ');
+      } else if (errJson.detail) {
+        errorDetail = JSON.stringify(errJson.detail);
+      } else {
+        errorDetail = JSON.stringify(errJson);
+      }
     } catch {
       // ignore
     }
@@ -34,10 +42,10 @@ export const api = {
   getStatus: (): Promise<SystemStatus> => fetchJson<SystemStatus>('/status'),
   getHealth: (): Promise<{ status: string; version: string; simulated: boolean }> => fetchJson('/health'),
   setControl: (params: { mode?: string; policy?: string; detector?: string; reset_storm?: boolean }) =>
-    fetchJson('/control', {
-      method: 'POST',
-      body: JSON.stringify(params),
-    }),
+  fetchJson('/control', {
+    method: 'POST',
+    body: JSON.stringify(params),
+  }),
 
   // Processes
   getProcesses: (): Promise<{ processes: ProcessItem[]; total: number; simulated: boolean }> =>
@@ -55,17 +63,27 @@ export const api = {
 
   getAlertDetail: (id: string): Promise<AlertItem> => fetchJson(`/alerts/${id}`),
 
-  releaseProcess: (pid: number, reason?: string) =>
-    fetchJson('/containment/release', {
+  releaseProcess: (pid: number, reason?: string) => {
+    const numPid = Number(pid);
+    if (!numPid || isNaN(numPid) || numPid <= 0) {
+      throw new Error(`Cannot release process: Invalid PID (${pid})`);
+    }
+    return fetchJson('/containment/release', {
       method: 'POST',
-      body: JSON.stringify({ pid, action: 'release', reason }),
-    }),
+      body: JSON.stringify({ pid: numPid, action: 'release', reason }),
+    });
+  },
 
-  confirmProcess: (pid: number, reason?: string) =>
-    fetchJson('/containment/confirm', {
+  confirmProcess: (pid: number, reason?: string) => {
+    const numPid = Number(pid);
+    if (!numPid || isNaN(numPid) || numPid <= 0) {
+      throw new Error(`Cannot confirm process: Invalid PID (${pid})`);
+    }
+    return fetchJson('/containment/confirm', {
       method: 'POST',
-      body: JSON.stringify({ pid, action: 'confirm', reason }),
-    }),
+      body: JSON.stringify({ pid: numPid, action: 'confirm', reason }),
+    });
+  },
 
   // Scenarios
   getScenarios: (): Promise<ScenarioDefinition[]> => fetchJson('/scenarios'),

@@ -65,37 +65,46 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
     for (const event of wsEvents) {
       if (event.type === 'window_scored') {
-        const d = event.data;
-        const pt: TimelineDataPoint = {
-          timestamp: d.timestamp || new Date().toISOString(),
-          window_idx: d.window_idx ?? timelineData.length + 1,
-          ewma: d.ewma ?? 0.0,
-          probability: d.probability ?? 0.0,
-          pid: d.pid,
-          process_name: d.process_name,
-        };
+        const raw = event.data || {};
+        const d = (raw && typeof raw === 'object' && 'payload' in raw && raw.payload) ? raw.payload : raw;
+        const pid = typeof d.pid === 'number' ? d.pid : parseInt(d.pid, 10);
+        if (isNaN(pid) || pid <= 0) continue;
+
+        const winIdx = d.window_idx != null ? Number(d.window_idx) : 0;
+        const ewmaScore = Number(d.ewma ?? 0.0);
+        const rawProb = Number(d.probability ?? 0.0);
+        const pname = d.process_name || `proc_${pid}`;
 
         setTimelineData((prev) => {
+          const ptWinIdx = winIdx > 0 ? winIdx : (prev.length > 0 ? prev[prev.length - 1].window_idx + 1 : 1);
+          const pt: TimelineDataPoint = {
+            timestamp: d.timestamp || new Date().toISOString(),
+            window_idx: ptWinIdx,
+            ewma: ewmaScore,
+            probability: rawProb,
+            pid: pid,
+            process_name: pname,
+          };
           const next = [...prev, pt];
           return next.slice(-60); // keep last 60 points for performance
         });
 
         // Update process in table
         setProcesses((prev) => {
-          const existingIdx = prev.findIndex((p) => p.pid === d.pid);
+          const existingIdx = prev.findIndex((p) => p.pid === pid);
           const updatedProc: ProcessItem = {
-            pid: d.pid,
-            process_name: d.process_name || `proc_${d.pid}`,
+            pid: pid,
+            process_name: pname,
             label: d.label || 'benign',
             risk_level: d.risk_level || 'NORMAL',
-            ewma: d.ewma || 0.0,
-            probability: d.probability || 0.0,
+            ewma: ewmaScore,
+            probability: rawProb,
             status: existingIdx >= 0 ? prev[existingIdx].status : 'normal',
             is_frozen: existingIdx >= 0 ? prev[existingIdx].is_frozen : false,
             is_quarantined: existingIdx >= 0 ? prev[existingIdx].is_quarantined : false,
             files_touched: (existingIdx >= 0 ? prev[existingIdx].files_touched : 0) + (d.mod_rate || 0),
             files_encrypted: (existingIdx >= 0 ? prev[existingIdx].files_encrypted : 0) + (d.files_encrypted_now || 0),
-            last_window_idx: d.window_idx || 0,
+            last_window_idx: winIdx,
             simulated: true,
           };
 
@@ -115,14 +124,18 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           }));
         }
       } else if (event.type === 'alert') {
-        const alertData = event.data;
+        const raw = event.data || {};
+        const alertData = (raw && typeof raw === 'object' && 'payload' in raw && raw.payload) ? raw.payload : raw;
+        const pid = typeof alertData.pid === 'number' ? alertData.pid : parseInt(alertData.pid, 10);
+        if (isNaN(pid) || pid <= 0) continue;
+
         const newAlert: AlertItem = {
           id: alertData.alert_id || String(Date.now()),
           timestamp: alertData.timestamp || new Date().toISOString(),
-          pid: alertData.pid,
-          process_name: alertData.process_name,
+          pid: pid,
+          process_name: alertData.process_name || `proc_${pid}`,
           risk_level: alertData.risk_level || 'CRITICAL',
-          ewma_score: alertData.ewma || 0.9,
+          ewma_score: Number(alertData.ewma ?? 0.9),
           model_name: alertData.model_name || 'xgboost',
           explanation: alertData.explanation || {},
           window_data: alertData,
@@ -132,8 +145,11 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         };
         setAlerts((prev) => [newAlert, ...prev]);
       } else if (event.type === 'containment') {
-        const contData = event.data;
-        const pid = contData.pid;
+        const raw = event.data || {};
+        const contData = (raw && typeof raw === 'object' && 'payload' in raw && raw.payload) ? raw.payload : raw;
+        const pid = typeof contData.pid === 'number' ? contData.pid : parseInt(contData.pid, 10);
+        if (isNaN(pid) || pid <= 0) continue;
+
         setProcesses((prev) =>
           prev.map((p) => {
             if (p.pid === pid) {
@@ -158,12 +174,13 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         onRefreshStatus();
       }
     }
-  }, [wsEvents, timelineData.length, onRefreshStatus]);
+  }, [wsEvents, onRefreshStatus]);
 
   // Handle Scenario trigger
   const handleRunScenario = async () => {
     try {
       setTimelineData([]);
+      setProcesses([]);
       await api.runScenario(selectedScenario, {
         speed: simSpeed,
         seed: 42,

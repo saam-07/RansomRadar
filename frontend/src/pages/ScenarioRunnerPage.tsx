@@ -54,9 +54,11 @@ export const ScenarioRunnerPage: React.FC<ScenarioRunnerPageProps> = ({
 
     for (const evt of wsEvents) {
       if (evt.type === 'file_damage') {
-        const damage = evt.data;
+        const raw = evt.data || {};
+        const damage = (raw && typeof raw === 'object' && 'payload' in raw && raw.payload) ? raw.payload : raw;
         const affectedIds: string[] = damage.affected_files || [];
-        const pid = damage.pid;
+        const pid = typeof damage.pid === 'number' ? damage.pid : parseInt(damage.pid, 10);
+        if (isNaN(pid) || pid <= 0) continue;
 
         setFiles((prev) =>
           prev.map((f) => {
@@ -76,8 +78,10 @@ export const ScenarioRunnerPage: React.FC<ScenarioRunnerPageProps> = ({
           [pid]: { name: damage.process_name || `PID ${pid}`, status: 'encrypting', is_frozen: false },
         }));
       } else if (evt.type === 'containment') {
-        const cont = evt.data;
-        const pid = cont.pid;
+        const raw = evt.data || {};
+        const cont = (raw && typeof raw === 'object' && 'payload' in raw && raw.payload) ? raw.payload : raw;
+        const pid = typeof cont.pid === 'number' ? cont.pid : parseInt(cont.pid, 10);
+        if (isNaN(pid) || pid <= 0) continue;
 
         if (cont.is_frozen) {
           setIsFrozen(true);
