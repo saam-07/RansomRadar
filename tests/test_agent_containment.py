@@ -18,6 +18,21 @@ from adaptshield.response.containment_manager import (
 )
 from adaptshield.response.safety import SafetyRails
 from adaptshield.state import StateManager
+import pytest
+
+from adaptshield.config import AdaptShieldConfig
+from adaptshield.response.containment_manager import (
+    ContainmentManager,
+    RollbackPolicy,
+    contain,
+    freeze_pid,
+    unfreeze_pid,
+    is_pid_frozen,
+    list_frozen_pids,
+    get_pid_cgroup,
+)
+from adaptshield.response.safety import SafetyRails
+from adaptshield.state import StateManager, ContainedProcessRecord
 
 
 def test_per_pid_cgroup_isolation_regression():

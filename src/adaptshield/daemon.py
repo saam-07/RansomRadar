@@ -20,6 +20,8 @@ from .detection.tier0_watcher import Tier0Watcher, tier0_suspicion_score
 from .detection.tier1_bridge import Tier1Tracer, is_tier1_available
 from .logging.alert_logger import AlertLogger
 from .logging.logger import get_logger, setup_logging
+from .response.safety import SafetyRails
+from .state import StateManager
 from .ml.classifier import build_classifier
 from .ml.explain import explain_alert
 from .ml.selector import select_classifier
@@ -274,12 +276,14 @@ class AdaptShieldDaemon:
                     continue
 
                 # 2. Safety rails check: immunity for PID 1, system processes, agent itself, allowlists
+                # 1. Safety rails check: immunity for PID 1, system processes, agent itself, allowlists
                 is_immune, reason = self.safety.is_immune(pid, process_name=row.get("process_name"))
                 if is_immune:
                     logger.info("[SAFETY RAILS] PID=%s is immune from containment (%s). Action suppressed.", pid, reason)
                     continue
 
                 # 3. Rate limit & False-Positive Storm Panic Switch
+                # 2. Rate limit & False-Positive Storm Panic Switch
                 permitted, permit_reason = self.safety.check_containment_permitted(pid)
                 if not permitted:
                     logger.warning("[SAFETY RAILS] Containment suppressed for PID=%s: %s", pid, permit_reason)
@@ -288,6 +292,7 @@ class AdaptShieldDaemon:
                     continue
 
                 self.logger.log("alert_critical", pid=pid, risk_ewma=ewma, mode=active_mode, evidence=row, explanation=expl)
+                self.logger.log("alert_critical", pid=pid, risk_ewma=ewma, evidence=row)
                 if self.dry_run:
                     logger.info("[DRY-RUN] Would contain PID=%s with policy=%s", pid, self.rollback_policy.value)
                     self._contained_pids.add(pid)
@@ -329,6 +334,18 @@ class AdaptShieldDaemon:
                 )
 
                 # 4. Persist runtime state
+                status = "awaiting_manual" if result.awaiting_manual_decision else ("quarantined" if result.rolled_back else "frozen")
+                self.state_mgr.record_containment(
+                    pid=pid,
+                    policy=self.rollback_policy.value,
+                    status=status,
+                    evidence=row,
+                    quarantine_path=result.quarantine_path,
+                    overlay_upper=self.overlay_upperdir,
+                    overlay_work=self.overlay_workdir,
+                )
+
+                # 3. Persist runtime state
                 status = "awaiting_manual" if result.awaiting_manual_decision else ("quarantined" if result.rolled_back else "frozen")
                 self.state_mgr.record_containment(
                     pid=pid,

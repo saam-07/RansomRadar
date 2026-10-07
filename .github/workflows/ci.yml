@@ -30,6 +30,7 @@ jobs:
       - name: Run Ruff Lint Checks
         run: |
           ruff check src tests --select=E,F,W --ignore=E501
+          pip install -e ".[dev,demo]"
 
       - name: Verify Dataset Generation & Reproducibility
         run: |
@@ -40,6 +41,7 @@ jobs:
           python scripts/train_all.py
 
       - name: Run Pytest Test Suite (Unit & Non-Root)
+      - name: Run Pytest Test Suite
         env:
           PYTHONPATH: .
         run: |

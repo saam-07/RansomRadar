@@ -184,6 +184,8 @@
   - Implemented unit test suite `tests/test_agent_cli.py` (9 tests) verifying CLI parsing, outputs, and subcommands.
 - **Backend & ML Test Suites Passing (97/97 tests passed):**
   - All 97 pytest tests passing across `tests/` (58 demo + 11 agent core + 6 containment + 7 protection + 6 agent main loop + 9 CLI tests).
+- **Backend & ML Test Suites Passing (75/75 tests passed):**
+  - All 75 pytest tests passing across `tests/` (58 demo + 11 agent core + 6 containment tests).
 - **Frontend Test Suite Passing (19/19 tests passed):**
   - All 19 vitest tests passing across `frontend/src/test/`.
 - **Frontend Production Bundle:**
@@ -204,6 +206,7 @@
 ## Next
 - **Project Complete:** All Prompts 1 through 17 are 100% complete and fully verified.
 - **Tagged Releases:** `v0.2.0-demo` (Fullstack Web Demo) and `v0.2.0` (Production Autonomous Agent).
+- **Prompt 13:** Protection & Multi-Path Watching (`feat/agent-protection` branch).
 
 ---
 
@@ -231,5 +234,11 @@
 
 
 
+
+| Prompt 13 | Protection & Multi-Path Watching | `feat/agent-protection` | not started | Multi-mount fanotify monitoring, automated overlayfs protection manager, non-destructive fallbacks |
+| Prompt 14 | Agent Daemon & ML Auto-Selection | `feat/agent-main` | not started | Agent main loop, signal handling (`SIGTERM`/`SIGHUP`), operating modes (`monitor`/`protect`/`learn`), synthetic guard |
+| Prompt 15 | AdaptShield Agent CLI | `feat/agent-cli` | not started | Unified `adaptshield` command-line utility (`status`, `doctor`, `run`, `alerts`, `release`, `confirm`, `simulate`) |
+| Prompt 16 | Installer & Systemd Service | `feat/agent-installer` | not started | Standalone `install.sh` / `uninstall.sh`, systemd service unit, preflight hardware/kernel verification |
+| Prompt 17 | Agent Release & Verification | `feat/agent-release` | not started | Comprehensive test suite, documentation rewrite, acceptance criteria audit, `v0.2.0` agent release tag |
 
 

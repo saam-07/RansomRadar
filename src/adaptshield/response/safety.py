@@ -10,6 +10,7 @@ import os
 import time
 from collections import deque
 from pathlib import Path
+from typing import Dict, List, Optional, Set, Tuple
 
 from ..config import AdaptShieldConfig, load_config
 from ..logging.logger import get_logger
@@ -45,6 +46,7 @@ class SafetyRails:
         # Rate limiting and storm tracking
         self._containment_timestamps: deque[float] = deque()
         self._storm_pids: deque[tuple[float, int]] = deque()
+        self._storm_pids: deque[Tuple[float, int]] = deque()
         self.panic_switch_tripped: bool = False
 
     def is_self_or_child(self, pid: int) -> bool:
@@ -82,6 +84,10 @@ class SafetyRails:
         exe_path: str | None = None,
         username: str | None = None,
     ) -> tuple[bool, str]:
+        process_name: Optional[str] = None,
+        exe_path: Optional[str] = None,
+        username: Optional[str] = None,
+    ) -> Tuple[bool, str]:
         """
         Evaluates whether a PID is immune from containment.
         Returns (is_immune, reason).
@@ -136,6 +142,7 @@ class SafetyRails:
         return False, ""
 
     def check_containment_permitted(self, pid: int) -> tuple[bool, str]:
+    def check_containment_permitted(self, pid: int) -> Tuple[bool, str]:
         """
         Evaluates rate limits and false-positive storm conditions.
         Returns (permitted, reason).

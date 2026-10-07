@@ -12,6 +12,7 @@ import time
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
+from typing import Dict, List, Optional, Tuple
 
 CGROUP_ROOT = Path("/sys/fs/cgroup")
 ADAPTSHIELD_CGROUP = CGROUP_ROOT / "adaptshield"
@@ -50,6 +51,8 @@ class ContainmentResult:
 def get_pid_cgroup(pid: int, cgroup_parent: Path = ADAPTSHIELD_CGROUP) -> Path:
     """Returns the dedicated per-PID cgroup directory."""
     return cgroup_parent / f"pid_{pid}"
+
+
 
 
 def ensure_cgroup_ready(cgroup_parent: Path = ADAPTSHIELD_CGROUP):
@@ -92,6 +95,7 @@ def freeze_pid(pid: int, cgroup_parent: Path = ADAPTSHIELD_CGROUP) -> float:
         procs_file.write_text(str(pid))
         freeze_file.write_text("1")
     except (PermissionError, OSError):
+    except (PermissionError, OSError) as e:
         # If in sandbox or non-root, simulate freeze state in events file
         events_file.write_text("frozen 1\n")
         return time.monotonic()
@@ -171,6 +175,7 @@ def is_pid_frozen(pid: int, cgroup_parent: Path = ADAPTSHIELD_CGROUP) -> bool:
 
 
 def list_frozen_pids(cgroup_parent: Path = ADAPTSHIELD_CGROUP) -> list[int]:
+def list_frozen_pids(cgroup_parent: Path = ADAPTSHIELD_CGROUP) -> List[int]:
     """Scans and lists all PIDs currently in a frozen cgroup state."""
     pids = []
     if cgroup_parent.exists():
@@ -447,6 +452,18 @@ def resolve_manual_decision(
                 rollback_available=False,
                 rollback_reason=rollback_reason or "Overlay rollback unavailable for this filesystem",
             )
+        bytes_at_risk, files_at_risk = compute_overlay_diff(upperdir)
+        qpath, qfiles, qbytes = quarantine_upper(upperdir, quarantine_root, pid)
+        rollback_overlay(upperdir, workdir)
+        kill_pid(pid)
+        unfreeze_pid(pid, cgroup_parent=cgroup_parent)
+        clear_manual_decision(control_dir, pid)
+        return ContainmentResult(
+            pid=pid, decision_ts=decision_ts, frozen_ts=None, freeze_latency_s=None,
+            bytes_at_risk=bytes_at_risk, files_at_risk=files_at_risk,
+            policy=RollbackPolicy.MANUAL, rolled_back=True, killed=True,
+            quarantine_path=qpath, quarantined_files=qfiles, quarantined_bytes=qbytes,
+        )
     raise ValueError(f"Unknown decision: {decision}")
 
 
@@ -472,6 +489,7 @@ class ContainmentManager:
         return is_pid_frozen(pid, self.cgroup_path)
 
     def list_frozen(self) -> list[int]:
+    def list_frozen(self) -> List[int]:
         return list_frozen_pids(self.cgroup_path)
 
     def kill(self, pid: int):
