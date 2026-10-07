@@ -8,24 +8,24 @@ interface AlertFeedProps {
 
 export const AlertFeed: React.FC<AlertFeedProps> = ({ alerts, onSelectAlert }) => {
   return (
-    <div className="bg-[#0d1424] border border-slate-800 rounded-xl overflow-hidden flex flex-col h-full">
-      <div className="p-5 border-b border-slate-800 flex items-center justify-between">
+    <div className="bg-white/85 border border-[#e5dbe8] rounded-xl overflow-hidden flex flex-col h-full shadow-sm">
+      <div className="p-5 border-b border-[#ebdfe9] flex items-center justify-between">
         <div>
-          <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-200">
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-[#2c2436]">
             Forensic Alert Feed
           </h3>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-[#786c85] mt-0.5">
             Real-time containment incidents and behavioral attribution alerts
           </p>
         </div>
-        <div className="text-xs font-mono px-2 py-0.5 rounded bg-red-500/10 text-red-400 border border-red-500/20">
+        <div className="text-xs font-mono px-2 py-0.5 rounded bg-[#fdecee] text-[#9e3146] border border-[#f8c4cd]">
           {alerts.length} Incidents
         </div>
       </div>
 
-      <div className="divide-y divide-slate-800/60 overflow-y-auto max-h-96">
+      <div className="divide-y divide-[#ebdfe9] overflow-y-auto max-h-96">
         {alerts.length === 0 ? (
-          <div className="p-8 text-center text-slate-400 text-xs italic">
+          <div className="p-8 text-center text-[#8c7f99] text-xs italic">
             No active threat alerts. Clean system baseline telemetry.
           </div>
         ) : (
@@ -37,34 +37,34 @@ export const AlertFeed: React.FC<AlertFeedProps> = ({ alerts, onSelectAlert }) =
               <div
                 key={alert.id}
                 onClick={() => onSelectAlert(alert)}
-                className="p-4 hover:bg-slate-800/30 transition-colors cursor-pointer flex items-center justify-between group"
+                className="p-4 hover:bg-[#fbf7f9]/80 transition-colors cursor-pointer flex items-center justify-between group"
               >
                 <div className="flex items-start space-x-3">
-                  <div className="p-2 rounded-lg bg-red-500/10 text-red-400 border border-red-500/20 mt-0.5">
+                  <div className="p-2 rounded-lg bg-[#fdecee] text-[#9e3146] border border-[#f8c4cd] mt-0.5">
                     <ShieldAlert className="w-4 h-4" />
                   </div>
                   <div>
                     <div className="flex items-center space-x-2">
-                      <span className="text-xs font-bold text-white font-mono">
+                      <span className="text-xs font-bold text-[#2c2436] font-mono">
                         PID {alert.pid || '—'} {alert.process_name ? `(${alert.process_name})` : ''}
                       </span>
-                      <span className="px-1.5 py-0.2 rounded text-[10px] uppercase font-mono bg-red-500/20 text-red-400 border border-red-500/40">
+                      <span className="px-1.5 py-0.2 rounded text-[10px] uppercase font-mono bg-[#fdecee] text-[#9e3146] border border-[#f8c4cd]">
                         {alert.risk_level}
                       </span>
-                      <span className="text-[10px] text-slate-400 font-mono">{timeStr}</span>
+                      <span className="text-[10px] text-[#8c7f99] font-mono">{timeStr}</span>
                     </div>
-                    <p className="text-xs text-slate-400 mt-1 line-clamp-1 group-hover:text-slate-300">
+                    <p className="text-xs text-[#62566e] mt-1 line-clamp-1 group-hover:text-[#2c2436]">
                       {summary}
                     </p>
-                    <div className="flex items-center space-x-3 mt-1.5 text-[10px] font-mono text-slate-400">
-                      <span>Risk: <strong className="text-red-400">{Number(alert.ewma_score || 0).toFixed(3)}</strong></span>
-                      <span>Engine: <strong className="text-emerald-400">{alert.model_name || 'Behavioral Core'}</strong></span>
-                      <span>Action: <strong className="text-amber-400">{alert.action_taken}</strong></span>
+                    <div className="flex items-center space-x-3 mt-1.5 text-[10px] font-mono text-[#786c85]">
+                      <span>Risk: <strong className="text-[#9e3146]">{Number(alert.ewma_score || 0).toFixed(3)}</strong></span>
+                      <span>Engine: <strong className="text-[#246e40]">{alert.model_name || 'Behavioral Core'}</strong></span>
+                      <span>Action: <strong className="text-[#9b5825]">{alert.action_taken}</strong></span>
                     </div>
                   </div>
                 </div>
 
-                <div className="text-slate-400 group-hover:text-blue-400 transition-colors p-1">
+                <div className="text-[#9b8fa7] group-hover:text-[#b56576] transition-colors p-1">
                   <ChevronRight className="w-4 h-4" />
                 </div>
               </div>

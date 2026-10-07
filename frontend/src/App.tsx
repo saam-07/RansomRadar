@@ -72,7 +72,7 @@ export function AppContent() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-[#080d1a] text-slate-100 overflow-hidden">
+    <div className="flex flex-col h-screen bg-gradient-to-b from-[#e8eff8] via-[#f1ecf7] to-[#faeee7] text-[#2c2436] overflow-hidden">
       {/* Persistent Top Navigation Bar */}
       <Navbar
         status={status}
@@ -96,7 +96,7 @@ export function AppContent() {
         )}
 
         {/* Main Content Area (expands to full width when sidebar is hidden) */}
-        <main className="flex-1 flex flex-col overflow-hidden bg-[#0a1020] w-full">
+        <main className="flex-1 flex flex-col overflow-hidden bg-transparent w-full">
           {currentTab === 'dashboard' && (
             <DashboardPage
               status={status}

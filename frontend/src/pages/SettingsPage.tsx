@@ -120,19 +120,19 @@ export const SettingsPage: React.FC = () => {
   return (
     <div className="flex-1 p-6 space-y-6 overflow-y-auto">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-800 pb-4">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-[#ebdbe8] pb-4">
         <div>
           <div className="flex items-center space-x-2">
-            <h1 className="text-xl font-bold text-white flex items-center space-x-2">
-              <Settings className="w-5 h-5 text-blue-400" />
+            <h1 className="text-xl font-bold text-[#2c2436] flex items-center space-x-2">
+              <Settings className="w-5 h-5 text-[#b56576]" />
               <span>Engine Settings & Containment Safety Rails</span>
             </h1>
-            <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-blue-500/10 text-blue-400 border border-blue-500/20">
+            <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[#eddce5] text-[#9d7394] border border-[#dcbcd1]">
               RUNTIME CONFIG
             </span>
-            {loading && <span className="text-[10px] text-slate-400 font-mono">Loading...</span>}
+            {loading && <span className="text-[10px] text-[#786c85] font-mono">Loading...</span>}
           </div>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-[#786c85] mt-0.5">
             Configure risk thresholds, EWMA smoothing, containment semantics, process allowlist, and reset demo state.
           </p>
         </div>
@@ -142,8 +142,8 @@ export const SettingsPage: React.FC = () => {
             <div
               className={`px-3 py-1.5 rounded-lg border text-xs font-mono flex items-center space-x-1.5 ${
                 saveStatus.success
-                  ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-300'
-                  : 'bg-red-950/40 border-red-500/40 text-red-300'
+                  ? 'bg-[#e5f5ec] border-[#c0e6cf] text-[#246e40]'
+                  : 'bg-[#fdecee] border-[#f8c4cd] text-[#9e3146]'
               }`}
             >
               {saveStatus.success ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
@@ -153,7 +153,7 @@ export const SettingsPage: React.FC = () => {
 
           <button
             onClick={handleSave}
-            className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-colors flex items-center space-x-1.5"
+            className="px-4 py-2 rounded-lg bg-[#b56576] hover:bg-[#a25364] text-white font-semibold text-xs transition-colors flex items-center space-x-1.5 shadow-sm"
           >
             <Save className="w-4 h-4" />
             <span>Save Settings</span>
@@ -162,18 +162,18 @@ export const SettingsPage: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* 1. Risk Scoring & EWMA Thresholds */}
-        <div className="p-6 rounded-xl bg-[#0d1424] border border-slate-800 space-y-5">
-          <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-200 flex items-center space-x-2">
-            <Sliders className="w-4 h-4 text-purple-400" />
+        {/* 1. Risk Scoring & EWMA Tuning */}
+        <div className="p-6 rounded-xl bg-white/85 border border-[#e5dbe8] shadow-sm space-y-5">
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-[#2c2436] flex items-center space-x-2">
+            <Sliders className="w-4 h-4 text-[#9d7394]" />
             <span>Risk Scoring & EWMA Tuning</span>
           </h3>
 
           <div className="space-y-4 text-xs font-mono">
             <div>
-              <div className="flex justify-between text-slate-300 mb-1">
+              <div className="flex justify-between text-[#4a3f55] mb-1">
                 <span>EWMA Alpha (Smoothing Factor):</span>
-                <strong className="text-purple-400">{ewmaAlpha.toFixed(2)}</strong>
+                <strong className="text-[#9d7394] font-bold">{ewmaAlpha.toFixed(2)}</strong>
               </div>
               <input
                 type="range"
@@ -182,15 +182,15 @@ export const SettingsPage: React.FC = () => {
                 step="0.05"
                 value={ewmaAlpha}
                 onChange={(e) => setEwmaAlpha(parseFloat(e.target.value))}
-                className="w-full accent-purple-500"
+                className="w-full accent-[#9d7394]"
               />
-              <span className="text-[10px] text-slate-500">Higher alpha responds faster to sudden spikes; lower alpha reduces noise.</span>
+              <span className="text-[10px] text-[#8c7f99]">Higher alpha responds faster to sudden spikes; lower alpha reduces noise.</span>
             </div>
 
             <div>
-              <div className="flex justify-between text-slate-300 mb-1">
+              <div className="flex justify-between text-[#4a3f55] mb-1">
                 <span>Window Duration (Seconds):</span>
-                <strong className="text-purple-400">{windowDuration.toFixed(1)}s</strong>
+                <strong className="text-[#9d7394] font-bold">{windowDuration.toFixed(1)}s</strong>
               </div>
               <input
                 type="range"
@@ -199,14 +199,14 @@ export const SettingsPage: React.FC = () => {
                 step="0.5"
                 value={windowDuration}
                 onChange={(e) => setWindowDuration(parseFloat(e.target.value))}
-                className="w-full accent-purple-500"
+                className="w-full accent-[#9d7394]"
               />
             </div>
 
             <div>
-              <div className="flex justify-between text-slate-300 mb-1">
+              <div className="flex justify-between text-[#4a3f55] mb-1">
                 <span>Classifier Threshold (\theta_0):</span>
-                <strong className="text-purple-400">{theta0.toFixed(2)}</strong>
+                <strong className="text-[#9d7394] font-bold">{theta0.toFixed(2)}</strong>
               </div>
               <input
                 type="range"
@@ -215,15 +215,15 @@ export const SettingsPage: React.FC = () => {
                 step="0.05"
                 value={theta0}
                 onChange={(e) => setTheta0(parseFloat(e.target.value))}
-                className="w-full accent-purple-500"
+                className="w-full accent-[#9d7394]"
               />
             </div>
 
-            <div className="pt-3 border-t border-slate-800 space-y-3">
-              <span className="text-slate-400 font-semibold block">State Escalation Thresholds:</span>
+            <div className="pt-3 border-t border-[#ebdbe8] space-y-3">
+              <span className="text-[#786c85] font-semibold block">State Escalation Thresholds:</span>
               <div className="grid grid-cols-3 gap-3">
-                <div className="p-3 rounded-lg bg-slate-900 border border-slate-800">
-                  <span className="text-[10px] text-blue-400 block font-bold mb-1">WATCH</span>
+                <div className="p-3 rounded-lg bg-[#fcfaf8] border border-[#ebdbe8]">
+                  <span className="text-[10px] text-[#3d5c85] block font-bold mb-1">WATCH</span>
                   <input
                     type="number"
                     step="0.05"
@@ -231,11 +231,11 @@ export const SettingsPage: React.FC = () => {
                     max="0.9"
                     value={watchThreshold}
                     onChange={(e) => setWatchThreshold(parseFloat(e.target.value))}
-                    className="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-white text-xs"
+                    className="w-full bg-white border border-[#d8c8dc] rounded px-2 py-1 text-[#2c2436] text-xs focus:outline-none focus:border-[#b56576]"
                   />
                 </div>
-                <div className="p-3 rounded-lg bg-slate-900 border border-slate-800">
-                  <span className="text-[10px] text-amber-400 block font-bold mb-1">SUSPECT</span>
+                <div className="p-3 rounded-lg bg-[#fcfaf8] border border-[#ebdbe8]">
+                  <span className="text-[10px] text-[#9b5825] block font-bold mb-1">SUSPECT</span>
                   <input
                     type="number"
                     step="0.05"
@@ -243,11 +243,11 @@ export const SettingsPage: React.FC = () => {
                     max="0.9"
                     value={suspectThreshold}
                     onChange={(e) => setSuspectThreshold(parseFloat(e.target.value))}
-                    className="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-white text-xs"
+                    className="w-full bg-white border border-[#d8c8dc] rounded px-2 py-1 text-[#2c2436] text-xs focus:outline-none focus:border-[#b56576]"
                   />
                 </div>
-                <div className="p-3 rounded-lg bg-slate-900 border border-slate-800">
-                  <span className="text-[10px] text-red-400 block font-bold mb-1">CRITICAL</span>
+                <div className="p-3 rounded-lg bg-[#fcfaf8] border border-[#ebdbe8]">
+                  <span className="text-[10px] text-[#9e3146] block font-bold mb-1">CRITICAL</span>
                   <input
                     type="number"
                     step="0.05"
@@ -255,15 +255,15 @@ export const SettingsPage: React.FC = () => {
                     max="0.99"
                     value={criticalThreshold}
                     onChange={(e) => setCriticalThreshold(parseFloat(e.target.value))}
-                    className="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-white text-xs"
+                    className="w-full bg-white border border-[#d8c8dc] rounded px-2 py-1 text-[#2c2436] text-xs focus:outline-none focus:border-[#b56576]"
                   />
                 </div>
               </div>
 
               <div>
-                <div className="flex justify-between text-slate-300 mb-1">
+                <div className="flex justify-between text-[#4a3f55] mb-1">
                   <span>Critical Confirm Windows:</span>
-                  <strong className="text-white">{criticalConfirmWindows} windows</strong>
+                  <strong className="text-[#2c2436] font-bold">{criticalConfirmWindows} windows</strong>
                 </div>
                 <input
                   type="range"
@@ -272,28 +272,28 @@ export const SettingsPage: React.FC = () => {
                   step="1"
                   value={criticalConfirmWindows}
                   onChange={(e) => setCriticalConfirmWindows(parseInt(e.target.value))}
-                  className="w-full accent-blue-500"
+                  className="w-full accent-[#b56576]"
                 />
-                <span className="text-[10px] text-slate-500">Requires N consecutive windows above critical threshold before containment.</span>
+                <span className="text-[10px] text-[#8c7f99]">Requires N consecutive windows above critical threshold before containment.</span>
               </div>
             </div>
           </div>
         </div>
 
         {/* 2. Containment Policy & Safety Rails */}
-        <div className="p-6 rounded-xl bg-[#0d1424] border border-slate-800 space-y-5">
-          <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-200 flex items-center space-x-2">
-            <Shield className="w-4 h-4 text-emerald-400" />
+        <div className="p-6 rounded-xl bg-white/85 border border-[#e5dbe8] shadow-sm space-y-5">
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-[#2c2436] flex items-center space-x-2">
+            <Shield className="w-4 h-4 text-[#246e40]" />
             <span>Containment Policy & Safety Rails</span>
           </h3>
 
           <div className="space-y-4 text-xs font-mono">
             <div>
-              <label className="text-slate-400 block mb-1">Response Policy Semantics:</label>
+              <label className="text-[#786c85] block mb-1">Response Policy Semantics:</label>
               <select
                 value={policy}
                 onChange={(e) => setPolicy(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white capitalize"
+                className="w-full bg-white border border-[#d8c8dc] rounded-lg px-3 py-2 text-[#2c2436] capitalize focus:outline-none focus:border-[#b56576]"
               >
                 <option value="immediate">Immediate (Auto freeze & rollback on CRITICAL)</option>
                 <option value="manual">Manual (Freeze process, require operator confirm/release)</option>
@@ -302,9 +302,9 @@ export const SettingsPage: React.FC = () => {
             </div>
 
             <div>
-              <div className="flex justify-between text-slate-300 mb-1">
+              <div className="flex justify-between text-[#4a3f55] mb-1">
                 <span>Manual Auto-Resolve Timeout:</span>
-                <strong className="text-emerald-400">{autoResolveTimeout.toFixed(0)}s</strong>
+                <strong className="text-[#246e40] font-bold">{autoResolveTimeout.toFixed(0)}s</strong>
               </div>
               <input
                 type="range"
@@ -313,15 +313,15 @@ export const SettingsPage: React.FC = () => {
                 step="5"
                 value={autoResolveTimeout}
                 onChange={(e) => setAutoResolveTimeout(parseFloat(e.target.value))}
-                className="w-full accent-emerald-500"
+                className="w-full accent-[#5b9e75]"
               />
-              <span className="text-[10px] text-slate-500">Auto-terminates or unfreezes process if operator does not respond.</span>
+              <span className="text-[10px] text-[#8c7f99]">Auto-terminates or unfreezes process if operator does not respond.</span>
             </div>
 
             <div>
-              <div className="flex justify-between text-slate-300 mb-1">
+              <div className="flex justify-between text-[#4a3f55] mb-1">
                 <span>Storm Panic Switch Threshold:</span>
-                <strong className="text-amber-400">{panicStormThreshold} distinct PIDs</strong>
+                <strong className="text-[#9b5825] font-bold">{panicStormThreshold} distinct PIDs</strong>
               </div>
               <input
                 type="range"
@@ -330,30 +330,30 @@ export const SettingsPage: React.FC = () => {
                 step="1"
                 value={panicStormThreshold}
                 onChange={(e) => setPanicStormThreshold(parseInt(e.target.value))}
-                className="w-full accent-amber-500"
+                className="w-full accent-[#d97736]"
               />
-              <span className="text-[10px] text-slate-500">
+              <span className="text-[10px] text-[#8c7f99]">
                 Automatically drops to monitor mode if {panicStormThreshold}+ PIDs trigger critical simultaneously.
               </span>
             </div>
 
             {/* Allowlist Editor */}
-            <div className="pt-3 border-t border-slate-800 space-y-2">
-              <span className="text-slate-400 font-semibold block flex items-center space-x-1.5">
-                <Lock className="w-3.5 h-3.5 text-blue-400" />
+            <div className="pt-3 border-t border-[#ebdbe8] space-y-2">
+              <span className="text-[#786c85] font-semibold block flex items-center space-x-1.5">
+                <Lock className="w-3.5 h-3.5 text-[#b56576]" />
                 <span>Protected Application Allowlist (Never Contained):</span>
               </span>
 
-              <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto p-2 rounded-lg bg-slate-900 border border-slate-800">
+              <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto p-2 rounded-lg bg-[#fcfaf8] border border-[#ebdbe8]">
                 {allowlist.map((name) => (
                   <span
                     key={name}
-                    className="inline-flex items-center space-x-1 px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700 text-[11px]"
+                    className="inline-flex items-center space-x-1 px-2 py-0.5 rounded bg-[#f2e9f2] text-[#6b5f77] border border-[#e0d3e5] text-[11px]"
                   >
                     <span>{name}</span>
                     <button
                       onClick={() => handleRemoveAllowlist(name)}
-                      className="text-slate-500 hover:text-red-400"
+                      className="text-[#8c7f99] hover:text-[#9e3146]"
                     >
                       <Trash2 className="w-3 h-3" />
                     </button>
@@ -367,11 +367,11 @@ export const SettingsPage: React.FC = () => {
                   placeholder="Add process name (e.g. nginx, redis)..."
                   value={newAllowlistName}
                   onChange={(e) => setNewAllowlistName(e.target.value)}
-                  className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500"
+                  className="flex-1 bg-white border border-[#d8c8dc] rounded-lg px-3 py-1.5 text-[#2c2436] text-xs focus:outline-none focus:border-[#b56576]"
                 />
                 <button
                   type="submit"
-                  className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs flex items-center space-x-1"
+                  className="px-3 py-1.5 rounded-lg bg-[#f2e9f2] hover:bg-[#e7dce7] text-[#6b5f77] border border-[#e0d3e5] font-semibold text-xs flex items-center space-x-1"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>Add</span>
@@ -383,21 +383,21 @@ export const SettingsPage: React.FC = () => {
       </div>
 
       {/* 3. Demo Environment Reset Section */}
-      <div className="p-6 rounded-xl bg-red-950/20 border border-red-900/40 space-y-3">
+      <div className="p-6 rounded-xl bg-[#fdecee]/60 border border-[#f8c4cd] space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h3 className="text-sm font-semibold uppercase tracking-wider text-red-300 flex items-center space-x-2">
-              <RotateCcw className="w-4 h-4 text-red-400" />
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-[#9e3146] flex items-center space-x-2">
+              <RotateCcw className="w-4 h-4 text-[#9e3146]" />
               <span>Reset Demo State & Filesystem Baseline</span>
             </h3>
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-xs text-[#786c85] mt-1">
               Restores virtual filesystem to 300 intact files, clears active scenarios, resets panic storm switch, and reseeds initial demo run history.
             </p>
           </div>
 
           <button
             onClick={handleResetDemoState}
-            className="px-4 py-2 rounded-lg bg-red-700 hover:bg-red-600 text-white font-semibold text-xs transition-colors flex items-center space-x-1.5 shadow-lg shadow-red-900/30"
+            className="px-4 py-2 rounded-lg bg-[#b54a5f] hover:bg-[#9e3146] text-white font-semibold text-xs transition-colors flex items-center space-x-1.5 shadow-sm"
           >
             <RotateCcw className="w-4 h-4" />
             <span>Reset Demo State</span>

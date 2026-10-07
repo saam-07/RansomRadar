@@ -33,7 +33,7 @@ const DEMO_STEPS: GuidedStep[] = [
     id: 1,
     title: 'Normal Workday: Quiet Baseline',
     badge: 'BENIGN BASELINE',
-    badgeColor: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+    badgeColor: 'bg-[#edf2f9] text-[#3d5c85] border-[#d2def0]',
     icon: FileCheck,
     summary: 'Developer productivity, git commits, code compiles, and file edits.',
     narration: [
@@ -50,7 +50,7 @@ const DEMO_STEPS: GuidedStep[] = [
     id: 2,
     title: 'Nightly Backup: High I/O Stress Test',
     badge: 'FALSE POSITIVE RESISTANCE',
-    badgeColor: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+    badgeColor: 'bg-[#e5f5ec] text-[#246e40] border-[#c0e6cf]',
     icon: Shield,
     summary: 'Rsync and backup utilities reading and writing thousands of files rapidly.',
     narration: [
@@ -67,7 +67,7 @@ const DEMO_STEPS: GuidedStep[] = [
     id: 3,
     title: 'Fast Ransomware: Outbreak & Rollback',
     badge: 'ACTIVE ATTACK CONTAINMENT',
-    badgeColor: 'bg-red-500/10 text-red-400 border-red-500/20',
+    badgeColor: 'bg-[#fdecee] text-[#9e3146] border-[#f8c4cd]',
     icon: AlertTriangle,
     summary: 'Aggressive encryption malware targets protected user documents.',
     narration: [
@@ -84,7 +84,7 @@ const DEMO_STEPS: GuidedStep[] = [
     id: 4,
     title: 'Side-by-Side Detector Benchmark',
     badge: 'COMPARATIVE BENCHMARK',
-    badgeColor: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
+    badgeColor: 'bg-[#f4e6ec] text-[#8e455d] border-[#e2c1ce]',
     icon: Activity,
     summary: 'Direct comparison between Rule-Based Heuristic, Random Forest, and XGBoost.',
     narration: [
@@ -101,7 +101,7 @@ const DEMO_STEPS: GuidedStep[] = [
     id: 5,
     title: 'Model Evaluation & Hard Test Set Reality',
     badge: 'EVALUATION TRANSPARENCY',
-    badgeColor: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+    badgeColor: 'bg-[#fef5e8] text-[#9b5825] border-[#fcdcb8]',
     icon: TrendingDown,
     summary: 'Rigorous assessment on holdout evasive ransomware variants.',
     narration: [
@@ -187,37 +187,37 @@ export const GuidedDemoModal: React.FC<GuidedDemoModalProps> = ({ isOpen, onClos
   const StepIcon = step.icon;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-      <div className="w-full max-w-3xl bg-[#0d1424] border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 bg-[#2c2436]/40 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="w-full max-w-3xl bg-[#fcfaf8] border border-[#e5dbe8] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="p-5 border-b border-slate-800 flex items-center justify-between bg-slate-950/60">
+        <div className="p-5 border-b border-[#ebdbe8] flex items-center justify-between bg-[#f9f5f6]">
           <div className="flex items-center space-x-3">
-            <div className="p-2 rounded-lg bg-blue-600/20 text-blue-400 border border-blue-500/30">
+            <div className="p-2 rounded-lg bg-[#eddce5] text-[#b56576] border border-[#dcbcd1]">
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center space-x-2">
-                <h2 className="text-base font-bold text-white">AdaptShield 3-Minute Guided Demo</h2>
-                <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                <h2 className="text-base font-bold text-[#2c2436]">AdaptShield 3-Minute Guided Demo</h2>
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[#eddce5] text-[#9d7394] border border-[#dcbcd1]">
                   STORY MODE
                 </span>
               </div>
-              <p className="text-xs text-slate-400">Step {currentStepIdx + 1} of {DEMO_STEPS.length}: {step.title}</p>
+              <p className="text-xs text-[#786c85]">Step {currentStepIdx + 1} of {DEMO_STEPS.length}: {step.title}</p>
             </div>
           </div>
 
           <div className="flex items-center space-x-2">
             <button
               onClick={() => setIsPlaying(!isPlaying)}
-              className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold flex items-center space-x-1"
+              className="p-1.5 rounded-lg bg-[#f2e9f2] hover:bg-[#e7dce7] text-[#6b5f77] border border-[#e0d3e5] text-xs font-semibold flex items-center space-x-1"
               title={isPlaying ? 'Pause auto-play' : 'Auto-play story mode'}
             >
-              {isPlaying ? <Pause className="w-4 h-4 text-amber-400" /> : <Play className="w-4 h-4 text-emerald-400" />}
+              {isPlaying ? <Pause className="w-4 h-4 text-[#d49e35]" /> : <Play className="w-4 h-4 text-[#246e40]" />}
               <span className="text-[11px] hidden sm:inline">{isPlaying ? 'Pause' : 'Auto-Play'}</span>
             </button>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white"
+              className="p-1.5 rounded-lg hover:bg-[#ebdbe8] text-[#786c85] hover:text-[#2c2436]"
             >
               <X className="w-5 h-5" />
             </button>
@@ -225,9 +225,9 @@ export const GuidedDemoModal: React.FC<GuidedDemoModalProps> = ({ isOpen, onClos
         </div>
 
         {/* Progress Bar */}
-        <div className="w-full h-1 bg-slate-900">
+        <div className="w-full h-1 bg-[#efe7f0]">
           <div
-            className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-emerald-500 transition-all duration-300"
+            className="h-full bg-gradient-to-r from-[#b56576] via-[#9d7394] to-[#5b9e75] transition-all duration-300"
             style={{ width: `${((currentStepIdx + 1) / DEMO_STEPS.length) * 100}%` }}
           />
         </div>
@@ -240,23 +240,23 @@ export const GuidedDemoModal: React.FC<GuidedDemoModalProps> = ({ isOpen, onClos
               <span className={`px-2.5 py-0.5 rounded text-[10px] font-mono font-bold border ${step.badgeColor}`}>
                 {step.badge}
               </span>
-              <h3 className="text-xl font-bold text-white flex items-center space-x-2 pt-1">
-                <StepIcon className="w-5 h-5 text-blue-400" />
+              <h3 className="text-xl font-bold text-[#2c2436] flex items-center space-x-2 pt-1">
+                <StepIcon className="w-5 h-5 text-[#b56576]" />
                 <span>{step.title}</span>
               </h3>
-              <p className="text-xs text-slate-300 font-mono">{step.summary}</p>
+              <p className="text-xs text-[#786c85] font-mono">{step.summary}</p>
             </div>
           </div>
 
           {/* Narration Script Box */}
-          <div className="p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2.5">
-            <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-400 block">
+          <div className="p-4 rounded-xl bg-white/90 border border-[#ebdbe8] space-y-2.5">
+            <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-[#786c85] block">
               Presenter Narration Script:
             </span>
-            <div className="space-y-2 text-xs font-mono text-slate-200 leading-relaxed">
+            <div className="space-y-2 text-xs font-mono text-[#4a3f55] leading-relaxed">
               {step.narration.map((paragraph, idx) => (
                 <p key={idx} className="flex items-start space-x-2">
-                  <span className="text-blue-400 font-bold">&bull;</span>
+                  <span className="text-[#b56576] font-bold">&bull;</span>
                   <span>{paragraph}</span>
                 </p>
               ))}
@@ -264,18 +264,18 @@ export const GuidedDemoModal: React.FC<GuidedDemoModalProps> = ({ isOpen, onClos
           </div>
 
           {/* Expected Outcome & Interactive Action */}
-          <div className="p-4 rounded-xl bg-[#0b101d] border border-blue-900/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="p-4 rounded-xl bg-[#f7f2f7] border border-[#e2d5e6] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">Expected Technical Outcome:</span>
-              <strong className="text-xs font-mono text-emerald-300">{step.expectedOutcome}</strong>
+              <span className="text-[10px] font-mono text-[#786c85] uppercase tracking-wider block">Expected Technical Outcome:</span>
+              <strong className="text-xs font-mono text-[#246e40]">{step.expectedOutcome}</strong>
               {actionFeedback && (
-                <p className="text-[11px] font-mono text-blue-400 mt-1">{actionFeedback}</p>
+                <p className="text-[11px] font-mono text-[#9d7394] mt-1">{actionFeedback}</p>
               )}
             </div>
 
             <button
               onClick={handleExecuteAction}
-              className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs font-mono transition-colors shadow-lg shadow-blue-900/40 whitespace-nowrap flex items-center justify-center space-x-1.5"
+              className="px-4 py-2 rounded-lg bg-[#b56576] hover:bg-[#a25364] text-white font-semibold text-xs font-mono transition-colors shadow-sm whitespace-nowrap flex items-center justify-center space-x-1.5"
             >
               <Play className="w-3.5 h-3.5" />
               <span>{step.actionLabel}</span>
@@ -284,7 +284,7 @@ export const GuidedDemoModal: React.FC<GuidedDemoModalProps> = ({ isOpen, onClos
         </div>
 
         {/* Footer Navigation */}
-        <div className="p-4 border-t border-slate-800 bg-slate-950/60 flex items-center justify-between text-xs font-mono">
+        <div className="p-4 border-t border-[#ebdbe8] bg-[#f9f5f6] flex items-center justify-between text-xs font-mono">
           <div className="flex items-center space-x-1">
             {DEMO_STEPS.map((s, idx) => (
               <button
@@ -295,10 +295,10 @@ export const GuidedDemoModal: React.FC<GuidedDemoModalProps> = ({ isOpen, onClos
                 }}
                 className={`w-6 h-6 rounded-full text-[11px] font-bold flex items-center justify-center transition-colors ${
                   idx === currentStepIdx
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-[#b56576] text-white'
                     : idx < currentStepIdx
-                    ? 'bg-emerald-950 text-emerald-400 border border-emerald-800'
-                    : 'bg-slate-900 text-slate-500'
+                    ? 'bg-[#e5f5ec] text-[#246e40] border border-[#c0e6cf]'
+                    : 'bg-[#f0e8f2] text-[#8c7f99]'
                 }`}
               >
                 {idx + 1}
@@ -310,7 +310,7 @@ export const GuidedDemoModal: React.FC<GuidedDemoModalProps> = ({ isOpen, onClos
             <button
               onClick={handlePrev}
               disabled={currentStepIdx === 0}
-              className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:hover:bg-slate-800 text-slate-200 text-xs font-semibold flex items-center space-x-1"
+              className="px-3 py-1.5 rounded-lg bg-[#f2e9f2] hover:bg-[#e7dce7] disabled:opacity-40 disabled:hover:bg-[#f2e9f2] text-[#6b5f77] border border-[#e0d3e5] text-xs font-semibold flex items-center space-x-1"
             >
               <ChevronLeft className="w-4 h-4" />
               <span>Previous</span>
@@ -319,7 +319,7 @@ export const GuidedDemoModal: React.FC<GuidedDemoModalProps> = ({ isOpen, onClos
             {currentStepIdx < DEMO_STEPS.length - 1 ? (
               <button
                 onClick={handleNext}
-                className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold flex items-center space-x-1"
+                className="px-3 py-1.5 rounded-lg bg-[#b56576] hover:bg-[#a25364] text-white text-xs font-semibold flex items-center space-x-1 shadow-sm"
               >
                 <span>Next Step</span>
                 <ChevronRight className="w-4 h-4" />
@@ -327,7 +327,7 @@ export const GuidedDemoModal: React.FC<GuidedDemoModalProps> = ({ isOpen, onClos
             ) : (
               <button
                 onClick={onClose}
-                className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center space-x-1"
+                className="px-3 py-1.5 rounded-lg bg-[#2e7d4e] hover:bg-[#246e40] text-white text-xs font-semibold flex items-center space-x-1 shadow-sm"
               >
                 <CheckCircle2 className="w-4 h-4" />
                 <span>Finish Demo</span>

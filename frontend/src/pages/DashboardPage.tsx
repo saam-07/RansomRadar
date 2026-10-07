@@ -224,8 +224,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
   if (isLoading) {
     return (
-      <div className="flex-1 p-8 flex items-center justify-center space-x-3 text-slate-400">
-        <RefreshCw className="w-5 h-5 animate-spin text-blue-400" />
+      <div className="flex-1 p-8 flex items-center justify-center space-x-3 text-[#786c85]">
+        <RefreshCw className="w-5 h-5 animate-spin text-[#b56576]" />
         <span className="text-sm">Connecting to AdaptShield telemetry engine...</span>
       </div>
     );
@@ -236,16 +236,16 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   return (
     <div className="flex-1 p-6 space-y-6 overflow-y-auto">
       {/* Top Scenario Launcher Control Bar */}
-      <div className="p-4 rounded-xl border border-slate-800 bg-[#0d1424] flex flex-wrap items-center justify-between gap-4">
+      <div className="p-4 rounded-xl border border-[#e5dbe8] bg-white/85 backdrop-blur-sm shadow-sm flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center space-x-3">
-          <label className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+          <label className="text-xs font-semibold uppercase tracking-wider text-[#786c85]">
             Scenario:
           </label>
           <select
             value={selectedScenario}
             onChange={(e) => setSelectedScenario(e.target.value)}
             disabled={isScenarioRunning}
-            className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500 font-mono"
+            className="bg-white border border-[#dfd3e3] rounded-lg px-3 py-1.5 text-xs text-[#2c2436] focus:outline-none focus:border-[#b56576] font-mono shadow-xs"
           >
             {scenarios.map((scen) => (
               <option key={scen.id} value={scen.id}>
@@ -254,13 +254,13 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             ))}
           </select>
 
-          <div className="flex items-center space-x-1.5 text-xs text-slate-400 ml-2">
+          <div className="flex items-center space-x-1.5 text-xs text-[#786c85] ml-2">
             <span>Speed:</span>
             <select
               value={simSpeed}
               onChange={(e) => setSimSpeed(Number(e.target.value))}
               disabled={isScenarioRunning}
-              className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white font-mono"
+              className="bg-white border border-[#dfd3e3] rounded px-2 py-1 text-xs text-[#2c2436] font-mono shadow-xs"
             >
               <option value={1.0}>1x</option>
               <option value={5.0}>5x</option>
@@ -273,7 +273,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           {!isScenarioRunning ? (
             <button
               onClick={handleRunScenario}
-              className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs flex items-center space-x-2 transition-all shadow-lg shadow-blue-600/20"
+              className="px-4 py-2 rounded-lg bg-[#b56576] hover:bg-[#a25364] text-white font-semibold text-xs flex items-center space-x-2 transition-all shadow-sm"
             >
               <Play className="w-3.5 h-3.5 fill-current" />
               <span>Launch Scenario</span>
@@ -281,7 +281,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           ) : (
             <button
               onClick={handleStopScenario}
-              className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white font-semibold text-xs flex items-center space-x-2 transition-all shadow-lg shadow-red-600/20"
+              className="px-4 py-2 rounded-lg bg-[#c2576a] hover:bg-[#af4759] text-white font-semibold text-xs flex items-center space-x-2 transition-all shadow-sm"
             >
               <Square className="w-3.5 h-3.5 fill-current" />
               <span>Stop Scenario</span>
@@ -290,7 +290,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
           <button
             onClick={loadInitialData}
-            className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs transition-colors"
+            className="p-2 rounded-lg bg-[#f2e9f2] hover:bg-[#e7dce7] text-[#6b5f77] text-xs transition-colors border border-[#ded2de]"
             title="Refresh dashboard"
           >
             <RefreshCw className="w-3.5 h-3.5" />

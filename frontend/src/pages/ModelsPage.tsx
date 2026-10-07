@@ -240,25 +240,25 @@ export const ModelsPage: React.FC = () => {
   return (
     <div className="flex-1 p-6 space-y-6 overflow-y-auto">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-800 pb-4">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-[#ebdbe8] pb-4">
         <div>
           <div className="flex items-center space-x-2">
-            <h1 className="text-xl font-bold text-white flex items-center space-x-2">
-              <Cpu className="w-5 h-5 text-purple-400" />
+            <h1 className="text-xl font-bold text-[#2c2436] flex items-center space-x-2">
+              <Cpu className="w-5 h-5 text-[#9d7394]" />
               <span>Model Registry & Training Studio</span>
             </h1>
-            <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-purple-500/10 text-purple-400 border border-purple-500/20">
+            <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[#eddce5] text-[#9d7394] border border-[#dcbcd1]">
               SYNTHETIC ORIGIN
             </span>
           </div>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-[#786c85] mt-0.5">
             Manage deployed detectors, inspect evaluation curves & evasion degradation, trigger training, and test feature vectors live.
           </p>
         </div>
 
         {activateStatus && (
           <div className={`px-3 py-1.5 rounded-lg border text-xs font-mono flex items-center space-x-1.5 ${
-            activateStatus.success ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-300' : 'bg-red-950/40 border-red-500/40 text-red-300'
+            activateStatus.success ? 'bg-[#e5f5ec] border-[#c0e6cf] text-[#246e40]' : 'bg-[#fdecee] border-[#f8c4cd] text-[#9e3146]'
           }`}>
             {activateStatus.success ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
             <span>{activateStatus.message}</span>
@@ -267,18 +267,18 @@ export const ModelsPage: React.FC = () => {
       </div>
 
       {/* 1. Model Registry Table */}
-      <div className="rounded-xl bg-[#0d1424] border border-slate-800 overflow-hidden">
-        <div className="p-4 border-b border-slate-800 flex items-center justify-between">
-          <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-200 flex items-center space-x-2">
-            <Layers className="w-4 h-4 text-blue-400" />
+      <div className="rounded-xl bg-white/85 border border-[#e5dbe8] shadow-sm overflow-hidden">
+        <div className="p-4 border-b border-[#ebdbe8] flex items-center justify-between">
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-[#2c2436] flex items-center space-x-2">
+            <Layers className="w-4 h-4 text-[#b56576]" />
             <span>Model Registry (`models/registry/`)</span>
           </h3>
-          <span className="text-xs font-mono text-slate-400">Active Detector: <strong className="text-white">{activeModel}</strong></span>
+          <span className="text-xs font-mono text-[#786c85]">Active Detector: <strong className="text-[#2c2436]">{activeModel}</strong></span>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs font-mono">
-            <thead className="bg-slate-950/60 text-slate-400 uppercase tracking-wider border-b border-slate-800">
+            <thead className="bg-[#f9f5f6] text-[#786c85] uppercase tracking-wider border-b border-[#ebdbe8]">
               <tr>
                 <th className="py-2.5 px-4">Model Name</th>
                 <th className="py-2.5 px-4">Type</th>
@@ -290,39 +290,39 @@ export const ModelsPage: React.FC = () => {
                 <th className="py-2.5 px-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60 text-slate-300">
+            <tbody className="divide-y divide-[#ebdbe8] text-[#4a3f55]">
               {models.map((m) => {
                 const isActive = m.name === activeModel;
                 const isSelected = m.name === selectedModel;
                 const metrics = m.metrics || {};
 
                 return (
-                  <tr key={m.name} className={`hover:bg-slate-800/30 cursor-pointer ${isSelected ? 'bg-blue-600/10' : ''}`} onClick={() => setSelectedModel(m.name)}>
-                    <td className="py-2.5 px-4 font-bold text-white flex items-center space-x-2">
+                  <tr key={m.name} className={`hover:bg-[#fcfaf8] cursor-pointer ${isSelected ? 'bg-[#eddce5]/40' : ''}`} onClick={() => setSelectedModel(m.name)}>
+                    <td className="py-2.5 px-4 font-bold text-[#2c2436] flex items-center space-x-2">
                       <span>{m.name}</span>
                       {isActive && (
-                        <span className="px-1.5 py-0.5 rounded text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 font-bold">
+                        <span className="px-1.5 py-0.5 rounded text-[9px] bg-[#e5f5ec] text-[#246e40] border border-[#c0e6cf] font-bold">
                           ACTIVE
                         </span>
                       )}
                     </td>
-                    <td className="py-2.5 px-4 text-slate-400 capitalize">{m.classifier_type || 'heuristic'}</td>
+                    <td className="py-2.5 px-4 text-[#786c85] capitalize">{m.classifier_type || 'heuristic'}</td>
                     <td className="py-2.5 px-4">
-                      <span className="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-300 border border-slate-700">
+                      <span className="px-2 py-0.5 rounded text-[10px] bg-[#f2e9f2] text-[#6b5f77] border border-[#e0d3e5]">
                         Registered
                       </span>
                     </td>
-                    <td className="py-2.5 px-4 font-semibold text-slate-200">
+                    <td className="py-2.5 px-4 font-semibold text-[#2c2436]">
                       {metrics.accuracy !== undefined ? (metrics.accuracy * 100).toFixed(1) + '%' : '—'}
                     </td>
-                    <td className="py-2.5 px-4 font-semibold text-slate-200">
+                    <td className="py-2.5 px-4 font-semibold text-[#2c2436]">
                       {metrics.f1 !== undefined ? metrics.f1.toFixed(3) : '—'}
                     </td>
-                    <td className="py-2.5 px-4 font-semibold text-slate-200">
+                    <td className="py-2.5 px-4 font-semibold text-[#2c2436]">
                       {metrics.roc_auc !== undefined ? metrics.roc_auc.toFixed(3) : '—'}
                     </td>
                     <td className="py-2.5 px-4">
-                      <span className="px-2 py-0.5 rounded text-[10px] bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                      <span className="px-2 py-0.5 rounded text-[10px] bg-[#fdf7e7] text-[#87651a] border border-[#fae6b2]">
                         {m.data_source || 'synthetic'}
                       </span>
                     </td>
@@ -333,12 +333,12 @@ export const ModelsPage: React.FC = () => {
                             e.stopPropagation();
                             handleActivate(m.name);
                           }}
-                          className="px-2.5 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold text-[11px] transition-colors"
+                          className="px-2.5 py-1 rounded bg-[#b56576] hover:bg-[#a25364] text-white font-semibold text-[11px] transition-colors shadow-sm"
                         >
                           Activate
                         </button>
                       ) : (
-                        <span className="text-[11px] text-emerald-400 font-bold">In Production</span>
+                        <span className="text-[11px] text-[#246e40] font-bold">In Production</span>
                       )}
                     </td>
                   </tr>
@@ -352,20 +352,20 @@ export const ModelsPage: React.FC = () => {
       {/* 2. Model Evaluation Details */}
       {evaluation && (
         <div className="space-y-6">
-          <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-[#0d1424] border border-slate-800">
+          <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-white/85 border border-[#e5dbe8] shadow-sm">
             <div>
-              <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-200 flex items-center space-x-2">
-                <Activity className="w-4 h-4 text-blue-400" />
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-[#2c2436] flex items-center space-x-2">
+                <Activity className="w-4 h-4 text-[#5b82a6]" />
                 <span>Evaluation Report: {selectedModel.toUpperCase()}</span>
               </h3>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-[#786c85] mt-0.5">
                 Evaluated against `traces_test.csv` (80 test runs) and hold-out `traces_hard_test.csv`.
               </p>
             </div>
 
             {/* Threshold Slider */}
-            <div className="flex items-center space-x-3 text-xs font-mono bg-slate-900 px-4 py-2 rounded-xl border border-slate-800">
-              <span className="text-slate-400">Decision Threshold:</span>
+            <div className="flex items-center space-x-3 text-xs font-mono bg-[#fcfaf8] px-4 py-2 rounded-xl border border-[#ebdbe8]">
+              <span className="text-[#786c85]">Decision Threshold:</span>
               <input
                 type="range"
                 min="0.1"
@@ -373,34 +373,34 @@ export const ModelsPage: React.FC = () => {
                 step="0.05"
                 value={threshold}
                 onChange={(e) => setThreshold(parseFloat(e.target.value))}
-                className="w-28 accent-blue-500 cursor-pointer"
+                className="w-28 accent-[#b56576] cursor-pointer"
               />
-              <span className="font-bold text-white w-10 text-right">{threshold.toFixed(2)}</span>
-              <span className="text-slate-500">|</span>
-              <span className="text-slate-400">Precision: <strong className="text-emerald-400">{(adjustedPrecision * 100).toFixed(1)}%</strong></span>
-              <span className="text-slate-400">Recall: <strong className="text-blue-400">{(adjustedRecall * 100).toFixed(1)}%</strong></span>
+              <span className="font-bold text-[#2c2436] w-10 text-right">{threshold.toFixed(2)}</span>
+              <span className="text-[#ebdbe8]">|</span>
+              <span className="text-[#786c85]">Precision: <strong className="text-[#246e40]">{(adjustedPrecision * 100).toFixed(1)}%</strong></span>
+              <span className="text-[#786c85]">Recall: <strong className="text-[#5b82a6]">{(adjustedRecall * 100).toFixed(1)}%</strong></span>
             </div>
           </div>
 
           {/* Hard Test Set Degradation Warning Banner */}
           {evaluation.hard_test && (
-            <div className="p-4 rounded-xl bg-amber-950/30 border border-amber-600/40 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="p-4 rounded-xl bg-[#fef5e8] border border-[#fcdcb8] flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="flex items-start space-x-3">
-                <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                <AlertTriangle className="w-5 h-5 text-[#9b5825] flex-shrink-0 mt-0.5" />
                 <div>
-                  <h4 className="text-xs font-bold text-amber-300 font-mono uppercase tracking-wider">
+                  <h4 className="text-xs font-bold text-[#9b5825] font-mono uppercase tracking-wider">
                     Hard Test Set Generalization (Evasion Variants Held-Out)
                   </h4>
-                  <p className="text-xs text-slate-300 mt-0.5 leading-relaxed">
+                  <p className="text-xs text-[#4a3f55] mt-0.5 leading-relaxed">
                     Evaluated against unseen variants (slow-and-low, intermittent, partial encryption). Accuracy drops to{' '}
-                    <strong className="text-white">{(evaluation.hard_test.accuracy * 100).toFixed(1)}%</strong> (F1:{' '}
-                    <strong className="text-white">{evaluation.hard_test.f1?.toFixed(3)}</strong>, Recall:{' '}
-                    <strong className="text-white">{(evaluation.hard_test.recall * 100).toFixed(1)}%</strong>).
+                    <strong className="text-[#2c2436]">{(evaluation.hard_test.accuracy * 100).toFixed(1)}%</strong> (F1:{' '}
+                    <strong className="text-[#2c2436]">{evaluation.hard_test.f1?.toFixed(3)}</strong>, Recall:{' '}
+                    <strong className="text-[#2c2436]">{(evaluation.hard_test.recall * 100).toFixed(1)}%</strong>).
                   </p>
                 </div>
               </div>
-              <div className="flex items-center space-x-2 text-xs font-mono text-amber-400 flex-shrink-0">
-                <span className="px-2 py-1 rounded bg-amber-500/10 border border-amber-500/30">
+              <div className="flex items-center space-x-2 text-xs font-mono text-[#9b5825] flex-shrink-0">
+                <span className="px-2 py-1 rounded bg-[#faeee7] border border-[#fcdcb8]">
                   ROC AUC: {evaluation.hard_test.roc_auc?.toFixed(3)}
                 </span>
               </div>
@@ -410,36 +410,36 @@ export const ModelsPage: React.FC = () => {
           {/* Evaluation Curves & Feature Importance */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* ROC & PR Curves */}
-            <div className="p-5 rounded-xl bg-[#0d1424] border border-slate-800 space-y-4">
-              <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-200">
+            <div className="p-5 rounded-xl bg-white/85 border border-[#e5dbe8] shadow-sm space-y-4">
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-[#2c2436]">
                 ROC & Precision-Recall Curves
               </h3>
               <div className="h-64 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={evaluation.roc_curve || []} margin={{ top: 10, right: 20, left: -10, bottom: 20 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                    <XAxis dataKey="x" stroke="#64748b" tick={{ fontSize: 11 }} label={{ value: 'FPR', position: 'insideBottom', offset: -10 }} />
-                    <YAxis stroke="#64748b" tick={{ fontSize: 11 }} label={{ value: 'TPR', angle: -90, position: 'insideLeft' }} />
-                    <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '8px' }} />
-                    <Line type="monotone" dataKey="y" name="ROC Curve" stroke="#3b82f6" strokeWidth={2} dot={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#ede4ef" />
+                    <XAxis dataKey="x" stroke="#8c7f99" tick={{ fontSize: 11 }} label={{ value: 'FPR', position: 'insideBottom', offset: -10 }} />
+                    <YAxis stroke="#8c7f99" tick={{ fontSize: 11 }} label={{ value: 'TPR', angle: -90, position: 'insideLeft' }} />
+                    <Tooltip contentStyle={{ backgroundColor: '#ffffff', borderColor: '#e2d5e6', borderRadius: '8px', color: '#2c2436' }} />
+                    <Line type="monotone" dataKey="y" name="ROC Curve" stroke="#5b82a6" strokeWidth={2} dot={false} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
             </div>
 
             {/* Feature Importance Bar Chart */}
-            <div className="p-5 rounded-xl bg-[#0d1424] border border-slate-800 space-y-4">
-              <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-200">
+            <div className="p-5 rounded-xl bg-white/85 border border-[#e5dbe8] shadow-sm space-y-4">
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-[#2c2436]">
                 Feature Importance Ranking (Gini / Weight)
               </h3>
               <div className="h-64 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={evaluation.feature_importances?.slice(0, 8) || []} layout="vertical" margin={{ top: 10, right: 20, left: 60, bottom: 20 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                    <XAxis type="number" stroke="#64748b" tick={{ fontSize: 11 }} />
-                    <YAxis dataKey="feature" type="category" stroke="#64748b" tick={{ fontSize: 10 }} />
-                    <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '8px' }} />
-                    <Bar dataKey="importance" name="Relative Weight" fill="#8b5cf6" radius={[0, 4, 4, 0]} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#ede4ef" />
+                    <XAxis type="number" stroke="#8c7f99" tick={{ fontSize: 11 }} />
+                    <YAxis dataKey="feature" type="category" stroke="#8c7f99" tick={{ fontSize: 10 }} />
+                    <Tooltip contentStyle={{ backgroundColor: '#ffffff', borderColor: '#e2d5e6', borderRadius: '8px', color: '#2c2436' }} />
+                    <Bar dataKey="importance" name="Relative Weight" fill="#9d7394" radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -449,34 +449,34 @@ export const ModelsPage: React.FC = () => {
       )}
 
       {/* 3. Interactive "Try It" Live Feature Prediction Widget */}
-      <div className="p-6 rounded-xl bg-[#0d1424] border border-slate-800 space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4">
+      <div className="p-6 rounded-xl bg-white/85 border border-[#e5dbe8] shadow-sm space-y-6">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#ebdbe8] pb-4">
           <div>
-            <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-200 flex items-center space-x-2">
-              <Sliders className="w-4 h-4 text-emerald-400" />
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-[#2c2436] flex items-center space-x-2">
+              <Sliders className="w-4 h-4 text-[#5b9e75]" />
               <span>Interactive "Try It" Inference Widget</span>
             </h3>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-[#786c85] mt-0.5">
               Adjust feature values to test the active classifier (`{activeModel}`) and inspect live tree contributions.
             </p>
           </div>
 
           {/* Quick Presets */}
           <div className="flex flex-wrap items-center gap-1.5 text-xs font-mono">
-            <span className="text-slate-400 mr-1">Presets:</span>
-            <button onClick={() => setPreset('workday')} className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700">
+            <span className="text-[#786c85] mr-1">Presets:</span>
+            <button onClick={() => setPreset('workday')} className="px-2.5 py-1 rounded bg-[#f2e9f2] hover:bg-[#e7dce7] text-[#6b5f77] border border-[#e0d3e5]">
               Normal Workday
             </button>
-            <button onClick={() => setPreset('backup')} className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700">
+            <button onClick={() => setPreset('backup')} className="px-2.5 py-1 rounded bg-[#f2e9f2] hover:bg-[#e7dce7] text-[#6b5f77] border border-[#e0d3e5]">
               Backup Stream
             </button>
-            <button onClick={() => setPreset('oltp')} className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700">
+            <button onClick={() => setPreset('oltp')} className="px-2.5 py-1 rounded bg-[#f2e9f2] hover:bg-[#e7dce7] text-[#6b5f77] border border-[#e0d3e5]">
               OLTP Burst
             </button>
-            <button onClick={() => setPreset('fast_ransomware')} className="px-2.5 py-1 rounded bg-red-950/60 hover:bg-red-900 text-red-300 border border-red-700/60 font-semibold">
+            <button onClick={() => setPreset('fast_ransomware')} className="px-2.5 py-1 rounded bg-[#fdecee] hover:bg-[#fad8dd] text-[#9e3146] border border-[#f8c4cd] font-semibold">
               Fast Ransomware
             </button>
-            <button onClick={() => setPreset('slow_and_low')} className="px-2.5 py-1 rounded bg-amber-950/60 hover:bg-amber-900 text-amber-300 border border-amber-700/60 font-semibold">
+            <button onClick={() => setPreset('slow_and_low')} className="px-2.5 py-1 rounded bg-[#fef5e8] hover:bg-[#fdecd5] text-[#9b5825] border border-[#fcdcb8] font-semibold">
               Slow-and-Low
             </button>
           </div>
@@ -486,9 +486,9 @@ export const ModelsPage: React.FC = () => {
           {/* Sliders (2 columns) */}
           <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-mono">
             <div>
-              <div className="flex justify-between mb-1 text-slate-300">
+              <div className="flex justify-between mb-1 text-[#4a3f55]">
                 <span>event_count:</span>
-                <strong className="text-blue-400">{tryFeatures.event_count}</strong>
+                <strong className="text-[#5b82a6]">{tryFeatures.event_count}</strong>
               </div>
               <input
                 type="range"
@@ -497,14 +497,14 @@ export const ModelsPage: React.FC = () => {
                 step="1"
                 value={tryFeatures.event_count}
                 onChange={(e) => setTryFeatures({ ...tryFeatures, event_count: parseFloat(e.target.value) })}
-                className="w-full accent-blue-500"
+                className="w-full accent-[#5b82a6]"
               />
             </div>
 
             <div>
-              <div className="flex justify-between mb-1 text-slate-300">
+              <div className="flex justify-between mb-1 text-[#4a3f55]">
                 <span>mod_rate (events/s):</span>
-                <strong className="text-blue-400">{tryFeatures.mod_rate}</strong>
+                <strong className="text-[#5b82a6]">{tryFeatures.mod_rate}</strong>
               </div>
               <input
                 type="range"
@@ -513,14 +513,14 @@ export const ModelsPage: React.FC = () => {
                 step="1"
                 value={tryFeatures.mod_rate}
                 onChange={(e) => setTryFeatures({ ...tryFeatures, mod_rate: parseFloat(e.target.value) })}
-                className="w-full accent-blue-500"
+                className="w-full accent-[#5b82a6]"
               />
             </div>
 
             <div>
-              <div className="flex justify-between mb-1 text-slate-300">
+              <div className="flex justify-between mb-1 text-[#4a3f55]">
                 <span>rename_rate:</span>
-                <strong className="text-blue-400">{tryFeatures.rename_rate}</strong>
+                <strong className="text-[#5b82a6]">{tryFeatures.rename_rate}</strong>
               </div>
               <input
                 type="range"
@@ -529,14 +529,14 @@ export const ModelsPage: React.FC = () => {
                 step="0.5"
                 value={tryFeatures.rename_rate}
                 onChange={(e) => setTryFeatures({ ...tryFeatures, rename_rate: parseFloat(e.target.value) })}
-                className="w-full accent-blue-500"
+                className="w-full accent-[#5b82a6]"
               />
             </div>
 
             <div>
-              <div className="flex justify-between mb-1 text-slate-300">
+              <div className="flex justify-between mb-1 text-[#4a3f55]">
                 <span>create_del_rate:</span>
-                <strong className="text-blue-400">{tryFeatures.create_del_rate}</strong>
+                <strong className="text-[#5b82a6]">{tryFeatures.create_del_rate}</strong>
               </div>
               <input
                 type="range"
@@ -545,14 +545,14 @@ export const ModelsPage: React.FC = () => {
                 step="1"
                 value={tryFeatures.create_del_rate}
                 onChange={(e) => setTryFeatures({ ...tryFeatures, create_del_rate: parseFloat(e.target.value) })}
-                className="w-full accent-blue-500"
+                className="w-full accent-[#5b82a6]"
               />
             </div>
 
             <div>
-              <div className="flex justify-between mb-1 text-slate-300">
+              <div className="flex justify-between mb-1 text-[#4a3f55]">
                 <span>concentration_gini (0-1):</span>
-                <strong className="text-blue-400">{tryFeatures.concentration_gini?.toFixed(2)}</strong>
+                <strong className="text-[#5b82a6]">{tryFeatures.concentration_gini?.toFixed(2)}</strong>
               </div>
               <input
                 type="range"
@@ -561,14 +561,14 @@ export const ModelsPage: React.FC = () => {
                 step="0.02"
                 value={tryFeatures.concentration_gini}
                 onChange={(e) => setTryFeatures({ ...tryFeatures, concentration_gini: parseFloat(e.target.value) })}
-                className="w-full accent-blue-500"
+                className="w-full accent-[#5b82a6]"
               />
             </div>
 
             <div>
-              <div className="flex justify-between mb-1 text-slate-300">
+              <div className="flex justify-between mb-1 text-[#4a3f55]">
                 <span>t1_mean_entropy (0-8):</span>
-                <strong className="text-purple-400">{tryFeatures.t1_mean_entropy?.toFixed(2)}</strong>
+                <strong className="text-[#9d7394]">{tryFeatures.t1_mean_entropy?.toFixed(2)}</strong>
               </div>
               <input
                 type="range"
@@ -577,14 +577,14 @@ export const ModelsPage: React.FC = () => {
                 step="0.1"
                 value={tryFeatures.t1_mean_entropy}
                 onChange={(e) => setTryFeatures({ ...tryFeatures, t1_mean_entropy: parseFloat(e.target.value) })}
-                className="w-full accent-purple-500"
+                className="w-full accent-[#9d7394]"
               />
             </div>
 
             <div>
-              <div className="flex justify-between mb-1 text-slate-300">
+              <div className="flex justify-between mb-1 text-[#4a3f55]">
                 <span>t1_write_rate:</span>
-                <strong className="text-purple-400">{tryFeatures.t1_write_rate}</strong>
+                <strong className="text-[#9d7394]">{tryFeatures.t1_write_rate}</strong>
               </div>
               <input
                 type="range"
@@ -593,14 +593,14 @@ export const ModelsPage: React.FC = () => {
                 step="1"
                 value={tryFeatures.t1_write_rate}
                 onChange={(e) => setTryFeatures({ ...tryFeatures, t1_write_rate: parseFloat(e.target.value) })}
-                className="w-full accent-purple-500"
+                className="w-full accent-[#9d7394]"
               />
             </div>
 
             <div>
-              <div className="flex justify-between mb-1 text-slate-300">
+              <div className="flex justify-between mb-1 text-[#4a3f55]">
                 <span>t1_rename_rate:</span>
-                <strong className="text-purple-400">{tryFeatures.t1_rename_rate}</strong>
+                <strong className="text-[#9d7394]">{tryFeatures.t1_rename_rate}</strong>
               </div>
               <input
                 type="range"
@@ -609,26 +609,26 @@ export const ModelsPage: React.FC = () => {
                 step="0.5"
                 value={tryFeatures.t1_rename_rate}
                 onChange={(e) => setTryFeatures({ ...tryFeatures, t1_rename_rate: parseFloat(e.target.value) })}
-                className="w-full accent-purple-500"
+                className="w-full accent-[#9d7394]"
               />
             </div>
           </div>
 
           {/* Prediction Output Card */}
-          <div className="p-5 rounded-xl bg-slate-950 border border-slate-800 flex flex-col justify-between space-y-4">
+          <div className="p-5 rounded-xl bg-[#fcfaf8] border border-[#ebdbe8] flex flex-col justify-between space-y-4">
             <div>
-              <span className="text-xs uppercase font-mono tracking-wider text-slate-400 block mb-2">
+              <span className="text-xs uppercase font-mono tracking-wider text-[#786c85] block mb-2">
                 Live Classifier Output
               </span>
 
               {predictResult ? (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-mono text-slate-400">Verdict:</span>
+                    <span className="text-xs font-mono text-[#786c85]">Verdict:</span>
                     <span className={`px-2.5 py-1 rounded text-xs font-mono font-bold uppercase ${
                       predictResult.prediction === 'ransomware'
-                        ? 'bg-red-500/20 text-red-400 border border-red-500/40'
-                        : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                        ? 'bg-[#fdecee] text-[#9e3146] border border-[#f8c4cd]'
+                        : 'bg-[#e5f5ec] text-[#246e40] border border-[#c0e6cf]'
                     }`}>
                       {predictResult.prediction}
                     </span>
@@ -636,34 +636,34 @@ export const ModelsPage: React.FC = () => {
 
                   <div>
                     <div className="flex justify-between text-xs font-mono mb-1">
-                      <span className="text-slate-400">Ransomware Risk:</span>
-                      <strong className={`font-bold ${predictResult.probability_ransomware >= 0.5 ? 'text-red-400' : 'text-emerald-400'}`}>
+                      <span className="text-[#786c85]">Ransomware Risk:</span>
+                      <strong className={`font-bold ${predictResult.probability_ransomware >= 0.5 ? 'text-[#9e3146]' : 'text-[#246e40]'}`}>
                         {(predictResult.probability_ransomware * 100).toFixed(1)}%
                       </strong>
                     </div>
-                    <div className="w-full h-3 rounded-full bg-slate-800 overflow-hidden">
+                    <div className="w-full h-3 rounded-full bg-[#ebdbe8] overflow-hidden">
                       <div
-                        className={`h-full transition-all duration-300 ${predictResult.probability_ransomware >= 0.5 ? 'bg-red-500' : 'bg-emerald-500'}`}
+                        className={`h-full transition-all duration-300 ${predictResult.probability_ransomware >= 0.5 ? 'bg-[#b54a5f]' : 'bg-[#5b9e75]'}`}
                         style={{ width: `${Math.round(predictResult.probability_ransomware * 100)}%` }}
                       />
                     </div>
                   </div>
 
                   {predictResult.explanation && (
-                    <div className="pt-3 border-t border-slate-800 text-xs font-mono">
-                      <span className="text-slate-400 block mb-1">Top Driving Factors:</span>
-                      <p className="text-slate-300 text-[11px] leading-relaxed">
+                    <div className="pt-3 border-t border-[#ebdbe8] text-xs font-mono">
+                      <span className="text-[#786c85] block mb-1">Top Driving Factors:</span>
+                      <p className="text-[#4a3f55] text-[11px] leading-relaxed">
                         {predictResult.explanation.summary || 'Features evaluated against learned decision tree thresholds.'}
                       </p>
                     </div>
                   )}
                 </div>
               ) : (
-                <div className="text-xs font-mono text-slate-500">Calculating...</div>
+                <div className="text-xs font-mono text-[#8c7f99]">Calculating...</div>
               )}
             </div>
 
-            <div className="text-[10px] font-mono text-slate-500 border-t border-slate-800/80 pt-2">
+            <div className="text-[10px] font-mono text-[#8c7f99] border-t border-[#ebdbe8] pt-2">
               Model: {activeModel} | Data: synthetic
             </div>
           </div>
@@ -671,19 +671,19 @@ export const ModelsPage: React.FC = () => {
       </div>
 
       {/* 4. Background Model Training Studio Form */}
-      <div className="p-6 rounded-xl bg-[#0d1424] border border-slate-800 space-y-4">
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-200 flex items-center space-x-2">
-          <Sparkles className="w-4 h-4 text-blue-400" />
+      <div className="p-6 rounded-xl bg-white/85 border border-[#e5dbe8] shadow-sm space-y-4">
+        <h3 className="text-sm font-semibold uppercase tracking-wider text-[#2c2436] flex items-center space-x-2">
+          <Sparkles className="w-4 h-4 text-[#9d7394]" />
           <span>Train New Classifier in Background</span>
         </h3>
 
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-xs font-mono">
           <div>
-            <label className="text-slate-400 block mb-1">Classifier:</label>
+            <label className="text-[#786c85] block mb-1">Classifier:</label>
             <select
               value={trainClassifier}
               onChange={(e) => setTrainClassifier(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white"
+              className="w-full bg-[#fcfaf8] border border-[#d8c8dc] rounded-lg px-3 py-2 text-[#2c2436] focus:outline-none focus:border-[#b56576]"
             >
               <option value="xgboost">XGBoost (Gradient Boosted Trees)</option>
               <option value="random_forest">Random Forest (100 Trees)</option>
@@ -691,32 +691,32 @@ export const ModelsPage: React.FC = () => {
           </div>
 
           <div>
-            <label className="text-slate-400 block mb-1">Model Name:</label>
+            <label className="text-[#786c85] block mb-1">Model Name:</label>
             <input
               type="text"
               value={trainName}
               onChange={(e) => setTrainName(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white"
+              className="w-full bg-[#fcfaf8] border border-[#d8c8dc] rounded-lg px-3 py-2 text-[#2c2436] focus:outline-none focus:border-[#b56576]"
             />
           </div>
 
           <div>
-            <label className="text-slate-400 block mb-1">n_estimators:</label>
+            <label className="text-[#786c85] block mb-1">n_estimators:</label>
             <input
               type="number"
               value={nEstimators}
               onChange={(e) => setNEstimators(parseInt(e.target.value) || 100)}
-              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white"
+              className="w-full bg-[#fcfaf8] border border-[#d8c8dc] rounded-lg px-3 py-2 text-[#2c2436] focus:outline-none focus:border-[#b56576]"
             />
           </div>
 
           <div>
-            <label className="text-slate-400 block mb-1">max_depth:</label>
+            <label className="text-[#786c85] block mb-1">max_depth:</label>
             <input
               type="number"
               value={maxDepth}
               onChange={(e) => setMaxDepth(parseInt(e.target.value) || 6)}
-              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white"
+              className="w-full bg-[#fcfaf8] border border-[#d8c8dc] rounded-lg px-3 py-2 text-[#2c2436] focus:outline-none focus:border-[#b56576]"
             />
           </div>
         </div>
@@ -725,7 +725,7 @@ export const ModelsPage: React.FC = () => {
           <button
             onClick={handleStartTraining}
             disabled={isTraining}
-            className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white font-semibold text-xs flex items-center space-x-2 shadow-lg shadow-purple-600/20 transition-all font-mono"
+            className="px-4 py-2 rounded-xl bg-[#b56576] hover:bg-[#a25364] disabled:opacity-50 text-white font-semibold text-xs flex items-center space-x-2 shadow-sm transition-all font-mono"
           >
             <Play className="w-3.5 h-3.5 fill-current" />
             <span>{isTraining ? `Training (${Math.round(trainingProgress * 100)}%)...` : 'Start Training Job'}</span>
@@ -734,10 +734,10 @@ export const ModelsPage: React.FC = () => {
 
         {/* Training Logs Console */}
         {trainingLogs.length > 0 && (
-          <div className="p-3 rounded-lg bg-black/60 border border-slate-800 text-xs font-mono text-slate-300 space-y-1 max-h-32 overflow-y-auto">
+          <div className="p-3 rounded-lg bg-[#fcfaf8] border border-[#ebdbe8] text-xs font-mono text-[#4a3f55] space-y-1 max-h-32 overflow-y-auto">
             {trainingLogs.map((log, idx) => (
               <div key={idx} className="flex items-center space-x-2">
-                <span className="text-slate-500">&gt;</span>
+                <span className="text-[#8c7f99]">&gt;</span>
                 <span>{log}</span>
               </div>
             ))}

@@ -39,15 +39,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
       label: 'Alerts & Forensics',
       icon: ShieldAlert,
       badge: unresolvedAlertsCount > 0 ? String(unresolvedAlertsCount) : null,
-      badgeColor: 'bg-red-500/20 text-red-400 border border-red-500/30',
+      badgeColor: 'bg-[#fdecee] text-[#9e3146] border border-[#f8c4cd]',
     },
     { id: 'settings' as NavTab, label: 'System Settings', icon: Settings, badge: null },
   ];
 
   return (
-    <aside className="w-64 border-r border-slate-800 bg-[#0a0f1d] flex flex-col justify-between select-none shrink-0 transition-all duration-200">
+    <aside className="w-64 border-r border-[#e5dbe8] bg-[#fbf9fa]/95 backdrop-blur-md flex flex-col justify-between select-none shrink-0 transition-all duration-200 shadow-sm">
       <div className="py-6 px-4 space-y-1">
-        <div className="px-3 pb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
+        <div className="px-3 pb-3 text-xs font-semibold uppercase tracking-wider text-[#786c85]">
           Navigation
         </div>
 
@@ -60,18 +60,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onClick={() => onSelectTab(item.id)}
               className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                 isActive
-                  ? 'bg-blue-600/15 text-blue-400 border border-blue-500/30 font-semibold'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                  ? 'bg-[#f4e6ec] text-[#8e455d] border border-[#e2c1ce] font-semibold'
+                  : 'text-[#5e5369] hover:text-[#2c2436] hover:bg-[#f6eff4]'
               }`}
             >
               <div className="flex items-center space-x-3">
-                <Icon className={`w-4 h-4 ${isActive ? 'text-blue-400' : 'text-slate-400'}`} />
+                <Icon className={`w-4 h-4 ${isActive ? 'text-[#8e455d]' : 'text-[#786c85]'}`} />
                 <span>{item.label}</span>
               </div>
               {item.badge && (
                 <span
                   className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${
-                    item.badgeColor || 'bg-slate-800 text-slate-400 border border-slate-700'
+                    item.badgeColor || 'bg-[#f1ebf4] text-[#6b5f77] border border-[#ded5e3]'
                   }`}
                 >
                   {item.badge}

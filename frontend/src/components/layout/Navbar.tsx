@@ -21,13 +21,13 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenGuidedDemo,
 }) => {
   return (
-    <header className="h-16 border-b border-slate-800 bg-[#0d1527]/90 backdrop-blur-md px-6 flex items-center justify-between sticky top-0 z-40">
+    <header className="h-16 border-b border-[#e5dbe8] bg-white/80 backdrop-blur-md px-6 flex items-center justify-between sticky top-0 z-40 text-[#2c2436] shadow-sm">
       {/* Left: Hamburger, Brand, Simulated Badge, & Guided Demo trigger */}
       <div className="flex items-center space-x-3">
         {onToggleSidebar && (
           <button
             onClick={onToggleSidebar}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors mr-1"
+            className="p-1.5 rounded-lg text-[#6b5f77] hover:text-[#2c2436] hover:bg-[#f2e9f4] transition-colors mr-1"
             title={isSidebarOpen ? 'Hide Navigation' : 'Open Navigation'}
             aria-label="Toggle navigation menu"
           >
@@ -35,15 +35,15 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
         )}
 
-        <div className="flex items-center space-x-2 text-blue-500 font-bold text-lg tracking-wider">
-          <Shield className="w-6 h-6 text-blue-400" />
+        <div className="flex items-center space-x-2 text-[#b56576] font-bold text-lg tracking-wider">
+          <Shield className="w-6 h-6 text-[#b56576]" />
           <span>ADAPTSHIELD</span>
         </div>
 
         {/* Persistent Simulated Demo Data Badge */}
         <div
           data-testid="simulated-badge"
-          className="flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/30"
+          className="flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-[#fef5e8] text-[#9b5825] border border-[#fcdcb8]"
           title="All ransomware behavior is simulated with synthetic telemetry and throwaway virtual files."
         >
           <AlertTriangle className="w-3.5 h-3.5" />
@@ -54,9 +54,9 @@ export const Navbar: React.FC<NavbarProps> = ({
         {onOpenGuidedDemo && (
           <button
             onClick={onOpenGuidedDemo}
-            className="flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-purple-600/20 text-purple-300 border border-purple-500/40 hover:bg-purple-600/30 transition-colors shadow-sm shadow-purple-900/20"
+            className="flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#eddde5] text-[#6b3a53] border border-[#ddc2d2] hover:bg-[#e4d1dc] transition-colors shadow-sm"
           >
-            <Sparkles className="w-3.5 h-3.5 text-purple-400 animate-spin" />
+            <Sparkles className="w-3.5 h-3.5 text-[#8a4e6c] animate-spin" />
             <span>Guided Demo (3 Min)</span>
           </button>
         )}
@@ -66,19 +66,19 @@ export const Navbar: React.FC<NavbarProps> = ({
       <div className="flex items-center space-x-4">
         {/* Active Scenario Indicator */}
         {status?.running_scenario && (
-          <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-md text-xs font-mono bg-blue-500/10 text-blue-400 border border-blue-500/30 animate-pulse">
-            <Radio className="w-3.5 h-3.5 text-blue-400" />
+          <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-md text-xs font-mono bg-[#edf2f9] text-[#3d5c85] border border-[#d2def0] animate-pulse">
+            <Radio className="w-3.5 h-3.5 text-[#3d5c85]" />
             <span>RUNNING: {status.running_scenario.scenario_name}</span>
           </div>
         )}
 
         {/* Panic Switch Warning */}
         {status?.storm_panic && (
-          <div className="flex items-center space-x-2 px-2.5 py-1 rounded-md text-xs font-bold bg-red-500/20 text-red-400 border border-red-500/40">
+          <div className="flex items-center space-x-2 px-2.5 py-1 rounded-md text-xs font-bold bg-[#fdecee] text-[#9e3146] border border-[#f8c4cd]">
             <span>STORM PANIC TRIPPED (MONITOR MODE)</span>
             <button
               onClick={onResetStorm}
-              className="px-2 py-0.5 rounded bg-red-600 hover:bg-red-500 text-white font-medium flex items-center space-x-1"
+              className="px-2 py-0.5 rounded bg-[#b54a5f] hover:bg-[#a13e51] text-white font-medium flex items-center space-x-1"
             >
               <RefreshCw className="w-3 h-3" />
               <span>Reset</span>
@@ -87,39 +87,39 @@ export const Navbar: React.FC<NavbarProps> = ({
         )}
 
         {/* Response Policy Selector */}
-        <div className="flex items-center space-x-1 text-xs text-slate-400 bg-slate-900 border border-slate-800 rounded-md px-2 py-1">
-          <span className="text-slate-400">Policy:</span>
+        <div className="flex items-center space-x-1 text-xs text-[#6b5f77] bg-white border border-[#e2d5e5] rounded-md px-2 py-1 shadow-sm">
+          <span className="text-[#6b5f77]">Policy:</span>
           <select
             value={status?.active_policy || 'immediate'}
             onChange={(e) => onPolicyChange?.(e.target.value)}
-            className="bg-transparent text-slate-200 font-semibold focus:outline-none cursor-pointer"
+            className="bg-transparent text-[#2c2436] font-semibold focus:outline-none cursor-pointer"
           >
-            <option value="immediate" className="bg-slate-900 text-slate-200">Immediate</option>
-            <option value="manual" className="bg-slate-900 text-slate-200">Manual (Review)</option>
-            <option value="none" className="bg-slate-900 text-slate-200">None (Audit)</option>
+            <option value="immediate" className="bg-white text-[#2c2436]">Immediate</option>
+            <option value="manual" className="bg-white text-[#2c2436]">Manual (Review)</option>
+            <option value="none" className="bg-white text-[#2c2436]">None (Audit)</option>
           </select>
         </div>
 
         {/* Detection Engine Status */}
-        <div className="flex items-center space-x-1.5 text-xs bg-slate-900 border border-slate-800 rounded-md px-2.5 py-1">
-          <span className="text-slate-400">Detection Engine:</span>
-          <span className="font-semibold text-emerald-400">
+        <div className="flex items-center space-x-1.5 text-xs bg-white border border-[#e2d5e5] rounded-md px-2.5 py-1 shadow-sm">
+          <span className="text-[#6b5f77]">Detection Engine:</span>
+          <span className="font-semibold text-[#286b40]">
             Behavioral Core
           </span>
-          <span className="text-[10px] text-slate-500 font-mono">
+          <span className="text-[10px] text-[#8c7f99] font-mono">
             (<span>{status?.active_detector || 'xgboost'}</span>)
           </span>
         </div>
 
         {/* WebSocket Live Stream Connection Pill */}
         <div
-          className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${
+          className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-medium border shadow-sm ${
             wsConnected
-              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-              : 'bg-red-500/10 text-red-400 border-red-500/30'
+              ? 'bg-[#e5f5ec] text-[#246e40] border-[#c0e6cf]'
+              : 'bg-[#fdecee] text-[#9e3146] border-[#f8c4cd]'
           }`}
         >
-          <span className={`w-2 h-2 rounded-full ${wsConnected ? 'bg-emerald-400 animate-ping' : 'bg-red-400'}`} />
+          <span className={`w-2 h-2 rounded-full ${wsConnected ? 'bg-[#246e40] animate-ping' : 'bg-[#9e3146]'}`} />
           <span>{wsConnected ? 'Live Stream' : 'Disconnected'}</span>
         </div>
       </div>

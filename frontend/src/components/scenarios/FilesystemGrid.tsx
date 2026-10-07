@@ -44,20 +44,20 @@ export const FilesystemGrid: React.FC<FilesystemGridProps> = ({
   };
 
   return (
-    <div className="bg-[#0d1424] border border-slate-800 rounded-xl p-5 flex flex-col space-y-4">
+    <div className="bg-white/85 border border-[#e5dbe8] rounded-xl p-5 shadow-sm flex flex-col space-y-4">
       {/* Top Header & Metrics */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#ebdfe9] pb-4">
         <div>
-          <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-200 flex items-center space-x-2">
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-[#2c2436] flex items-center space-x-2">
             <span>Virtual Filesystem State</span>
             {isFrozen && (
-              <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 flex items-center space-x-1">
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[#eef1f8] text-[#3d5386] border border-[#d2dbf0] flex items-center space-x-1 font-bold">
                 <Snowflake className="w-3 h-3" />
                 <span>OVERLAY FROZEN</span>
               </span>
             )}
           </h3>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-[#786c85] mt-0.5">
             Real-time visualization of write encryption damage, cgroup freeze containment, and overlayfs rollback
           </p>
         </div>
@@ -66,40 +66,40 @@ export const FilesystemGrid: React.FC<FilesystemGridProps> = ({
         <div className="flex items-center space-x-2 text-xs font-mono">
           <button
             onClick={() => setFilter('all')}
-            className={`px-2.5 py-1 rounded-lg border transition-all ${
+            className={`px-2.5 py-1 rounded-lg border transition-all shadow-xs ${
               filter === 'all'
-                ? 'bg-slate-800 text-white border-slate-600 font-bold'
-                : 'bg-slate-900/60 text-slate-400 border-slate-800 hover:text-slate-200'
+                ? 'bg-[#f4e6ec] text-[#8e455d] border-[#e2c1ce] font-bold'
+                : 'bg-white text-[#786c85] border-[#dfd3e3] hover:text-[#2c2436]'
             }`}
           >
             All ({files.length})
           </button>
           <button
             onClick={() => setFilter('healthy')}
-            className={`px-2.5 py-1 rounded-lg border transition-all ${
+            className={`px-2.5 py-1 rounded-lg border transition-all shadow-xs ${
               filter === 'healthy'
-                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50 font-bold'
-                : 'bg-slate-900/60 text-emerald-400 border-slate-800 hover:border-emerald-500/30'
+                ? 'bg-[#e5f5ec] text-[#246e40] border-[#c0e6cf] font-bold'
+                : 'bg-white text-[#246e40] border-[#dfd3e3] hover:border-[#c0e6cf]'
             }`}
           >
             Intact ({healthyCount})
           </button>
           <button
             onClick={() => setFilter('encrypted')}
-            className={`px-2.5 py-1 rounded-lg border transition-all ${
+            className={`px-2.5 py-1 rounded-lg border transition-all shadow-xs ${
               filter === 'encrypted'
-                ? 'bg-red-500/20 text-red-300 border-red-500/50 font-bold'
-                : 'bg-slate-900/60 text-red-400 border-slate-800 hover:border-red-500/30'
+                ? 'bg-[#fdecee] text-[#9e3146] border-[#f8c4cd] font-bold'
+                : 'bg-white text-[#9e3146] border-[#dfd3e3] hover:border-[#f8c4cd]'
             }`}
           >
             Encrypted ({encryptedCount})
           </button>
           <button
             onClick={() => setFilter('restored')}
-            className={`px-2.5 py-1 rounded-lg border transition-all ${
+            className={`px-2.5 py-1 rounded-lg border transition-all shadow-xs ${
               filter === 'restored'
-                ? 'bg-blue-500/20 text-blue-300 border-blue-500/50 font-bold'
-                : 'bg-slate-900/60 text-blue-400 border-slate-800 hover:border-blue-500/30'
+                ? 'bg-[#edf2f9] text-[#3d5c85] border-[#d2def0] font-bold'
+                : 'bg-white text-[#3d5c85] border-[#dfd3e3] hover:border-[#d2def0]'
             }`}
           >
             Restored ({restoredCount})
@@ -116,25 +116,25 @@ export const FilesystemGrid: React.FC<FilesystemGridProps> = ({
           const isEncrypted = f.status === 'encrypted' || f.status === 'quarantined';
           const isRestored = f.status === 'restored';
 
-          let cardStyle = 'bg-slate-900/70 border-slate-800/80 text-slate-300 hover:border-slate-700';
+          let cardStyle = 'bg-white border-[#ebdfe9] text-[#2c2436] hover:border-[#cfbfd3] shadow-xs';
           let statusBadge = (
-            <span className="text-[9px] font-mono text-slate-400">Intact</span>
+            <span className="text-[9px] font-mono text-[#786c85]">Intact</span>
           );
 
           if (isEncrypted) {
             cardStyle = isFrozen
-              ? 'bg-cyan-950/40 border-cyan-500/50 text-cyan-200 animate-pulse'
-              : 'bg-red-950/40 border-red-500/60 text-red-200 animate-pulse';
+              ? 'bg-[#f0f3fa] border-[#c8d4ec] text-[#2d426d] animate-pulse shadow-xs'
+              : 'bg-[#fef0f2] border-[#f8c4cd] text-[#9e3146] animate-pulse shadow-xs';
             statusBadge = (
-              <span className={`text-[9px] font-mono font-bold flex items-center space-x-0.5 ${isFrozen ? 'text-cyan-400' : 'text-red-400'}`}>
+              <span className={`text-[9px] font-mono font-bold flex items-center space-x-0.5 ${isFrozen ? 'text-[#3d5386]' : 'text-[#9e3146]'}`}>
                 {isFrozen ? <Snowflake className="w-2.5 h-2.5" /> : <Lock className="w-2.5 h-2.5" />}
                 <span>{isFrozen ? 'Frozen' : 'Locked'}</span>
               </span>
             );
           } else if (isRestored) {
-            cardStyle = 'bg-emerald-950/30 border-emerald-500/50 text-emerald-200 transition-all duration-500';
+            cardStyle = 'bg-[#eef8f2] border-[#bee3cc] text-[#246e40] transition-all duration-500 shadow-xs';
             statusBadge = (
-              <span className="text-[9px] font-mono font-bold text-emerald-400 flex items-center space-x-0.5">
+              <span className="text-[9px] font-mono font-bold text-[#246e40] flex items-center space-x-0.5">
                 <ShieldCheck className="w-2.5 h-2.5" />
                 <span>Restored</span>
               </span>
@@ -148,7 +148,7 @@ export const FilesystemGrid: React.FC<FilesystemGridProps> = ({
               title={`${displayName} (${displaySize} KB) - ${f.status}`}
             >
               <div className="flex items-start justify-between">
-                <Icon className={`w-4 h-4 ${isEncrypted ? 'text-red-400' : isRestored ? 'text-emerald-400' : 'text-slate-400'}`} />
+                <Icon className={`w-4 h-4 ${isEncrypted ? 'text-[#9e3146]' : isRestored ? 'text-[#246e40]' : 'text-[#786c85]'}`} />
                 {statusBadge}
               </div>
 
@@ -156,7 +156,7 @@ export const FilesystemGrid: React.FC<FilesystemGridProps> = ({
                 <p className="text-[11px] font-mono font-semibold truncate leading-tight">
                   {isEncrypted ? `${displayName}.locked` : displayName}
                 </p>
-                <p className="text-[9px] text-slate-400 font-mono mt-0.5">
+                <p className="text-[9px] text-[#786c85] font-mono mt-0.5">
                   {displaySize} KB
                 </p>
               </div>
