@@ -197,7 +197,7 @@ echo ""
 echo "=== Configuring AdaptShield Operator Group & Permissions ==="
 if ! getent group adaptshield >/dev/null 2>&1; then
   echo "[*] Creating system group: adaptshield"
-  groupadd --system adaptshield 2>/dev/null || true
+  groupadd --system adaptshield 2>/dev/null || groupadd adaptshield 2>/dev/null || addgroup --system adaptshield 2>/dev/null || true
 else
   echo "[*] System group 'adaptshield' already exists."
 fi
