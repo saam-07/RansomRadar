@@ -30,6 +30,7 @@ class EventBus:
     def publish(self, event_type: str, payload: Dict[str, Any]) -> Dict[str, Any]:
         """Publishes an event to all registered synchronous and async subscribers."""
         event = {
+            **payload,
             "type": event_type,
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "payload": payload,

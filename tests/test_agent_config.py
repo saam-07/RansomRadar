@@ -3,16 +3,15 @@ Unit tests for AdaptShield configuration loading, validation, and defaults.
 """
 import tempfile
 from pathlib import Path
+
 import pytest
 from pydantic import ValidationError
 
 from adaptshield.config import (
     AdaptShieldConfig,
-    load_config,
-    WatchConfig,
-    ResponseConfig,
     DetectionConfig,
-    ClassifierConfig,
+    ResponseConfig,
+    load_config,
 )
 
 
@@ -100,3 +99,19 @@ def test_packaging_default_config_validates():
         cfg = load_config(default_cfg_path)
         assert cfg.mode in {"monitor", "protect", "learn"}
         assert cfg.response.policy in {"none", "immediate", "manual"}
+
+
+def test_config_threshold_validation():
+    # Out of range theta0 (> 1.0)
+    with pytest.raises(ValidationError):
+        DetectionConfig(theta0=1.5)
+
+    # Negative theta0
+    with pytest.raises(ValidationError):
+        DetectionConfig(theta0=-0.1)
+
+    # Valid DetectionConfig
+    cfg = DetectionConfig(theta0=0.65, ewma_alpha=0.4)
+    assert cfg.theta0 == 0.65
+    assert cfg.ewma_alpha == 0.4
+

@@ -7,11 +7,11 @@ and XGBoost classifiers on feature datasets.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
-import numpy as np
+from typing import Any
+
 import pandas as pd
 
-from adaptshield.classifier import build_classifier, POSITIVE_LABEL
+from adaptshield.classifier import build_classifier
 from adaptshield.feature_aggregator import FEATURE_COLUMNS
 from adaptshield.ml.schema import validate_features
 
@@ -19,7 +19,7 @@ from adaptshield.ml.schema import validate_features
 def train_classifier(
     classifier_name: str,
     train_df: pd.DataFrame,
-    columns: List[str] | None = None,
+    columns: list[str] | None = None,
     seed: int = 42,
     **model_kwargs: Any,
 ) -> Any:

@@ -6,19 +6,34 @@ __version__ = "0.2.0"
 from .config import AdaptShieldConfig, load_config
 from .daemon import AdaptShieldDaemon
 from .detection.fanotify_ctypes import Fanotify, FanotifyEvent
+from .detection.feature_aggregator import (
+    FEATURE_COLUMNS,
+    FeatureAggregator,
+    build_feature_row,
+)
+from .detection.risk_scorer import RiskLevel, RiskScorer
 from .detection.tier0_watcher import Tier0Watcher, tier0_suspicion_score
-from .detection.tier1_bridge import Tier1Tracer, is_tier1_available, get_tier1_status
-from .detection.feature_aggregator import FeatureAggregator, FEATURE_COLUMNS, build_feature_row
-from .detection.risk_scorer import RiskScorer, RiskLevel
+from .detection.tier1_bridge import Tier1Tracer, get_tier1_status, is_tier1_available
+from .logging.alert_logger import AlertLogger
+from .logging.logger import get_logger, setup_logging
+from .ml.classifier import build_classifier
+from .ml.explain import explain_alert
+from .ml.registry import ModelRegistry
+from .ml.selector import select_classifier
+from .mode import ModeManager
 from .response.containment_manager import (
     ContainmentManager,
     ContainmentResult,
     RollbackPolicy,
     contain,
     freeze_pid,
-    unfreeze_pid,
     kill_pid,
+    unfreeze_pid,
 )
+from .response.protection import ProtectionManager, ProtectionTarget
+from .response.safety import SafetyRails
+from .state import StateManager
+from .telemetry import TelemetryWriter
 from .response.safety import SafetyRails
 from .state import StateManager
 from .logging.logger import setup_logging, get_logger
@@ -27,30 +42,42 @@ from .ml.registry import ModelRegistry
 from .ml.classifier import build_classifier
 
 __all__ = [
-    "__version__",
-    "AdaptShieldConfig",
-    "load_config",
-    "AdaptShieldDaemon",
-    "Fanotify",
-    "FanotifyEvent",
-    "Tier0Watcher",
-    "tier0_suspicion_score",
-    "Tier1Tracer",
-    "is_tier1_available",
-    "get_tier1_status",
-    "FeatureAggregator",
     "FEATURE_COLUMNS",
-    "build_feature_row",
-    "RiskScorer",
-    "RiskLevel",
+    "AdaptShieldConfig",
+    "AdaptShieldDaemon",
+    "AlertLogger",
     "ContainmentManager",
     "ContainmentResult",
+    "Fanotify",
+    "FanotifyEvent",
+    "FeatureAggregator",
+    "ModeManager",
+    "ModelRegistry",
+    "ProtectionManager",
+    "ProtectionTarget",
+    "RiskLevel",
+    "RiskScorer",
     "RollbackPolicy",
+    "SafetyRails",
+    "StateManager",
+    "TelemetryWriter",
+    "Tier0Watcher",
+    "Tier1Tracer",
+    "__version__",
+    "build_classifier",
+    "build_feature_row",
     "contain",
+    "explain_alert",
     "freeze_pid",
-    "unfreeze_pid",
+    "get_logger",
+    "get_tier1_status",
+    "is_tier1_available",
     "kill_pid",
+    "load_config",
+    "select_classifier",
     "setup_logging",
+    "tier0_suspicion_score",
+    "unfreeze_pid",
     "get_logger",
     "AlertLogger",
     "ModelRegistry",

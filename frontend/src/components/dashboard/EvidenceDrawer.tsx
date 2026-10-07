@@ -133,21 +133,27 @@ export const EvidenceDrawer: React.FC<EvidenceDrawerProps> = ({
 
           <div className="flex items-center space-x-2">
             <button
+              disabled={!alert.pid || alert.pid <= 0}
               onClick={() => {
-                onRelease?.(alert.pid);
-                onClose();
+                if (alert.pid && alert.pid > 0) {
+                  onRelease?.(alert.pid);
+                  onClose();
+                }
               }}
-              className="px-3 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 text-xs font-semibold flex items-center space-x-1.5 transition-colors"
+              className="px-3 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 text-xs font-semibold flex items-center space-x-1.5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <Check className="w-3.5 h-3.5" />
               <span>Release Process</span>
             </button>
             <button
+              disabled={!alert.pid || alert.pid <= 0}
               onClick={() => {
-                onConfirm?.(alert.pid);
-                onClose();
+                if (alert.pid && alert.pid > 0) {
+                  onConfirm?.(alert.pid);
+                  onClose();
+                }
               }}
-              className="px-3 py-1.5 rounded-lg bg-red-600/20 hover:bg-red-600/30 text-red-300 border border-red-500/30 text-xs font-semibold flex items-center space-x-1.5 transition-colors"
+              className="px-3 py-1.5 rounded-lg bg-red-600/20 hover:bg-red-600/30 text-red-300 border border-red-500/30 text-xs font-semibold flex items-center space-x-1.5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <X className="w-3.5 h-3.5" />
               <span>Confirm & Kill</span>

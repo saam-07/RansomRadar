@@ -3,7 +3,6 @@ Structured logging module for AdaptShield.
 Provides console logging, rotating file logging, and optional journald integration.
 """
 import logging
-import os
 import sys
 from logging.handlers import RotatingFileHandler
 from pathlib import Path

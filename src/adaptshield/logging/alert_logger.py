@@ -3,7 +3,6 @@ Structured alert logger for AdaptShield.
 Replaces bare print() with structured logging and provides rotating JSONL records.
 """
 import json
-import os
 import time
 from pathlib import Path
 
@@ -54,7 +53,7 @@ class AlertLogger:
         try:
             with open(self.log_path, "a", encoding="utf-8") as f:
                 f.write(json.dumps(record) + "\n")
-        except (PermissionError, OSError) as e:
+        except (PermissionError, OSError):
             self._ensure_dir()
             try:
                 with open(self.log_path, "a", encoding="utf-8") as f:

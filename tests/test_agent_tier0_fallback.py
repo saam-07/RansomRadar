@@ -1,17 +1,20 @@
 """
 Unit tests for Tier-0-only graceful degradation and structured logging.
 """
-import sys
 import tempfile
 from pathlib import Path
-from unittest.mock import patch
+
 import pytest
 
-from adaptshield.detection.tier1_bridge import is_tier1_available, get_tier1_status, Tier1Tracer
-from adaptshield.daemon import AdaptShieldDaemon
 from adaptshield.config import AdaptShieldConfig
+from adaptshield.daemon import AdaptShieldDaemon
+from adaptshield.detection.feature_aggregator import FeatureAggregator
+from adaptshield.detection.tier1_bridge import (
+    Tier1Tracer,
+    get_tier1_status,
+    is_tier1_available,
+)
 from adaptshield.logging.alert_logger import AlertLogger
-from adaptshield.detection.feature_aggregator import FeatureAggregator, build_feature_row
 
 
 def test_tier1_status_reporting():

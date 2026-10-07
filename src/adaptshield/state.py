@@ -11,6 +11,11 @@ import sys
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from typing import Any
+
+from .config import AdaptShieldConfig
+from .logging.logger import get_logger
+from .response.containment_manager import (
 from typing import Any, Dict, List, Optional
 
 from .config import AdaptShieldConfig, load_config
@@ -34,6 +39,10 @@ class ContainedProcessRecord:
     policy: str
     status: str  # "frozen", "awaiting_manual", "quarantined", "killed", "released"
     frozen_at: float
+    evidence: dict[str, Any]
+    quarantine_path: str | None = None
+    overlay_upperdir: str | None = None
+    overlay_workdir: str | None = None
     evidence: Dict[str, Any]
     quarantine_path: Optional[str] = None
     overlay_upperdir: Optional[str] = None
@@ -44,6 +53,7 @@ class StateManager:
     def __init__(self, state_file: str | Path = "/var/lib/adaptshield/state.json"):
         self.state_file = Path(state_file)
         self._ensure_dir()
+        self.records: dict[int, ContainedProcessRecord] = {}
         self.records: Dict[int, ContainedProcessRecord] = {}
         self.load()
 
@@ -90,6 +100,10 @@ class StateManager:
         pid: int,
         policy: str,
         status: str,
+        evidence: dict[str, Any],
+        quarantine_path: str | None = None,
+        overlay_upper: str | None = None,
+        overlay_work: str | None = None,
         evidence: Dict[str, Any],
         quarantine_path: Optional[str] = None,
         overlay_upper: Optional[str] = None,
@@ -131,11 +145,13 @@ class StateManager:
         except (ProcessLookupError, PermissionError, OSError):
             return False
 
+    def recover(self, config: AdaptShieldConfig) -> dict[str, Any]:
     def recover(self, config: AdaptShieldConfig) -> Dict[str, Any]:
         """
         Recovers frozen and pending processes on agent startup.
         Handles auto-resolve timeouts for manual policy decisions.
         """
+        recovered_actions: dict[int, str] = {}
         recovered_actions: Dict[int, str] = {}
         now = time.time()
         timeout = config.response.auto_resolve_after_seconds

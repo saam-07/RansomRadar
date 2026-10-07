@@ -11,15 +11,16 @@ Validates input DataFrames/dictionaries prior to inference:
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Sequence
-import numpy as np
+from collections.abc import Sequence
+from typing import Any
+
 import pandas as pd
 
 from adaptshield.feature_aggregator import FEATURE_COLUMNS
 
 SCHEMA_VERSION = "1.0.0"
 
-TIER0_COLUMNS: List[str] = [
+TIER0_COLUMNS: list[str] = [
     "mod_rate",
     "rename_rate",
     "create_del_rate",
@@ -27,7 +28,7 @@ TIER0_COLUMNS: List[str] = [
     "concentration_gini",
 ]
 
-TIER1_COLUMNS: List[str] = [
+TIER1_COLUMNS: list[str] = [
     "t1_write_rate",
     "t1_mean_entropy",
     "t1_entropy_std",
@@ -37,7 +38,7 @@ TIER1_COLUMNS: List[str] = [
 ]
 
 # Non-feature metadata columns that must be stripped before inference
-METADATA_COLUMNS: List[str] = [
+METADATA_COLUMNS: list[str] = [
     "pid",
     "run_id",
     "scenario",
@@ -49,13 +50,13 @@ METADATA_COLUMNS: List[str] = [
 ]
 
 
-def get_feature_columns() -> List[str]:
+def get_feature_columns() -> list[str]:
     """Returns a copy of the canonical 11 feature column names."""
     return list(FEATURE_COLUMNS)
 
 
 def validate_features(
-    data: pd.DataFrame | Dict[str, Any] | Sequence[Dict[str, Any]],
+    data: pd.DataFrame | dict[str, Any] | Sequence[dict[str, Any]],
     expected_columns: Sequence[str] | None = None,
     allow_nan_tier1: bool = True,
 ) -> pd.DataFrame:

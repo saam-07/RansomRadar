@@ -45,6 +45,7 @@ class SafetyRails:
 
         # Rate limiting and storm tracking
         self._containment_timestamps: deque[float] = deque()
+        self._storm_pids: deque[tuple[float, int]] = deque()
         self._storm_pids: deque[Tuple[float, int]] = deque()
         self.panic_switch_tripped: bool = False
 
@@ -79,6 +80,10 @@ class SafetyRails:
     def is_immune(
         self,
         pid: int,
+        process_name: str | None = None,
+        exe_path: str | None = None,
+        username: str | None = None,
+    ) -> tuple[bool, str]:
         process_name: Optional[str] = None,
         exe_path: Optional[str] = None,
         username: Optional[str] = None,
@@ -136,6 +141,7 @@ class SafetyRails:
 
         return False, ""
 
+    def check_containment_permitted(self, pid: int) -> tuple[bool, str]:
     def check_containment_permitted(self, pid: int) -> Tuple[bool, str]:
         """
         Evaluates rate limits and false-positive storm conditions.

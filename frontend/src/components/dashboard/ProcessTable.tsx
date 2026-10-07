@@ -76,12 +76,13 @@ export const ProcessTable: React.FC<ProcessTableProps> = ({
                   statusChipClass = 'bg-purple-500/20 text-purple-300 border border-purple-500/40';
                 }
 
-                const canAct = proc.is_frozen || proc.status === 'frozen' || policy === 'manual';
+                const hasValidPid = Boolean(proc.pid) && proc.pid > 0;
+                const canAct = hasValidPid && (proc.is_frozen || proc.status === 'frozen' || policy === 'manual');
 
                 return (
-                  <tr key={proc.pid} className="hover:bg-slate-800/30 transition-colors">
+                  <tr key={proc.pid || Math.random()} className="hover:bg-slate-800/30 transition-colors">
                     <td className="py-3 px-4 font-bold text-slate-200">
-                      {proc.pid}
+                      {proc.pid ?? '—'}
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center space-x-2">
@@ -99,8 +100,8 @@ export const ProcessTable: React.FC<ProcessTableProps> = ({
                     </td>
                     <td className="py-3 px-4">
                       <div className="space-y-1">
-                        <div className="flex justify-between text-[11px]">
-                          <span>{ewmaVal.toFixed(3)}</span>
+                        <div className="flex justify-between items-center text-[11px] gap-2">
+                          <span className="font-semibold text-slate-200">{ewmaVal.toFixed(3)}</span>
                           <span className="text-slate-400">{(proc.probability || 0).toFixed(2)} raw</span>
                         </div>
                         <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
@@ -131,7 +132,7 @@ export const ProcessTable: React.FC<ProcessTableProps> = ({
                       {canAct ? (
                         <div className="flex items-center justify-end space-x-1.5">
                           <button
-                            onClick={() => onRelease?.(proc.pid)}
+                            onClick={() => proc.pid && onRelease?.(proc.pid)}
                             className="px-2 py-1 rounded bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 flex items-center space-x-1 transition-colors"
                             title="Release / unfreeze process"
                           >
@@ -139,7 +140,7 @@ export const ProcessTable: React.FC<ProcessTableProps> = ({
                             <span>Release</span>
                           </button>
                           <button
-                            onClick={() => onConfirm?.(proc.pid)}
+                            onClick={() => proc.pid && onConfirm?.(proc.pid)}
                             className="px-2 py-1 rounded bg-red-600/20 hover:bg-red-600/30 text-red-300 border border-red-500/30 flex items-center space-x-1 transition-colors"
                             title="Confirm threat & kill process"
                           >

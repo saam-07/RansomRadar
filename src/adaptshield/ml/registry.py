@@ -19,9 +19,7 @@ import shutil
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
-
-import joblib
+from typing import Any
 
 from adaptshield.classifier import (
     RuleBasedClassifier,
@@ -30,7 +28,7 @@ from adaptshield.classifier import (
     build_classifier,
 )
 from adaptshield.feature_aggregator import FEATURE_COLUMNS
-from adaptshield.ml.schema import SCHEMA_VERSION, validate_features
+from adaptshield.ml.schema import SCHEMA_VERSION
 
 
 def compute_file_sha256(filepath: Path) -> str:
@@ -66,9 +64,9 @@ class ModelRegistry:
         self,
         name: str,
         classifier: Any,
-        feature_columns: List[str] | None = None,
+        feature_columns: list[str] | None = None,
         data_source: str = "synthetic",
-        metrics: Dict[str, Any] | None = None,
+        metrics: dict[str, Any] | None = None,
         seed: int = 42,
         active: bool = False,
         git_commit: str | None = None,
@@ -94,7 +92,7 @@ class ModelRegistry:
         else:
             classifier_type = getattr(classifier, "classifier_type", type(classifier).__name__)
 
-        manifest: Dict[str, Any] = {
+        manifest: dict[str, Any] = {
             "name": name,
             "classifier_type": classifier_type,
             "feature_columns": cols,
@@ -123,9 +121,9 @@ class ModelRegistry:
         name: str,
         joblib_path: Path | str,
         classifier_type: str,
-        feature_columns: List[str] | None = None,
+        feature_columns: list[str] | None = None,
         data_source: str = "synthetic_bootstrap_legacy",
-        metrics: Dict[str, Any] | None = None,
+        metrics: dict[str, Any] | None = None,
         seed: int = 0,
         active: bool = False,
     ) -> Path:
@@ -142,7 +140,7 @@ class ModelRegistry:
         shutil.copy2(src_path, dst_file)
         sha256_hash = compute_file_sha256(dst_file)
 
-        manifest: Dict[str, Any] = {
+        manifest: dict[str, Any] = {
             "name": name,
             "classifier_type": classifier_type,
             "feature_columns": cols,
@@ -166,8 +164,8 @@ class ModelRegistry:
     def load_model(
         self,
         name: str,
-        expected_columns: List[str] | None = None,
-    ) -> Tuple[Any, Dict[str, Any]]:
+        expected_columns: list[str] | None = None,
+    ) -> tuple[Any, dict[str, Any]]:
         """
         Loads a classifier and manifest by name.
         Rejects incompatible models (schema mismatch or missing columns).
@@ -225,7 +223,7 @@ class ModelRegistry:
 
         self._update_overview()
 
-    def get_active_model(self) -> Tuple[Any, Dict[str, Any]]:
+    def get_active_model(self) -> tuple[Any, dict[str, Any]]:
         """Returns the currently active classifier and its manifest."""
         models = self.list_models()
         active_manifest = next((m for m in models if m.get("active")), None)
@@ -239,7 +237,7 @@ class ModelRegistry:
 
         return self.load_model(active_manifest["name"])
 
-    def list_models(self) -> List[Dict[str, Any]]:
+    def list_models(self) -> list[dict[str, Any]]:
         """Lists all registered models manifests."""
         manifests = []
         if not self.registry_dir.exists():

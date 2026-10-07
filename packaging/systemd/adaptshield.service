@@ -1,0 +1,38 @@
+[Unit]
+Description=AdaptShield Autonomous Ransomware Defense Agent
+Documentation=https://github.com/saam-07/RansomRadar
+After=network.target local-fs.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/var/lib/adaptshield
+ExecStart=/opt/adaptshield/venv/bin/adaptshield-agent
+ExecReload=/bin/kill -HUP $MAINPID
+ExecStopPost=/usr/local/bin/adaptshield release --all
+Restart=on-failure
+RestartSec=5s
+TimeoutStopSec=15s
+KillMode=process
+
+# Environment
+Environment=PYTHONUNBUFFERED=1
+Environment=PATH=/opt/adaptshield/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+# Security Hardening:
+# Selected to protect system binaries while preserving kernel instrumentation access
+# required by fanotify (filesystem monitoring), BCC/eBPF (kernel tracing), and cgroups v2.
+ProtectSystem=full
+PrivateTmp=true
+NoNewPrivileges=false
+
+# Note on intentionally omitted restrictions:
+# - ProtectProc=invisible is omitted: agent must inspect /proc/<pid>/cmdline, exe, and maps.
+# - MemoryDenyWriteExecute is omitted: BCC JIT compiler requires RWX allocations for eBPF byte code.
+# - RestrictAddressFamilies is omitted: Netlink and BPF syscalls require raw kernel sockets.
+# - RestrictNamespaces is omitted: Overlayfs and cgroups operations require mount namespace capabilities.
+
+[Install]
+WantedBy=multi-user.target

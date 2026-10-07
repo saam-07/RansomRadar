@@ -53,3 +53,12 @@ markers = [
 filterwarnings = [
     "ignore::DeprecationWarning"
 ]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W"]
+ignore = ["E501", "E402", "E722", "E741", "F403", "F405", "W291", "W293"]
+

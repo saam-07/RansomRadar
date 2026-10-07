@@ -3,6 +3,7 @@ Merges Tier-0 (always-on) features with Tier-1 (escalation-triggered) features.
 If Tier-1 has not been triggered, Tier-1 columns use np.nan sentinels.
 """
 from collections import defaultdict
+
 import numpy as np
 
 FEATURE_COLUMNS = [

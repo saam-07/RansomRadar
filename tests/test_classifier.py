@@ -1,8 +1,6 @@
-import numpy as np
 import pandas as pd
-from adaptshield.classifier import (
-    build_classifier, RuleBasedClassifier, SklearnClassifier, XGBClassifierWrapper
-)
+
+from adaptshield.classifier import build_classifier
 from adaptshield.feature_aggregator import FEATURE_COLUMNS
 
 
@@ -26,10 +24,10 @@ def test_classifier_save_load_sklearn(tmp_path):
     X = pd.DataFrame([{c: 1.0 for c in FEATURE_COLUMNS} for _ in range(10)])
     y = pd.Series(["benign"] * 5 + ["ransomware"] * 5)
     clf.fit(X, y)
-    
+
     save_path = str(tmp_path / "rf_test.joblib")
     clf.save(save_path)
-    
+
     loaded = build_classifier("random_forest").load(save_path)
     proba = loaded.predict_proba(X)
     assert proba.shape[0] == 10
@@ -40,10 +38,10 @@ def test_classifier_save_load_xgboost(tmp_path):
     X = pd.DataFrame([{c: 1.0 for c in FEATURE_COLUMNS} for _ in range(10)])
     y = pd.Series(["benign"] * 5 + ["ransomware"] * 5)
     clf.fit(X, y)
-    
+
     save_path = str(tmp_path / "xgb_test.joblib")
     clf.save(save_path)
-    
+
     loaded = build_classifier("xgboost").load(save_path)
     proba = loaded.predict_proba(X)
     assert proba.shape[0] == 10

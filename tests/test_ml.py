@@ -6,14 +6,13 @@ import pandas as pd
 import pytest
 
 from adaptshield.feature_aggregator import FEATURE_COLUMNS
+from adaptshield.ml.registry import ModelRegistry
 from adaptshield.ml.schema import (
     SCHEMA_VERSION,
     TIER0_COLUMNS,
     validate_features,
 )
-from adaptshield.ml.registry import ModelRegistry
 from adaptshield.ml.train import train_classifier
-from adaptshield.ml.evaluate import evaluate_classifier
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "raw"
 REGISTRY_DIR = Path(__file__).resolve().parent.parent / "models" / "registry"

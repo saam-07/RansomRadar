@@ -57,9 +57,10 @@ class WebSocketBroadcaster:
 
     def queue_event(self, event_type: str, payload: Dict[str, Any]) -> None:
         """Called synchronously from pipeline/bus threads."""
+        data = payload.get("payload") if (isinstance(payload, dict) and isinstance(payload.get("payload"), dict)) else payload
         wrapped = {
             "type": event_type,
-            "data": payload,
+            "data": data,
             "simulated": True,
         }
         self.event_buffer.append(wrapped)

@@ -6,18 +6,16 @@ background training jobs, and persists events to the SQLite database.
 
 from __future__ import annotations
 
-import asyncio
 import datetime
 import json
 import logging
 import threading
 import time
 import uuid
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, Optional, Set
 
 from adaptshield.ml.registry import ModelRegistry
-from adaptshield.ml.schema import FEATURE_COLUMNS, SCHEMA_VERSION, validate_features
-from adaptshield.ml.evaluate import extract_ransomware_prob
+from adaptshield.ml.schema import FEATURE_COLUMNS
 from adaptshield.ml.train import train_classifier
 from adaptshield.ml.evaluate import evaluate_classifier
 from backend.app.config import settings
@@ -115,35 +113,55 @@ class SystemStateManager:
         self.bus.subscribe("containment", self._on_containment)
 
     def _on_window_scored(self, event: Dict[str, Any]) -> None:
-        pid = event.get("pid")
-        if pid is None:
+        data = event.get("payload") if (isinstance(event, dict) and isinstance(event.get("payload"), dict)) else event
+        pid_raw = data.get("pid") if isinstance(data, dict) else None
+        if pid_raw is None:
             return
+        try:
+            pid = int(pid_raw)
+        except (ValueError, TypeError):
+            return
+        if pid <= 0:
+            return
+
         with self._lock:
             proc = self.active_processes.get(pid, {
                 "pid": pid,
-                "process_name": event.get("process_name", f"proc_{pid}"),
+                "process_name": data.get("process_name", f"proc_{pid}"),
                 "status": "normal",
                 "is_frozen": False,
                 "is_quarantined": False,
                 "files_touched": 0,
                 "files_encrypted": 0,
             })
-            proc["risk_level"] = event.get("risk_level", "NORMAL")
-            proc["ewma"] = event.get("ewma", 0.0)
-            proc["probability"] = event.get("probability", 0.0)
-            proc["label"] = event.get("label", "benign")
-            proc["last_window_idx"] = event.get("window_idx", 0)
-            proc["files_touched"] += int(event.get("mod_rate", 0))
-            proc["files_encrypted"] += int(event.get("files_encrypted_now", 0))
+            proc["process_name"] = data.get("process_name", proc.get("process_name", f"proc_{pid}"))
+            proc["risk_level"] = data.get("risk_level", "NORMAL")
+            proc["ewma"] = float(data.get("ewma", 0.0))
+            proc["probability"] = float(data.get("probability", 0.0))
+            proc["label"] = data.get("label", "benign")
+            proc["last_window_idx"] = int(data.get("window_idx", 0))
+            proc["files_touched"] += int(data.get("mod_rate", 0))
+            proc["files_encrypted"] += int(data.get("files_encrypted_now", 0))
             proc["updated_at"] = datetime.datetime.utcnow().isoformat()
             self.active_processes[pid] = proc
 
     def _on_alert(self, event: Dict[str, Any]) -> None:
         """Persists critical alert to SQLite."""
         try:
+            data = event.get("payload") if (isinstance(event, dict) and isinstance(event.get("payload"), dict)) else event
             alert_id = str(uuid.uuid4())
-            pid = int(event.get("pid", 0))
-            pname = str(event.get("process_name", f"proc_{pid}"))
+            pid_raw = data.get("pid") if isinstance(data, dict) else None
+            if pid_raw is None:
+                return
+            try:
+                pid = int(pid_raw)
+            except (ValueError, TypeError):
+                return
+            if pid <= 0:
+                logger.warning(f"Skipping alert persistence for invalid pid: {pid}")
+                return
+
+            pname = str(data.get("process_name", f"proc_{pid}"))
             run_id = self.active_scenario.run_id if self.active_scenario else None
 
             db = SessionLocal()
@@ -154,10 +172,10 @@ class SystemStateManager:
                 pid=pid,
                 process_name=pname,
                 risk_level="CRITICAL",
-                ewma_score=float(event.get("ewma", 0.0)),
-                model_name=str(event.get("model_name", self.pipeline.model_name)),
-                explanation_json=json.dumps(event.get("explanation", {})),
-                window_data_json=json.dumps(event),
+                ewma_score=float(data.get("ewma", 0.0)),
+                model_name=str(data.get("model_name", self.pipeline.model_name)),
+                explanation_json=json.dumps(data.get("explanation", {})),
+                window_data_json=json.dumps(data),
                 status="active",
                 action_taken="freeze" if self.policy == "immediate" else "pending_review",
             )
@@ -165,32 +183,44 @@ class SystemStateManager:
             db.commit()
             db.close()
 
-            # Attach generated alert_id to event
-            event["alert_id"] = alert_id
+            # Attach generated alert_id to event/data
+            data["alert_id"] = alert_id
+            if isinstance(event, dict) and "alert_id" not in event:
+                event["alert_id"] = alert_id
         except Exception as e:
             logger.error(f"Failed to persist alert: {e}")
 
     def _on_containment(self, event: Dict[str, Any]) -> None:
         """Persists containment action to SQLite."""
         try:
-            pid = int(event.get("pid", 0))
+            data = event.get("payload") if (isinstance(event, dict) and isinstance(event.get("payload"), dict)) else event
+            pid_raw = data.get("pid") if isinstance(data, dict) else None
+            if pid_raw is None:
+                return
+            try:
+                pid = int(pid_raw)
+            except (ValueError, TypeError):
+                return
+            if pid <= 0:
+                return
+
             with self._lock:
                 if pid in self.active_processes:
-                    self.active_processes[pid]["is_frozen"] = bool(event.get("is_frozen", False))
-                    self.active_processes[pid]["status"] = "frozen" if event.get("is_frozen") else "normal"
+                    self.active_processes[pid]["is_frozen"] = bool(data.get("is_frozen", False))
+                    self.active_processes[pid]["status"] = "frozen" if data.get("is_frozen") else "normal"
 
             db = SessionLocal()
             action_rec = ContainmentRecord(
                 id=str(uuid.uuid4()),
                 pid=pid,
-                action=str(event.get("action", "freeze")),
+                action=str(data.get("action", "freeze")),
                 policy=self.policy,
-                latency_ms=float(event.get("latency_ms", 0.0)),
-                is_frozen=bool(event.get("is_frozen", False)),
-                is_quarantined=bool(event.get("is_quarantined", False)),
-                is_rolled_back=bool(event.get("is_rolled_back", False)),
+                latency_ms=float(data.get("latency_ms", 0.0)),
+                is_frozen=bool(data.get("is_frozen", False)),
+                is_quarantined=bool(data.get("is_quarantined", False)),
+                is_rolled_back=bool(data.get("is_rolled_back", False)),
                 timestamp=datetime.datetime.utcnow(),
-                details_json=json.dumps(event),
+                details_json=json.dumps(data),
             )
             db.add(action_rec)
             db.commit()

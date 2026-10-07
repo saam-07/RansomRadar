@@ -1,95 +1,155 @@
-# AdaptShield System Architecture
+# AdaptShield Complete System Architecture Specification
+
+## 1. System Overview & End-to-End Diagram
+
+AdaptShield is a production-grade autonomous Linux endpoint security system engineered to detect ransomware behaviors and execute reversible, zero-data-loss containment.
 
 ```mermaid
 flowchart TD
-    subgraph Host["Linux Host & Kernel Abstraction"]
-        eBPF["eBPF / Fanotify Watchers<br/>(File I/O Events)"]
-        cgroups["cgroup v2 Freezer<br/>(Atomic PID Pause)"]
-        overlay["OverlayFS Protection<br/>(Atomic Upperdir Rollback)"]
+    subgraph Kernel["Linux Kernel Subsystems (>= 5.9)"]
+        fanotify["Fanotify Subsystem<br/>(File I/O Notification Streams)"]
+        bpf["BCC / eBPF Kprobes<br/>(Write Buffer Entropy & Syscall Traces)"]
+        cgroups["cgroups v2 Freezer<br/>(/sys/fs/cgroup/adaptshield/proc_PID)"]
+        overlayfs["OverlayFS Layer<br/>(Upperdir & Workdir Inodes)"]
     end
 
-    subgraph Core["AdaptShield Core Engine"]
-        Source["EventSource<br/>(Simulated / Replay / Live)"]
-        Agg["Feature Aggregator<br/>(11 Sliding Window Features)"]
-        Classifier["Active Classifier<br/>(XGBoost / Random Forest)"]
-        Scorer["RiskScorer<br/>(Per-PID EWMA + Thresholds)"]
-        Safety["Safety Rails<br/>(Allowlist + Panic Switch)"]
-        Engine["ResponseEngine<br/>(Simulated / Real Linux)"]
+    subgraph Agent["AdaptShield Autonomous Agent Daemon (/usr/local/bin/adaptshield-agent)"]
+        Config["Config Manager<br/>(/etc/adaptshield/config.yaml)"]
+        ModeMgr["Mode Manager<br/>(24h Monitor-First -> Protect / Learn)"]
+        Tier0["Tier-0 Fanotify Watcher<br/>(Multi-Path Includes/Excludes)"]
+        Tier1["Tier-1 eBPF Tracer<br/>(Dynamic PID Escalation >= theta0)"]
+        Aggregator["Feature Aggregator<br/>(11 Sliding Window Features)"]
+        ClassifierSel["ML Selector & Registry<br/>(Rule-Based / RF / XGBoost + Synthetic Guard)"]
+        RiskEngine["RiskScorer<br/>(Per-PID EWMA + Confirmation Windows)"]
+        SafetyEngine["Safety Rails & Panic Switch<br/>(Immunity + Storm Threshold)"]
+        ProtectionMgr["Protection Manager<br/>(OverlayFS Mounts + Fallback Quarantine)"]
+        ContainmentMgr["Containment Manager<br/>(Dedicated Per-PID Freezer cgroups)"]
+        StateRecovery["State Manager<br/>(/var/lib/adaptshield/state.json)"]
+        Telemetry["Telemetry Flywheel<br/>(/var/lib/adaptshield/telemetry)"]
     end
 
-    subgraph API["FastAPI & Telemetry Backend"]
-        FastAPI["FastAPI REST Endpoints<br/>(/api/status, /api/scenarios, /api/alerts)"]
-        Bus["In-Memory EventBus"]
-        Broadcaster["WebSocket Broadcaster<br/>(/api/stream)"]
-        DB[("SQLite Event Database<br/>(adaptshield.db)")]
+    subgraph Management["Control & User Interfaces"]
+        CLI["Unified adaptshield CLI<br/>(status, doctor, release, confirm, mode, model)"]
+        systemd["systemd Service Unit<br/>(adaptshield.service with ExecStopPost unfreeze)"]
+        WebDemo["FastAPI + React Dashboard<br/>(Interactive Fullstack Demo Visualizer)"]
     end
 
-    subgraph UI["React + TypeScript UI"]
-        Dashboard["Live Dashboard<br/>(Risk Timeline & KPI Cards)"]
-        Runner["Scenario Runner & Filesystem Grid<br/>(Real-time Rollback Visual)"]
-        Compare["Detector Comparison Benchmark"]
-        MLStudio["Datasets & Model Training Studio"]
-        Forensics["Alerts & Forensic Evidence Drawer"]
-        Settings["Engine Settings & Safety Controls"]
-        Demo["3-Minute Guided Demo Story Mode"]
-    end
+    Config --> ModeMgr
+    ModeMgr --> Tier0
+    fanotify --> Tier0
+    Tier0 -->|Score >= theta0| Tier1
+    bpf --> Tier1
+    Tier0 --> Aggregator
+    Tier1 --> Aggregator
+    Aggregator --> ClassifierSel
+    ClassifierSel --> RiskEngine
+    RiskEngine --> SafetyEngine
+    SafetyEngine -->|CRITICAL| ContainmentMgr
+    ContainmentMgr --> cgroups
+    ContainmentMgr --> ProtectionMgr
+    ProtectionMgr --> overlayfs
+    ContainmentMgr --> StateRecovery
+    RiskEngine --> Telemetry
 
-    Source --> Agg
-    Agg --> Classifier
-    Classifier --> Scorer
-    Scorer --> Safety
-    Safety --> Engine
-    Engine --> Bus
-
-    Engine -.->|Real Mode| cgroups
-    Engine -.->|Real Mode| overlay
-    eBPF -.->|Live Mode| Source
-
-    Bus --> Broadcaster
-    Bus --> DB
-    Broadcaster --> Dashboard
-    Broadcaster --> Runner
-    FastAPI --> UI
+    CLI -.->|Manage| Agent
+    systemd -.->|Supervise| Agent
+    Agent -.->|WebSocket / Logs| WebDemo
 ```
 
 ---
 
-## 1. Architectural Principles
+## 2. Kernel & Event Streaming Subsystems
 
-1. **Defense-in-Depth:** Machine learning classification is never the single point of failure. AdaptShield pairs statistical inference with stateful exponential-moving-average (EWMA) risk accumulation, conservative confirmation windows, kernel safety rails, and atomic reversible snapshots.
-2. **Strict Per-Process Isolation:** Every tracked PID maintains an independent RiskScorer instance and containment record. If two attackers execute concurrently, containing or releasing one PID has zero effect on the other.
-3. **Reversible Containment:** Rather than immediately terminating suspect processes, AdaptShield pauses them via cgroup v2 freezer and isolates file modifications via overlayfs. In manual policy mode or false positive cases, operations can be seamlessly resumed without data loss.
-4. **Transparent Explainability:** Every forensic alert carries a complete 11-feature snapshot vector alongside decision factor attributions (SHAP / tree feature contributions) to inform human security analysts.
+### 2.1 Tier-0 Multi-Path Fanotify Watcher (`detection/tier0_watcher.py`)
+- Employs Linux `fanotify` (`fanotify_init` with `FAN_CLASS_NOTIF | FAN_REPORT_DFID_NAME`) to monitor filesystem events across all directories specified in `watch.paths`.
+- **Exclusion & Self-Filtering:** Ignores path prefixes specified in `watch.excludes` (`/proc`, `/sys`, `/dev`, `/run`, `/tmp`, `/var/lib/adaptshield`, `/var/log/adaptshield`).
+- **Self-PID Suppression:** Filters out events generated by the AdaptShield daemon PID and its children to prevent feedback loops.
+- Computes windowed rates for:
+  - `mod_rate`: modification rate ($Hz$)
+  - `rename_rate`: file rename/move operations ($Hz$)
+  - `create_del_rate`: combined file creation and deletion rate ($Hz$)
+  - `event_count`: raw event throughput
+  - `concentration_gini`: Gini inequality coefficient across targeted directory paths
+
+### 2.2 Tier-1 eBPF Syscall & Entropy Tracer (`detection/tier1_bridge.py`)
+- Implemented in C and loaded via BCC (`bpfcc-tools` / `python3-bpfcc`).
+- Attached dynamically only for PIDs whose Tier-0 initial heuristic score satisfies $S_{\text{Tier-0}} \ge \theta_0$ (default 0.5).
+- Hooks kernel tracepoints:
+  - `sys_enter_write`: calculates Shannon entropy on initial 512-byte buffer segments in kernel space.
+  - `sys_enter_unlinkat`: tracks file deletion syscalls.
+  - `sys_enter_renameat2`: tracks file renames.
+- **Graceful Fallback:** If BCC, kernel headers, or eBPF support are absent, AdaptShield automatically operates in **Tier-0-only mode**, filling Tier-1 feature columns with `NaN`.
 
 ---
 
-## 2. Core Subsystems
+## 3. Machine Learning Inference & Risk Accumulation
 
-### 2.1 Event Sources (`backend/app/core/sources.py`)
-- **SimulatedSource:** Deterministic scenario replay driving virtual processes according to parameter seeds and configurable playback speed (1x, 5x, 20x).
-- **ReplaySource:** Replays historical trace CSV datasets grouped by process PID.
-- **LiveAgentSource:** Feature-flagged stub for reading live agent telemetry (`/var/log/adaptshield/alert.jsonl`).
+### 3.1 11-Feature Canonical Contract (`ml/schema.py`)
+Input rows are validated against the schema contract:
+- 5 Tier-0 filesystem features: `mod_rate`, `rename_rate`, `create_del_rate`, `event_count`, `concentration_gini`.
+- 6 Tier-1 kernel features: `t1_write_rate`, `t1_mean_entropy`, `t1_entropy_std`, `t1_unlink_rate`, `t1_rename_rate`, `t1_mean_write_size`.
 
-### 2.2 Feature Aggregator (`adaptshield/feature_aggregator.py`)
-Extracts 11 temporal and structural features per sliding time window:
-- `event_count`, `mod_rate`, `create_del_rate`, `rename_rate`, `concentration_gini`
-- Tier-1 eBPF entropy metrics: `t1_write_rate`, `t1_mean_entropy`, `t1_entropy_std`, `t1_unlink_rate`, `t1_rename_rate`, `t1_mean_write_size`
+### 3.2 Classifier Auto-Selection & Synthetic Guard (`ml/selector.py`)
+- Automatically inspects the active model in `/var/lib/adaptshield/models/`.
+- **Synthetic Guard:** If a model is trained on synthetic data (`data_source: "synthetic"`), it is blocked from automated containment in `protect` mode unless `classifier.allow_synthetic: true` is explicitly enabled. If blocked, it defaults to `RuleBasedClassifier` while allowing synthetic models for `monitor` and `learn` modes.
+- **Zero-Crash Resilience:** Missing, corrupted, or incompatible models seamlessly fall back to `RuleBasedClassifier`.
 
-### 2.3 Detection Pipeline & Risk Scoring (`backend/app/core/pipeline.py`)
-- **Classifier Inference:** Generates instantaneous ransomware probability $p_{\text{ransomware}} \in [0, 1]$.
-- **Stateful EWMA Scoring:** Computes risk score $R_t = \alpha \cdot p_t + (1 - \alpha) \cdot R_{t-1}$.
-- **Risk Escalation:** Escalates across WATCH ($\ge 0.30$), SUSPECT ($\ge 0.60$), and CRITICAL ($\ge 0.85$). CRITICAL requires $N$ consecutive windows above threshold to eliminate single-burst false alarms.
+### 3.3 Stateful Risk Scoring (`detection/risk_scorer.py`)
+- Computes per-PID exponential moving average (EWMA):
+  $$R_t = \alpha \cdot p_t + (1 - \alpha) \cdot R_{t-1}$$
+- Risk levels:
+  - $\text{NONE} \to [0.0, 0.30)$
+  - $\text{ELEVATED / WATCH} \to [0.30, 0.60)$
+  - $\text{SUSPICIOUS} \to [0.60, 0.85)$
+  - $\text{CRITICAL} \to [0.85, 1.0]$
+- Requires $N$ consecutive windows (default 2) to confirm CRITICAL, preventing single-burst false alarms.
 
-### 2.4 Safety Rails (`backend/app/core/safety.py`)
-- **Hard-coded System Immunity:** PID 0, PID 1, PID 2, agent self-PID, and critical OS services (`systemd`, `sshd`, `dbus`, `dockerd`).
-- **Configurable Application Allowlist:** Legitimate utilities (`rsync`, `tar`, `postgres`, `mysqld`, `git`).
-- **Rate Limiting:** Upper bound on containment actions per minute.
-- **False-Positive Storm Panic Switch:** If 5+ distinct PIDs trigger CRITICAL within 12 seconds, containment drops automatically to monitor mode.
+---
 
-### 2.5 Response Engine (`backend/app/core/response.py`)
-- **SimulatedResponse:** Tracks virtual filesystem of 300 files across protected directories. Records atomic freeze, rollback, and unfreeze latencies (3-5 ms).
-- **RealResponse:** Wraps Linux cgroup freezer and overlayfs unmount operations.
+## 4. Safety Rails & Denial-of-Service Defense
 
-### 2.6 Streaming Telemetry & API (`backend/app/api/`)
-- In-memory event bus connects the pipeline to a WebSocket broadcaster, delivering batched UI updates every 100ms.
-- SQLite database persists scenario run histories, forensic alerts, and containment records.
+### 4.1 Immunity Rails (`response/safety.py`)
+- Guaranteed immunity for PID 1, kernel threads, systemd daemons, SSH, and DB servers.
+- Configurable process name, binary path, and user allowlists.
+
+### 4.2 False-Positive Storm Panic Switch
+- Tracks distinct PIDs triggering CRITICAL within a sliding time window (default 30s).
+- If distinct PIDs exceed threshold (default 5), the panic switch trips:
+  - Containment actions are immediately suppressed.
+  - Mode drops to `monitor`.
+  - A high-severity `storm_panic_switch_tripped` security alert is generated.
+
+---
+
+## 5. Containment, OverlayFS Protection & Rollback
+
+### 5.1 Dedicated Per-PID cgroups v2 Freezer (`response/containment_manager.py`)
+- Every contained PID is isolated in its own dedicated cgroup:
+  `/sys/fs/cgroup/adaptshield/proc_<pid>/`
+- When a process is contained:
+  `echo 1 > /sys/fs/cgroup/adaptshield/proc_<pid>/cgroup.freeze`
+- **Independent Release:** Releasing or thawing PID $A$ has zero effect on frozen PID $B$.
+
+### 5.2 OverlayFS Protection Manager (`response/protection.py`)
+- Manages overlayfs mounts across all paths declared in `protect_paths`.
+- Separates original filesystem data (lowerdir) from active writes (upperdir).
+- Upon confirmed ransomware attack:
+  1. Process is frozen in cgroups v2.
+  2. Modified files in upperdir are copied to `/var/lib/adaptshield/quarantine/`.
+  3. Overlay is remounted / cleaned, restoring original pre-attack file state atomically.
+  4. Process is killed.
+- **Reboot Remounting:** Manifest persisted at `/var/lib/adaptshield/overlay_manifest.json` ensures protected mounts are reconstructed on system boot.
+- **Graceful Fallback:** If an un-overlayable path is watched, AdaptShield uses `quarantine-copy-on-detect + freeze/kill` and reports `rollback unavailable` in CLI status.
+
+---
+
+## 6. Operating Modes & Telemetry Flywheel
+
+| Mode | Containment Action | Rollback Action | Telemetry Collection |
+|---|:---:|:---:|:---:|
+| `monitor` | Suppressed (Log alert only) | Disabled | Emits alert logs |
+| `protect` | Enabled per `response.policy` | Enabled (Overlay) | Emits alerts + telemetry |
+| `learn` | Suppressed (Zero disruption) | Disabled | Continuous feature rows to disk |
+
+- **24-Hour Monitor-First Grace Period:** Upon initial installation, the daemon defaults to `monitor` mode for 24 hours to observe host baselines before automatically engaging active protection.
+- **Flight Telemetry Flywheel (`telemetry.py`):** Automatically logs feature rows to `/var/lib/adaptshield/telemetry/` with 50 MB rotation caps for offline model retraining.

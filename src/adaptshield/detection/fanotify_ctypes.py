@@ -89,37 +89,75 @@ if libc:
     ]
 
 
+def is_path_excluded(path: str, excludes: list[str]) -> bool:
+    """Checks whether a given path is covered by any excluded directory."""
+    if not path or not excludes:
+        return False
+    try:
+        norm = os.path.abspath(path)
+        for exc in excludes:
+            norm_exc = os.path.abspath(exc)
+            if norm == norm_exc or norm.startswith(norm_exc + os.sep):
+                return True
+    except Exception:
+        pass
+    return False
+
+
 @dataclass
 class FanotifyEvent:
     mask: int
     pid: int
     fd: int
+    path: str | None = None
 
 
 class Fanotify:
-    def __init__(self, watch_path: str):
+    """
+    Multi-path fanotify watcher for Linux filesystems.
+    Watches configured include paths, reports per-event PID and paths,
+    and supports dynamic mark attachment.
+    """
+    def __init__(self, watch_paths: str | list[str]):
         if not libc:
             raise OSError("libc is not available on this system")
 
-        self.watch_path = watch_path
+        if isinstance(watch_paths, str):
+            self.watch_paths = [watch_paths]
+        else:
+            self.watch_paths = list(watch_paths)
+
+        self.watch_path = self.watch_paths[0] if self.watch_paths else ""
         self.fd = -1
         self.mode = "none"
+        self.marked_paths: list[str] = []
+        self.failed_paths: dict[str, str] = {}
+
+        if not self.watch_paths:
+            return
 
         # Attempt 1: Modern DFID_NAME mode (Linux >= 5.9, supports create/delete/rename)
         init_flags = FAN_CLASS_NOTIF | FAN_REPORT_DFID_NAME | FAN_CLOEXEC | FAN_NONBLOCK
         self.fd = libc.fanotify_init(init_flags, O_RDONLY)
         if self.fd >= 0:
-            ret = libc.fanotify_mark(
-                self.fd,
-                FAN_MARK_ADD | FAN_MARK_FILESYSTEM,
-                ctypes.c_uint64(DFID_WATCH_MASK),
-                -1,
-                watch_path.encode(),
-            )
-            if ret >= 0:
+            success = False
+            for path in self.watch_paths:
+                ret = libc.fanotify_mark(
+                    self.fd,
+                    FAN_MARK_ADD | FAN_MARK_FILESYSTEM,
+                    ctypes.c_uint64(DFID_WATCH_MASK),
+                    -1,
+                    path.encode(),
+                )
+                if ret >= 0:
+                    self.marked_paths.append(path)
+                    success = True
+                else:
+                    self.failed_paths[path] = f"fanotify_mark DFID_NAME errno {ctypes.get_errno()}"
+            if success:
                 self.mode = "dfid_name"
                 return
-            # If mark failed with DFID_NAME mode, clean up and try fallback
+            # If all marks failed in DFID_NAME mode, close and try fallback
             os.close(self.fd)
             self.fd = -1
 
@@ -135,22 +173,50 @@ class Fanotify:
                   "(run as root / with sudo) and kernel >= 5.9.",
             )
 
-        ret = libc.fanotify_mark(
-            self.fd,
-            FAN_MARK_ADD | FAN_MARK_FILESYSTEM,
-            ctypes.c_uint64(FD_WATCH_MASK),
-            -1,
-            watch_path.encode(),
-        )
-        if ret < 0:
+        self.marked_paths.clear()
+        for path in self.watch_paths:
+            ret = libc.fanotify_mark(
+                self.fd,
+                FAN_MARK_ADD | FAN_MARK_FILESYSTEM,
+                ctypes.c_uint64(FD_WATCH_MASK),
+                -1,
+                path.encode(),
+            )
+            if ret >= 0:
+                self.marked_paths.append(path)
+            else:
+                self.failed_paths[path] = f"fanotify_mark FD errno {ctypes.get_errno()}"
+
+        if not self.marked_paths and self.watch_paths:
             errno = ctypes.get_errno()
             os.close(self.fd)
             self.fd = -1
             raise OSError(
                 errno,
-                os.strerror(errno) + f" -- fanotify_mark({watch_path}) failed",
+                os.strerror(errno) + f" -- fanotify_mark failed on all paths: {self.watch_paths}",
             )
         self.mode = "fd"
+
+    def add_watch_path(self, path: str) -> bool:
+        """Dynamically add an additional watch path to an active fanotify descriptor."""
+        if self.fd < 0:
+            return False
+        mask = DFID_WATCH_MASK if self.mode == "dfid_name" else FD_WATCH_MASK
+        ret = libc.fanotify_mark(
+            self.fd,
+            FAN_MARK_ADD | FAN_MARK_FILESYSTEM,
+            ctypes.c_uint64(mask),
+            -1,
+            path.encode(),
+        )
+        if ret >= 0:
+            if path not in self.watch_paths:
+                self.watch_paths.append(path)
+            if path not in self.marked_paths:
+                self.marked_paths.append(path)
+            return True
+        self.failed_paths[path] = f"fanotify_mark errno {ctypes.get_errno()}"
+        return False
 
     def read_events(self, bufsize: int = 65536) -> list[FanotifyEvent]:
         if self.fd < 0:
@@ -172,12 +238,19 @@ class Fanotify:
             )
             if event_len < _META_SIZE:
                 break
+
+            resolved_path = None
             if fd >= 0:
+                try:
+                    # Resolve path before closing fd on Linux
+                    resolved_path = os.readlink(f"/proc/self/fd/{fd}")
+                except (OSError, AttributeError):
+                    resolved_path = None
                 try:
                     os.close(fd)
                 except OSError:
                     pass
-            events.append(FanotifyEvent(mask=mask, pid=pid, fd=fd))
+            events.append(FanotifyEvent(mask=mask, pid=pid, fd=fd, path=resolved_path))
             offset += event_len
         return events
 
