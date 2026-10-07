@@ -120,15 +120,45 @@ def cmd_doctor(args):
     else:
         print("[*] Privileges:          non-root / unprivileged -> WARN (cgroups & fanotify require root)")
 
-    # 3. cgroup v2 & Freezer
+    # 3. cgroup v2 & Freezer Diagnostics
     cm = ContainmentManager()
     if cm.is_cgroup_v2():
         print("[*] cgroup v2:           mounted at /sys/fs/cgroup -> PASS")
-        controllers = (Path("/sys/fs/cgroup/cgroup.controllers")).read_text()
-        if "freezer" in controllers:
-            print("[*] cgroup freezer:      supported in root cgroup -> PASS")
+        freezer_iface = False
+        try:
+            test_probe = Path("/sys/fs/cgroup/_adaptshield_probe")
+            try:
+                test_probe.mkdir(exist_ok=True)
+                if (test_probe / "cgroup.freeze").exists():
+                    freezer_iface = True
+                test_probe.rmdir()
+            except Exception:
+                pass
+            if not freezer_iface:
+                freezer_iface = any(Path("/sys/fs/cgroup").glob("*/cgroup.freeze")) or (Path("/sys/fs/cgroup/cgroup.freeze")).exists()
+        except Exception:
+            pass
+
+        if freezer_iface:
+            print("[*] Freezer interface:   cgroup.freeze available -> PASS")
         else:
-            print("[*] cgroup freezer:      freezer controller not enabled -> WARN")
+            print("[*] Freezer interface:   cgroup.freeze interface not detected -> WARN")
+
+        ctrl_file = Path("/sys/fs/cgroup/cgroup.controllers")
+        ctrl_text = ctrl_file.read_text(errors="ignore") if ctrl_file.exists() else ""
+        if "freezer" in ctrl_text:
+            print("[*] Freezer controller:  listed in cgroup.controllers -> PASS")
+        else:
+            print("[*] Freezer controller:  not in cgroup.controllers -> WARN")
+
+        subtree_file = Path("/sys/fs/cgroup/cgroup.subtree_control")
+        sub_text = subtree_file.read_text(errors="ignore") if subtree_file.exists() else ""
+        if "freezer" in sub_text:
+            print("[*] Subtree delegation:  freezer active in subtree_control -> PASS")
+        elif "freezer" in ctrl_text:
+            print("[*] Subtree delegation:  not enabled in subtree_control -> WARN")
+        else:
+            print("[*] Subtree delegation:  not enabled (controller not delegatable) -> WARN")
     else:
         print("[*] cgroup v2:           not detected -> WARN (simulated freezer only)")
 

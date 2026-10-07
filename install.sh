@@ -63,17 +63,85 @@ else
   echo "    [PASS] Kernel >= 5.9 meets fanotify & cgroups v2 requirements."
 fi
 
-# 3. cgroups v2 & Freezer
-if mount | grep -q cgroup2 || [ -d /sys/fs/cgroup/cgroup.controllers ]; then
-  echo "[*] cgroups v2:         Mounted unified hierarchy -> [PASS]"
-  if [ -f /sys/fs/cgroup/cgroup.subtree_control ]; then
-    if ! grep -q "freezer" /sys/fs/cgroup/cgroup.subtree_control; then
-      echo "+freezer" > /sys/fs/cgroup/cgroup.subtree_control 2>/dev/null || true
+# 3. cgroups v2 & Freezer Diagnostics
+CGROUP2_MOUNTED=false
+if mount | grep -q cgroup2 || [ -f /sys/fs/cgroup/cgroup.controllers ]; then
+  CGROUP2_MOUNTED=true
+  echo "[*] cgroup v2:               Mounted unified hierarchy -> [PASS]"
+else
+  echo "[*] cgroup v2:               Unified hierarchy not detected -> [WARN]"
+  echo "    Tip: Add 'systemd.unified_cgroup_hierarchy=1' to GRUB_CMDLINE_LINUX if needed."
+fi
+
+FREEZER_IFACE_AVAILABLE=false
+FREEZER_CONTROLLER_AVAILABLE=false
+FREEZER_ENABLED=false
+
+if [ "$CGROUP2_MOUNTED" = true ]; then
+  # 3a. Freezer interface available (cgroup.freeze in v2 hierarchy or child cgroup)
+  PROBE_CG="/sys/fs/cgroup/_adaptshield_probe_$$"
+  if mkdir "$PROBE_CG" 2>/dev/null; then
+    if [ -f "$PROBE_CG/cgroup.freeze" ]; then
+      FREEZER_IFACE_AVAILABLE=true
     fi
+    rmdir "$PROBE_CG" 2>/dev/null || true
+  elif [ -f /sys/fs/cgroup/cgroup.freeze ]; then
+    FREEZER_IFACE_AVAILABLE=true
+  elif find /sys/fs/cgroup -maxdepth 2 -name "cgroup.freeze" 2>/dev/null | grep -q "cgroup.freeze" || (( KVER_MAJOR > 5 || (KVER_MAJOR == 5 && KVER_MINOR >= 2) )); then
+    FREEZER_IFACE_AVAILABLE=true
+  fi
+
+  if [ "$FREEZER_IFACE_AVAILABLE" = true ]; then
+    echo "[*] Freezer interface:        cgroup.freeze interface available -> [PASS]"
+  else
+    echo "[*] Freezer interface:        cgroup.freeze interface not detected -> [WARN]"
+    echo "    Kernel may not support cgroup v2 freezer (requires Linux >= 5.2)."
+  fi
+
+  # 3b. Freezer controller available for delegation (in cgroup.controllers)
+  if [ -f /sys/fs/cgroup/cgroup.controllers ]; then
+    if grep -qw "freezer" /sys/fs/cgroup/cgroup.controllers 2>/dev/null; then
+      FREEZER_CONTROLLER_AVAILABLE=true
+      echo "[*] Freezer controller:       Listed in cgroup.controllers for delegation -> [PASS]"
+    else
+      echo "[*] Freezer controller:       Not listed in cgroup.controllers -> [WARN]"
+      echo "    (In standard cgroups v2, process freezing is built-in core functionality rather than a delegated controller)"
+    fi
+  else
+    echo "[*] Freezer controller:       /sys/fs/cgroup/cgroup.controllers not accessible -> [WARN]"
+  fi
+
+  # 3c. Actually enabled successfully (in cgroup.subtree_control)
+  if [ -f /sys/fs/cgroup/cgroup.subtree_control ]; then
+    if grep -qw "freezer" /sys/fs/cgroup/cgroup.subtree_control 2>/dev/null; then
+      FREEZER_ENABLED=true
+      echo "[*] Subtree delegation:       Freezer controller already active in subtree_control -> [PASS]"
+    elif [ "$FREEZER_CONTROLLER_AVAILABLE" = true ]; then
+      SUBTREE_ERR=""
+      if echo "+freezer" > /sys/fs/cgroup/cgroup.subtree_control 2>/tmp/adaptshield_freezer_err.$$; then
+        if grep -qw "freezer" /sys/fs/cgroup/cgroup.subtree_control 2>/dev/null; then
+          FREEZER_ENABLED=true
+          echo "[*] Subtree delegation:       Freezer controller enabled successfully (+freezer) -> [PASS]"
+        else
+          echo "[*] Subtree delegation:       Write succeeded but 'freezer' not reflected in subtree_control -> [WARN]"
+        fi
+      else
+        SUBTREE_ERR="$(cat /tmp/adaptshield_freezer_err.$$ 2>/dev/null || echo 'write failed')"
+        echo "[*] Subtree delegation:       Failed to write +freezer to subtree_control -> [WARN]"
+        echo "    Error: $SUBTREE_ERR"
+      fi
+      rm -f /tmp/adaptshield_freezer_err.$$ 2>/dev/null || true
+    else
+      echo "[*] Subtree delegation:       Cannot enable +freezer in subtree_control (not in cgroup.controllers) -> [WARN]"
+      echo "    AdaptShield will use per-cgroup native cgroup.freeze containment."
+    fi
+  else
+    echo "[*] Subtree delegation:       /sys/fs/cgroup/cgroup.subtree_control missing -> [WARN]"
   fi
 else
-  echo "[*] cgroups v2:         Not detected as unified hierarchy -> [WARN]"
-  echo "    Tip: Add 'systemd.unified_cgroup_hierarchy=1' to GRUB_CMDLINE_LINUX if needed."
+  echo "[*] Freezer interface:        Unavailable without cgroups v2 -> [WARN]"
+  echo "[*] Freezer controller:       Unavailable without cgroups v2 -> [WARN]"
+  echo "[*] Subtree delegation:       Unavailable without cgroups v2 -> [WARN]"
 fi
 
 # 4. fanotify

@@ -57,15 +57,18 @@ def ensure_cgroup_ready(cgroup_parent: Path = ADAPTSHIELD_CGROUP):
     try:
         cgroup_parent.mkdir(parents=True, exist_ok=True)
         subtree_control = CGROUP_ROOT / "cgroup.subtree_control"
-        if subtree_control.exists():
-            current = subtree_control.read_text()
-            if "+freezer" not in current and "freezer" not in current:
-                try:
-                    subtree_control.write_text("+freezer")
-                except OSError as e:
-                    raise RuntimeError(
-                        f"Could not enable freezer controller in {subtree_control}."
-                    ) from e
+        controllers_file = CGROUP_ROOT / "cgroup.controllers"
+        if subtree_control.exists() and controllers_file.exists():
+            controllers = controllers_file.read_text()
+            if "freezer" in controllers:
+                current = subtree_control.read_text()
+                if "+freezer" not in current and "freezer" not in current:
+                    try:
+                        subtree_control.write_text("+freezer")
+                    except OSError as e:
+                        raise RuntimeError(
+                            f"Could not enable freezer controller in {subtree_control}."
+                        ) from e
     except (PermissionError, OSError):
         pass
 
@@ -78,9 +81,11 @@ def freeze_pid(pid: int, cgroup_parent: Path = ADAPTSHIELD_CGROUP) -> float:
     pid_cgroup = get_pid_cgroup(pid, cgroup_parent)
     pid_cgroup.mkdir(parents=True, exist_ok=True)
 
-    # Enable freezer on child if needed
+    # Enable freezer on child if needed and supported
     try:
-        (cgroup_parent / "cgroup.subtree_control").write_text("+freezer")
+        parent_controllers = cgroup_parent / "cgroup.controllers"
+        if parent_controllers.exists() and "freezer" in parent_controllers.read_text():
+            (cgroup_parent / "cgroup.subtree_control").write_text("+freezer")
     except Exception:
         pass
 
