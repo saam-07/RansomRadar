@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Play, Square, RefreshCw } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Play, Square, RefreshCw, Shield, ArrowDown } from 'lucide-react';
 import { api } from '../api/client';
 import { AlertItem, ProcessItem, ScenarioDefinition, SystemStatus, WebSocketEvent } from '../types/api';
 import { KpiCards } from '../components/dashboard/KpiCards';
@@ -19,6 +19,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   wsEvents,
   onRefreshStatus,
 }) => {
+  const dashboardRef = useRef<HTMLDivElement>(null);
   const [processes, setProcesses] = useState<ProcessItem[]>([]);
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [timelineData, setTimelineData] = useState<TimelineDataPoint[]>([]);
@@ -231,113 +232,150 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     );
   }
 
+  const handleExploreDashboard = () => {
+    dashboardRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   const isScenarioRunning = Boolean(status?.running_scenario);
 
   return (
-    <div className="flex-1 p-6 space-y-6 overflow-y-auto">
-      {/* Top Scenario Launcher Control Bar */}
-      <div className="p-4 rounded-xl border border-[#e5dbe8] bg-white/85 backdrop-blur-sm shadow-sm flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center space-x-3">
-          <label className="text-xs font-semibold uppercase tracking-wider text-[#786c85]">
-            Scenario:
-          </label>
-          <select
-            value={selectedScenario}
-            onChange={(e) => setSelectedScenario(e.target.value)}
-            disabled={isScenarioRunning}
-            className="bg-white border border-[#dfd3e3] rounded-lg px-3 py-1.5 text-xs text-[#2c2436] focus:outline-none focus:border-[#b56576] font-mono shadow-xs"
-          >
-            {scenarios.map((scen) => (
-              <option key={scen.id} value={scen.id}>
-                {scen.name} ({scen.family})
-              </option>
-            ))}
-          </select>
+    <div className="flex-1 overflow-y-auto px-6 md:px-10">
+      {/* Large Landing / Intro Section */}
+      <section className="relative min-h-[70vh] flex flex-col items-center justify-center text-center py-20 px-4 select-none">
+        {/* Subtle Watermark Shield Logo behind Title */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none -z-0">
+          <Shield
+            className="w-[340px] h-[340px] sm:w-[480px] sm:h-[480px] md:w-[600px] md:h-[600px] text-[#b56576] opacity-[0.045] stroke-[1]"
+            aria-hidden="true"
+          />
+        </div>
 
-          <div className="flex items-center space-x-1.5 text-xs text-[#786c85] ml-2">
-            <span>Speed:</span>
+        {/* Centered Hero Content */}
+        <div className="relative z-10 max-w-2xl mx-auto flex flex-col items-center space-y-6">
+          <h1 className="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-widest text-[#2c2436] font-mono uppercase">
+            ADAPTSHIELD
+          </h1>
+
+          <p className="text-sm sm:text-base md:text-lg text-[#6b5f77] max-w-lg leading-relaxed font-normal">
+            Autonomous OS-level behavioral ransomware containment, kernel telemetry, continuous risk scoring, and zero-loss instant rollback.
+          </p>
+
+          <button
+            onClick={handleExploreDashboard}
+            className="mt-4 px-6 py-3 rounded-lg bg-[#b56576] hover:bg-[#a25364] text-white text-xs sm:text-sm font-semibold tracking-wide shadow-xs hover:shadow-sm transition-all flex items-center space-x-2"
+          >
+            <span>Explore Dashboard</span>
+            <ArrowDown className="w-4 h-4" />
+          </button>
+        </div>
+      </section>
+
+      {/* Main Operational Dashboard Content */}
+      <div ref={dashboardRef} id="dashboard-content" className="space-y-8 pb-16">
+        {/* Top Scenario Launcher Control Bar */}
+        <div className="p-5 rounded-xl border border-[#e5dbe8] bg-white/85 backdrop-blur-sm shadow-xs flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center space-x-3">
+            <label className="text-xs font-semibold uppercase tracking-wider text-[#786c85]">
+              Scenario:
+            </label>
             <select
-              value={simSpeed}
-              onChange={(e) => setSimSpeed(Number(e.target.value))}
+              value={selectedScenario}
+              onChange={(e) => setSelectedScenario(e.target.value)}
               disabled={isScenarioRunning}
-              className="bg-white border border-[#dfd3e3] rounded px-2 py-1 text-xs text-[#2c2436] font-mono shadow-xs"
+              className="bg-white border border-[#dfd3e3] rounded-lg px-3 py-1.5 text-xs text-[#2c2436] focus:outline-none focus:border-[#b56576] font-mono shadow-xs"
             >
-              <option value={1.0}>1x</option>
-              <option value={5.0}>5x</option>
-              <option value={20.0}>20x</option>
+              {scenarios.map((scen) => (
+                <option key={scen.id} value={scen.id}>
+                  {scen.name} ({scen.family})
+                </option>
+              ))}
             </select>
+
+            <div className="flex items-center space-x-1.5 text-xs text-[#786c85] ml-2">
+              <span>Speed:</span>
+              <select
+                value={simSpeed}
+                onChange={(e) => setSimSpeed(Number(e.target.value))}
+                disabled={isScenarioRunning}
+                className="bg-white border border-[#dfd3e3] rounded px-2 py-1 text-xs text-[#2c2436] font-mono shadow-xs"
+              >
+                <option value={1.0}>1x</option>
+                <option value={5.0}>5x</option>
+                <option value={20.0}>20x</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-3">
+            {!isScenarioRunning ? (
+              <button
+                onClick={handleRunScenario}
+                className="px-4 py-2 rounded-lg bg-[#b56576] hover:bg-[#a25364] text-white font-semibold text-xs flex items-center space-x-2 transition-all shadow-xs"
+              >
+                <Play className="w-3.5 h-3.5 fill-current" />
+                <span>Launch Scenario</span>
+              </button>
+            ) : (
+              <button
+                onClick={handleStopScenario}
+                className="px-4 py-2 rounded-lg bg-[#c2576a] hover:bg-[#af4759] text-white font-semibold text-xs flex items-center space-x-2 transition-all shadow-xs"
+              >
+                <Square className="w-3.5 h-3.5 fill-current" />
+                <span>Stop Scenario</span>
+              </button>
+            )}
+
+            <button
+              onClick={loadInitialData}
+              className="p-2 rounded-lg bg-[#f2e9f2] hover:bg-[#e7dce7] text-[#6b5f77] text-xs transition-colors border border-[#ded2de]"
+              title="Refresh dashboard"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
 
-        <div className="flex items-center space-x-3">
-          {!isScenarioRunning ? (
-            <button
-              onClick={handleRunScenario}
-              className="px-4 py-2 rounded-lg bg-[#b56576] hover:bg-[#a25364] text-white font-semibold text-xs flex items-center space-x-2 transition-all shadow-sm"
-            >
-              <Play className="w-3.5 h-3.5 fill-current" />
-              <span>Launch Scenario</span>
-            </button>
-          ) : (
-            <button
-              onClick={handleStopScenario}
-              className="px-4 py-2 rounded-lg bg-[#c2576a] hover:bg-[#af4759] text-white font-semibold text-xs flex items-center space-x-2 transition-all shadow-sm"
-            >
-              <Square className="w-3.5 h-3.5 fill-current" />
-              <span>Stop Scenario</span>
-            </button>
-          )}
+        {/* 1. KPI Cards */}
+        <KpiCards
+          processes={processes}
+          alerts={alerts}
+          filesSummary={filesSummary}
+        />
 
-          <button
-            onClick={loadInitialData}
-            className="p-2 rounded-lg bg-[#f2e9f2] hover:bg-[#e7dce7] text-[#6b5f77] text-xs transition-colors border border-[#ded2de]"
-            title="Refresh dashboard"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-          </button>
+        {/* 2. Real-time Risk Timeline Chart */}
+        <RiskTimelineChart data={timelineData} />
+
+        {/* 3. Grid: Process Table (60%) & Alert Feed (40%) */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            <ProcessTable
+              processes={processes}
+              policy={status?.active_policy}
+              onRelease={handleRelease}
+              onConfirm={handleConfirm}
+            />
+          </div>
+
+          <div className="lg:col-span-1">
+            <AlertFeed
+              alerts={alerts}
+              onSelectAlert={(a) => {
+                setSelectedAlert(a);
+                setIsDrawerOpen(true);
+              }}
+            />
+          </div>
         </div>
+
+        {/* 4. Forensic Evidence Drawer Modal */}
+        <EvidenceDrawer
+          alert={selectedAlert}
+          isOpen={isDrawerOpen}
+          onClose={() => setIsDrawerOpen(false)}
+          onRelease={handleRelease}
+          onConfirm={handleConfirm}
+        />
       </div>
-
-      {/* 1. KPI Cards */}
-      <KpiCards
-        processes={processes}
-        alerts={alerts}
-        filesSummary={filesSummary}
-      />
-
-      {/* 2. Real-time Risk Timeline Chart */}
-      <RiskTimelineChart data={timelineData} />
-
-      {/* 3. Grid: Process Table (60%) & Alert Feed (40%) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <ProcessTable
-            processes={processes}
-            policy={status?.active_policy}
-            onRelease={handleRelease}
-            onConfirm={handleConfirm}
-          />
-        </div>
-
-        <div className="lg:col-span-1">
-          <AlertFeed
-            alerts={alerts}
-            onSelectAlert={(a) => {
-              setSelectedAlert(a);
-              setIsDrawerOpen(true);
-            }}
-          />
-        </div>
-      </div>
-
-      {/* 4. Forensic Evidence Drawer Modal */}
-      <EvidenceDrawer
-        alert={selectedAlert}
-        isOpen={isDrawerOpen}
-        onClose={() => setIsDrawerOpen(false)}
-        onRelease={handleRelease}
-        onConfirm={handleConfirm}
-      />
     </div>
   );
 };

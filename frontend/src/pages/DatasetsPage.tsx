@@ -147,7 +147,7 @@ export const DatasetsPage: React.FC = () => {
               <Database className="w-5 h-5 text-[#b56576]" />
               <span>Event Explorer</span>
             </h1>
-            <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[#eddce5] text-[#9d7394] border border-[#dcbcd1]">
+            <span className="text-xs font-mono text-[#9d7394]">
               Benchmark Datasets Explorer
             </span>
           </div>

@@ -15,33 +15,33 @@ export const ProcessTable: React.FC<ProcessTableProps> = ({
   onConfirm,
 }) => {
   return (
-    <div className="bg-white/85 border border-[#e5dbe8] rounded-xl overflow-hidden flex flex-col shadow-sm">
-      <div className="p-5 border-b border-[#ebdfe9] flex items-center justify-between">
+    <div className="bg-white/85 border border-[#e5dbe8] rounded-2xl overflow-hidden flex flex-col shadow-xs">
+      <div className="p-6 border-b border-[#ebdfe9] flex items-center justify-between">
         <div>
           <h3 className="text-sm font-semibold uppercase tracking-wider text-[#2c2436]">
             Monitored Process Table
           </h3>
-          <p className="text-xs text-[#786c85] mt-0.5">
+          <p className="text-xs text-[#786c85] mt-1">
             Active process monitoring, behavioral risk scoring, and manual containment controls
           </p>
         </div>
-        <div className="text-xs font-mono px-2.5 py-1 rounded bg-[#f5edf4] border border-[#e3d7e2] text-[#695d73]">
+        <span className="text-xs font-mono text-[#786c85]">
           {processes.length} Processes Tracked
-        </div>
+        </span>
       </div>
 
       <div className="overflow-x-auto">
         <table className="w-full text-left text-xs">
           <thead className="bg-[#fbf7f9] text-[#71647e] uppercase font-mono text-[11px] border-b border-[#ebdfe9]">
             <tr>
-              <th className="py-3 px-4">PID</th>
-              <th className="py-3 px-4">Process Name</th>
-              <th className="py-3 px-4">Label</th>
-              <th className="py-3 px-4 w-44">Risk Score</th>
-              <th className="py-3 px-4">Level</th>
-              <th className="py-3 px-4">Status</th>
-              <th className="py-3 px-4">Files Touched</th>
-              <th className="py-3 px-4 text-right">Actions</th>
+              <th className="py-3.5 px-5">PID</th>
+              <th className="py-3.5 px-5">Process Name</th>
+              <th className="py-3.5 px-5">Label</th>
+              <th className="py-3.5 px-5 w-44">Risk Score</th>
+              <th className="py-3.5 px-5">Threat Level</th>
+              <th className="py-3.5 px-5">Status</th>
+              <th className="py-3.5 px-5">Files Touched</th>
+              <th className="py-3.5 px-5 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[#ebdfe9] font-mono">

@@ -53,26 +53,26 @@ export const KpiCards: React.FC<KpiCardsProps> = ({
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       {cards.map((c, i) => {
         const Icon = c.icon;
         return (
           <div
             key={i}
-            className="p-5 rounded-xl border border-[#e5dbe8] bg-white/85 backdrop-blur-sm shadow-sm flex items-start justify-between transition-all"
+            className="p-6 rounded-2xl border border-[#e5dbe8] bg-white/85 backdrop-blur-sm shadow-xs flex items-start justify-between transition-all"
           >
-            <div>
+            <div className="space-y-1">
               <p className="text-xs font-semibold uppercase tracking-wider text-[#786c85]">
                 {c.title}
               </p>
-              <h3 className="text-2xl font-bold text-[#2d2436] mt-1.5 font-mono">
+              <h3 className="text-3xl font-bold text-[#2d2436] font-mono pt-1">
                 {c.value}
               </h3>
-              <p className="text-xs text-[#786c85] mt-1">
+              <p className="text-xs text-[#786c85] pt-0.5">
                 {c.subtext}
               </p>
             </div>
-            <div className={`p-2 rounded-lg border ${c.bgColor} ${c.color}`}>
+            <div className={`p-2.5 rounded-xl border ${c.bgColor} ${c.color} shrink-0 ml-3`}>
               <Icon className="w-5 h-5" />
             </div>
           </div>

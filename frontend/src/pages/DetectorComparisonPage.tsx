@@ -131,7 +131,7 @@ export const DetectorComparisonPage: React.FC = () => {
         <div>
           <div className="flex items-center space-x-2">
             <h1 className="text-2xl font-bold text-[#2c2436] tracking-tight">Detection Analysis</h1>
-            <span className="px-2 py-0.5 rounded text-xs font-mono bg-[#eddce5] text-[#9d7394] border border-[#dcbcd1]">
+            <span className="text-xs font-mono text-[#9d7394]">
               Detector Comparison Benchmark
             </span>
           </div>

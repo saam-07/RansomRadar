@@ -127,7 +127,7 @@ export const SettingsPage: React.FC = () => {
               <Settings className="w-5 h-5 text-[#b56576]" />
               <span>Engine Settings & Containment Safety Rails</span>
             </h1>
-            <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[#eddce5] text-[#9d7394] border border-[#dcbcd1]">
+            <span className="text-xs font-mono text-[#9d7394]">
               RUNTIME CONFIG
             </span>
             {loading && <span className="text-[10px] text-[#786c85] font-mono">Loading...</span>}

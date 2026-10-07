@@ -26,13 +26,13 @@ interface RiskTimelineChartProps {
 
 export const RiskTimelineChart: React.FC<RiskTimelineChartProps> = ({ data }) => {
   return (
-    <div className="bg-white/85 border border-[#e5dbe8] rounded-xl p-5 shadow-sm">
-      <div className="flex items-center justify-between mb-4">
+    <div className="bg-white/85 border border-[#e5dbe8] rounded-2xl p-6 shadow-xs">
+      <div className="flex items-center justify-between mb-6">
         <div>
           <h3 className="text-sm font-semibold uppercase tracking-wider text-[#2c2436]">
             Process Risk Telemetry Timeline
           </h3>
-          <p className="text-xs text-[#786c85] mt-0.5">
+          <p className="text-xs text-[#786c85] mt-1">
             Streaming behavioral risk telemetry & anomaly index with containment thresholds
           </p>
         </div>

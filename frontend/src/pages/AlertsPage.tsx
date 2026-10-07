@@ -95,11 +95,11 @@ export const AlertsPage: React.FC = () => {
               <ShieldAlert className="w-5 h-5 text-[#9e3146]" />
               <span>Alerts & Forensic Investigation</span>
             </h1>
-            <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[#fdecee] text-[#9e3146] border border-[#f8c4cd]">
+            <span className="text-xs font-mono text-[#9e3146]">
               SIMULATED TELEMETRY
             </span>
           </div>
-          <p className="text-xs text-[#786c85] mt-0.5">
+          <p className="text-xs text-[#786c85] mt-1">
             Real-time security alerts, feature explanations, timeline evidence, and operator containment controls.
           </p>
         </div>

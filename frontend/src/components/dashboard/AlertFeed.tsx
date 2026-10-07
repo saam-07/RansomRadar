@@ -8,19 +8,19 @@ interface AlertFeedProps {
 
 export const AlertFeed: React.FC<AlertFeedProps> = ({ alerts, onSelectAlert }) => {
   return (
-    <div className="bg-white/85 border border-[#e5dbe8] rounded-xl overflow-hidden flex flex-col h-full shadow-sm">
-      <div className="p-5 border-b border-[#ebdfe9] flex items-center justify-between">
+    <div className="bg-white/85 border border-[#e5dbe8] rounded-2xl overflow-hidden flex flex-col h-full shadow-xs">
+      <div className="p-6 border-b border-[#ebdfe9] flex items-center justify-between">
         <div>
           <h3 className="text-sm font-semibold uppercase tracking-wider text-[#2c2436]">
             Forensic Alert Feed
           </h3>
-          <p className="text-xs text-[#786c85] mt-0.5">
+          <p className="text-xs text-[#786c85] mt-1">
             Real-time containment incidents and behavioral attribution alerts
           </p>
         </div>
-        <div className="text-xs font-mono px-2 py-0.5 rounded bg-[#fdecee] text-[#9e3146] border border-[#f8c4cd]">
+        <span className="text-xs font-mono font-medium text-[#9e3146]">
           {alerts.length} Incidents
-        </div>
+        </span>
       </div>
 
       <div className="divide-y divide-[#ebdfe9] overflow-y-auto max-h-96">
