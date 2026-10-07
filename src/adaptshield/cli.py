@@ -154,36 +154,58 @@ def cmd_status(args):
         print("         sudo usermod -aG adaptshield $USER")
         print("-" * 64)
 
-    print(f"Version:              {__version__}")
-    print(f"Operating Mode:       {cfg.mode.upper()}")
-    print(f"Monitor-First Window: {cfg.monitor_first_period_hours} hours")
-    print(f"Response Policy:      {cfg.response.policy.upper()} (auto-resolve: {cfg.response.auto_resolve_after_seconds}s -> {cfg.response.auto_resolve_action})")
-    print(f"Active Detector:      {cfg.classifier.model_name} (mode: {cfg.classifier.mode})")
-    print(f"Allow Synthetic:      {cfg.classifier.allow_synthetic}")
-    print(f"Watched Paths:        {', '.join(cfg.watch.paths)}")
-    print(f"Excluded Paths:       {', '.join(cfg.watch.excludes[:4])} ... ({len(cfg.watch.excludes)} total)")
-    print(f"Protected Paths:      {', '.join(cfg.protect_paths)}")
+    # Resolve detector: Configured vs Effective Containment Detector
+    configured_detector = f"{cfg.classifier.model_name} (mode: {cfg.classifier.mode})"
+    effective_detector = cfg.classifier.model_name
+    synthetic_guard_active = False
+    try:
+        sel_logger = get_logger("adaptshield.ml.selector")
+        orig_level = sel_logger.level
+        sel_logger.setLevel(100)
+        try:
+            _, meta = select_classifier(cfg)
+            effective_detector = meta.get("name", cfg.classifier.model_name)
+            synthetic_guard_active = meta.get("synthetic_blocked", False)
+        finally:
+            sel_logger.setLevel(orig_level)
+    except Exception as e:
+        logger.debug("Could not resolve active classifier: %s", e)
+
+    print(f"Version:                        {__version__}")
+    print(f"Operating Mode:                 {cfg.mode.upper()}")
+    print(f"Monitor-First Window:           {cfg.monitor_first_period_hours} hours")
+    print(f"Response Policy:                {cfg.response.policy.upper()} (auto-resolve: {cfg.response.auto_resolve_after_seconds}s -> {cfg.response.auto_resolve_action})")
+    print(f"Configured Detector:            {configured_detector}")
+    if synthetic_guard_active:
+        print(f"Effective Containment Detector: {effective_detector} (Synthetic Guard: ACTIVE - synthetic '{cfg.classifier.model_name}' blocked in protect mode)")
+    else:
+        print(f"Effective Containment Detector: {effective_detector}")
+    print(f"Active Detector:                {effective_detector}")
+    print(f"Allow Synthetic:                {cfg.classifier.allow_synthetic}")
+    print(f"Watched Paths:                  {', '.join(cfg.watch.paths)}")
+    print(f"Excluded Paths:                 {', '.join(cfg.watch.excludes[:4])} ... ({len(cfg.watch.excludes)} total)")
+    print(f"Protected Paths:                {', '.join(cfg.protect_paths)}")
 
     if prot_perm_denied:
         rollback_desc = "UNKNOWN (Permission Denied)"
     else:
         rollback_desc = "AVAILABLE" if prot_st.get("rollback_globally_available") else "DEGRADED / FALLBACK ONLY"
-    print(f"Rollback Status:      {rollback_desc}")
+    print(f"Rollback Status:                {rollback_desc}")
 
-    print(f"Tier-1 eBPF:          {'ACTIVE' if tier1_st['available'] else 'DEGRADED (Tier-0 Only)'}")
+    print(f"Tier-1 eBPF:                    {'ACTIVE' if tier1_st['available'] else 'DEGRADED (Tier-0 Only)'}")
     if not tier1_st["available"]:
-        print(f"  Tier-1 Reason:      {tier1_st['error'] or 'BCC not installed'}")
+        print(f"  Tier-1 Reason:                {tier1_st['error'] or 'BCC not installed'}")
 
     if state_perm_denied:
         contained_desc = "N/A (Permission Denied)"
     else:
         contained_desc = f"{len(contained_pids)} active ({contained_pids if contained_pids else 'none'})"
-    print(f"Contained PIDs:       {contained_desc}")
+    print(f"Contained PIDs:                 {contained_desc}")
 
     effective_log = get_effective_log_file(cfg)
     effective_alert = get_effective_alert_file(cfg)
-    print(f"Log Destination:      {effective_log}")
-    print(f"Alert Feed:           {effective_alert}")
+    print(f"Log Destination:                {effective_log}")
+    print(f"Alert Feed:                     {effective_alert}")
     print("=" * 64)
 
 
@@ -285,7 +307,14 @@ def cmd_doctor(args):
 
     # 6. Classifier & Registry (Requirement 11)
     try:
-        clf, meta = select_classifier(cfg)
+        sel_logger = get_logger("adaptshield.ml.selector")
+        orig_level = sel_logger.level
+        sel_logger.setLevel(100)
+        try:
+            clf, meta = select_classifier(cfg)
+        finally:
+            sel_logger.setLevel(orig_level)
+
         if meta.get("synthetic_blocked"):
             print(f"[*] Active Detector:     {meta.get('name')} (synthetic={meta.get('synthetic')}) -> PASS")
             print("    Synthetic Guard:     ACTIVE (Synthetic model blocked for safe containment; RuleBasedClassifier active)")

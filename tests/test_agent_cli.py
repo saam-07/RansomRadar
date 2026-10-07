@@ -40,6 +40,8 @@ def test_cli_status():
     assert "AdaptShield Endpoint Agent Status" in out
     assert "Operating Mode:" in out
     assert "Response Policy:" in out
+    assert "Configured Detector:" in out
+    assert "Effective Containment Detector:" in out
     assert "Active Detector:" in out
 
 
@@ -239,4 +241,24 @@ def test_cli_doctor_containment_and_detector_output():
     assert "Containment Backend:" in out
     assert "Active Detector:" in out
     assert "Privileges:" in out
+
+
+def test_cli_logging_read_only_avoids_service_log_write():
+    """Verify that default CLI logging does not attach a write FileHandler against the service log."""
+    import logging
+    from adaptshield.logging.logger import setup_logging
+
+    root_logger = setup_logging()
+    file_handlers = [h for h in root_logger.handlers if isinstance(h, logging.FileHandler)]
+    assert len(file_handlers) == 0, "CLI logging must remain read-only without attaching write FileHandlers"
+
+
+def test_cli_status_displays_effective_containment_detector_with_synthetic_guard():
+    """Verify status reports Configured Detector and Effective Containment Detector with synthetic guard."""
+    out = run_cli_args("status")
+    assert "Configured Detector:" in out
+    assert "Effective Containment Detector:" in out
+    if "xgboost" in out and "Synthetic Guard: ACTIVE" in out:
+        assert "rule_based" in out
+
 

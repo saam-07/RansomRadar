@@ -12,7 +12,7 @@ _LOGGER_INITIALIZED = False
 
 def setup_logging(
     level: str = "INFO",
-    log_file: str | None = "/var/log/adaptshield/adaptshield.log",
+    log_file: str | None = None,
     max_bytes: int = 10 * 1024 * 1024,
     backup_count: int = 5,
     use_journald: bool = False,
@@ -35,7 +35,7 @@ def setup_logging(
     stream_handler.setFormatter(formatter)
     root_logger.addHandler(stream_handler)
 
-    # 2. Rotating File Handler (if log_file specified)
+    # 2. Rotating File Handler (only if log_file specified, e.g. daemon service mode)
     if log_file:
         try:
             log_path = Path(log_file)
@@ -49,11 +49,11 @@ def setup_logging(
             file_handler.setFormatter(formatter)
             root_logger.addHandler(file_handler)
         except (PermissionError, OSError) as e:
-            # Fallback to local log file if system path is not writable
+            # Fallback to local log file only if running in standalone/dev mode
             fallback_dir = Path("results/logs")
-            fallback_dir.mkdir(parents=True, exist_ok=True)
-            fallback_path = fallback_dir / "adaptshield.log"
             try:
+                fallback_dir.mkdir(parents=True, exist_ok=True)
+                fallback_path = fallback_dir / "adaptshield.log"
                 fallback_handler = RotatingFileHandler(
                     str(fallback_path),
                     maxBytes=max_bytes,
@@ -62,8 +62,8 @@ def setup_logging(
                 )
                 fallback_handler.setFormatter(formatter)
                 root_logger.addHandler(fallback_handler)
-                root_logger.warning(
-                    "Could not write to %s (%s). Falling back to %s",
+                root_logger.debug(
+                    "Could not write to %s (%s). Using fallback %s",
                     log_file,
                     e,
                     fallback_path,
