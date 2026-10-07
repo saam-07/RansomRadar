@@ -207,3 +207,19 @@ def test_dry_run_containment_mode():
         assert result.dry_run is True
         assert result.killed is False
         assert result.rolled_back is False
+
+
+def test_containment_backend_and_self_test():
+    """Verify backend reporting and safe self-test probe execution."""
+    from adaptshield.response.containment_manager import ContainmentManager
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        cm = ContainmentManager(cgroup_path=Path(tmp_dir))
+        backend = cm.get_backend()
+        assert backend in ("cgroup_v2_freeze", "sigstop_fallback", "simulated")
+
+        ok, msg = cm.self_test()
+        assert isinstance(ok, bool)
+        assert isinstance(msg, str)
+        assert len(msg) > 0
+

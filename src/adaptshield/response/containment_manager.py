@@ -8,6 +8,7 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 import time
 from dataclasses import dataclass
 from enum import Enum
@@ -463,6 +464,63 @@ class ContainmentManager:
 
     def is_cgroup_v2(self) -> bool:
         return (CGROUP_ROOT / "cgroup.controllers").exists()
+
+    def get_backend(self) -> str:
+        """Returns the active containment backend mechanism."""
+        if sys.platform != "linux":
+            return "simulated"
+        if self.is_cgroup_v2():
+            return "cgroup_v2_freeze"
+        return "sigstop_fallback"
+
+    def self_test(self) -> tuple[bool, str]:
+        """
+        Executes a safe temporary create -> freeze -> thaw -> cleanup probe.
+        Verifies that per-PID cgroups can be created and manipulated.
+        Returns (success, description).
+        """
+        backend = self.get_backend()
+        if backend == "simulated":
+            probe_dir = self.cgroup_path / f"_selftest_{os.getpid()}"
+            try:
+                probe_dir.mkdir(parents=True, exist_ok=True)
+                (probe_dir / "cgroup.freeze").write_text("1")
+                (probe_dir / "cgroup.events").write_text("frozen 1\n")
+                (probe_dir / "cgroup.freeze").write_text("0")
+                (probe_dir / "cgroup.events").write_text("frozen 0\n")
+                for f in probe_dir.glob("*"):
+                    try:
+                        f.unlink()
+                    except Exception:
+                        pass
+                probe_dir.rmdir()
+                return True, "Simulated containment verified (sandbox mock)"
+            except Exception as e:
+                return False, f"Simulated probe error: {e}"
+
+        if not self.is_cgroup_v2():
+            return True, "SIGSTOP process signaling fallback active"
+
+        probe_dir = self.cgroup_path / f"_doctor_probe_{os.getpid()}_{int(time.time())}"
+        try:
+            probe_dir.mkdir(parents=True, exist_ok=True)
+            freeze_file = probe_dir / "cgroup.freeze"
+            if not freeze_file.exists():
+                probe_dir.rmdir()
+                return False, f"cgroup.freeze missing in {probe_dir}"
+            freeze_file.write_text("1")
+            freeze_file.write_text("0")
+            probe_dir.rmdir()
+            return True, "Native cgroup v2 cgroup.freeze verified via live probe"
+        except PermissionError:
+            return False, "Permission denied creating cgroup probe directory (requires root/CAP_SYS_ADMIN)"
+        except Exception as e:
+            try:
+                if probe_dir.exists():
+                    probe_dir.rmdir()
+            except Exception:
+                pass
+            return False, f"cgroup v2 probe failed: {e}"
 
     def ensure_ready(self):
         ensure_cgroup_ready(self.cgroup_path)

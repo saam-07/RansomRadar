@@ -189,3 +189,54 @@ def test_cli_status_handles_permission_error_gracefully(monkeypatch):
     assert "WARNING: Protection manifest or system state is not readable" in out
     assert "sudo usermod -aG adaptshield" in out
     assert "Traceback" not in out
+
+
+def test_cli_log_path_resolution(monkeypatch, tmp_path):
+    """Verify that installed log file /var/log/adaptshield is prioritized if accessible."""
+    from adaptshield.cli import get_effective_alert_file, get_effective_log_file
+    from adaptshield.config import AdaptShieldConfig
+
+    cfg = AdaptShieldConfig()
+    cfg.logging.file = "relative.log"
+    cfg.logging.alert_file = "alerts.jsonl"
+
+    var_log_dir = tmp_path / "var_log"
+    var_log_dir.mkdir()
+    var_log_file = var_log_dir / "adaptshield.log"
+    var_alert_file = var_log_dir / "alerts.jsonl"
+    var_log_file.write_text("dummy log")
+    var_alert_file.write_text("dummy alert\n")
+
+    monkeypatch.setattr("adaptshield.cli.SYSTEM_LOG_FILE", var_log_file)
+    monkeypatch.setattr("adaptshield.cli.SYSTEM_ALERT_FILE", var_alert_file)
+
+    eff_log = get_effective_log_file(cfg)
+    assert eff_log == str(var_log_file)
+
+    eff_alert = get_effective_alert_file(cfg)
+    assert eff_alert == str(var_alert_file)
+
+
+def test_cli_alerts_handles_permission_error_gracefully(monkeypatch, tmp_path):
+    """Verifies that adaptshield alerts does NOT crash with traceback on PermissionError."""
+    fake_alert = tmp_path / "fake_alert.jsonl"
+    fake_alert.write_text('{"event": "TEST"}\n')
+
+    def mock_open(*args, **kwargs):
+        raise PermissionError("Permission denied reading alerts")
+
+    monkeypatch.setattr("adaptshield.cli.SYSTEM_ALERT_FILE", fake_alert)
+    monkeypatch.setattr("builtins.open", mock_open)
+    out = run_cli_args("alerts")
+    assert "WARNING: Alert log at" in out
+    assert "sudo usermod -aG adaptshield" in out
+    assert "Traceback" not in out
+
+
+def test_cli_doctor_containment_and_detector_output():
+    """Verify doctor outputs Containment Backend and Active Detector."""
+    out = run_cli_args("doctor")
+    assert "Containment Backend:" in out
+    assert "Active Detector:" in out
+    assert "Privileges:" in out
+
