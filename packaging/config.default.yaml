@@ -8,9 +8,9 @@
 #   learn:   Collect telemetry without response actions.
 mode: "protect"
 
-# Monitor-first period: default to 24 hours before automatically engaging protect mode.
-# Set to 0 to enable protect mode immediately upon boot.
-monitor_first_period_hours: 24
+# Monitor-first period: set to 0 for immediate protection upon boot.
+# Set to >0 (e.g. 24) to enable monitor-only grace period before automatically engaging protect mode.
+monitor_first_period_hours: 0
 
 # Filesystem paths and fanotify monitoring targets
 watch:

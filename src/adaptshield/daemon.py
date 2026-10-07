@@ -20,11 +20,12 @@ from .detection.tier0_watcher import Tier0Watcher, tier0_suspicion_score
 from .detection.tier1_bridge import Tier1Tracer, is_tier1_available
 from .logging.alert_logger import AlertLogger
 from .logging.logger import get_logger, setup_logging
-from .ml.classifier import build_classifier
+from .ml.classifier import RuleBasedClassifier, build_classifier
 from .ml.explain import explain_alert
 from .ml.selector import select_classifier
 from .mode import ModeManager
 from .response.containment_manager import (
+    ContainmentManager,
     RollbackPolicy,
     check_manual_decision,
     contain,
@@ -152,6 +153,7 @@ class AdaptShieldDaemon:
         self.safety = SafetyRails(self.config)
         state_dir = Path(self.config.response.control_dir).parent
         self.state_mgr = StateManager(state_dir / "state.json")
+        self.containment = ContainmentManager()
 
         try:
             ensure_cgroup_ready()
@@ -216,8 +218,10 @@ class AdaptShieldDaemon:
                     logger.warning("Could not escalate PID %s in Tier-1: %s", pid, e)
 
     def _log_containment_result(self, pid: int, result):
+        backend = self.containment.get_backend() if hasattr(self, "containment") else "cgroup_v2_freeze"
         self.logger.log(
             "containment", pid=pid,
+            backend=backend,
             policy=result.policy.value,
             freeze_latency_s=result.freeze_latency_s,
             bytes_at_risk=result.bytes_at_risk,
@@ -244,9 +248,21 @@ class AdaptShieldDaemon:
 
         for row, p in zip(rows, p_ransomware):
             pid = row["pid"]
+            is_rule_based = (
+                isinstance(self.classifier, RuleBasedClassifier)
+                or self.classifier_metadata.get("classifier_type") == "rule_based"
+                or self.classifier_metadata.get("name") == "rule_based"
+            )
+
             if self.use_risk_smoothing:
                 level = self.risk_scorer.update(pid, float(p))
                 ewma = self.risk_scorer.get_ewma(pid)
+                # When rule-based detector containment threshold is met (both thresholds met, p >= 1.0),
+                # immediately promote to CRITICAL so the protect-mode response engine can contain
+                # without being delayed or suppressed by EWMA convergence windows.
+                if is_rule_based and p >= 1.0:
+                    level = RiskLevel.CRITICAL
+                    ewma = max(ewma, float(p))
             else:
                 level = RiskLevel.CRITICAL if p >= 0.85 else RiskLevel.NONE
                 ewma = float(p)
@@ -360,10 +376,12 @@ class AdaptShieldDaemon:
     def run_forever(self):
         if self.tier0:
             self.tier0.start()
+        backend = self.containment.get_backend() if hasattr(self, "containment") else "cgroup_v2_freeze"
         logger.info(
-            "AdaptShield Daemon active. Mode: %s | Policy: %s | Tier-1: %s | Watch: %s",
-            self.config.mode,
+            "AdaptShield Daemon active. Mode: %s | Policy: %s | Backend: %s | Tier-1: %s | Watch: %s",
+            self.mode_mgr.get_active_mode().upper(),
             self.rollback_policy.value,
+            backend,
             "ENABLED" if self.tier1_available else "DISABLED (Tier-0-only)",
             self.watch_path,
         )

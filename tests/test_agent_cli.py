@@ -68,6 +68,13 @@ def test_cli_mode():
         data = yaml.safe_load(conf_file.read_text())
         assert data["mode"] == "monitor"
 
+        # Change mode to protect -> resets monitor-first window to 0
+        out_prot = run_cli_args("-c", str(conf_file), "mode", "protect")
+        assert "mode set to 'protect'" in out_prot
+        data_prot = yaml.safe_load(conf_file.read_text())
+        assert data_prot["mode"] == "protect"
+        assert data_prot.get("monitor_first_period_hours") == 0
+
 
 def test_cli_config_check_and_show():
     with tempfile.TemporaryDirectory() as tmp_dir:

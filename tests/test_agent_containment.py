@@ -223,3 +223,95 @@ def test_containment_backend_and_self_test():
         assert isinstance(msg, str)
         assert len(msg) > 0
 
+
+def test_preflight_cgroup_v2_native_freezer_detection_regression(monkeypatch):
+    """
+    Regression test for runtime preflight reporting freezer=False on Ubuntu cgroup v2.
+    In standard cgroup v2, freezer is a core native primitive and does NOT appear in
+    cgroup.controllers. Preflight must report freezer_available=True and backend=cgroup_v2_freeze.
+    """
+    from adaptshield.agent import run_preflight_checks
+    from adaptshield.response.containment_manager import ContainmentManager
+
+    # Simulate cgroups v2 mount where freezer is absent from cgroup.controllers
+    monkeypatch.setattr(ContainmentManager, "is_cgroup_v2", lambda self: True)
+    monkeypatch.setattr(ContainmentManager, "get_backend", lambda self: "cgroup_v2_freeze")
+
+    cfg = AdaptShieldConfig()
+    results = run_preflight_checks(cfg)
+
+    assert results["cgroup_v2"] is True
+    assert results["freezer_available"] is True
+    assert results["containment_backend"] == "cgroup_v2_freeze"
+    # Unified cgroup warning should NOT be emitted
+    assert not any("Unified cgroup v2 not mounted" in w for w in results["warnings"])
+
+
+def test_protect_mode_response_engine_contains_rule_based_simulated_ransomware():
+    """
+    Regression test: simulated ransomware meeting rule-based containment threshold
+    in protect mode must reach containment, emit containment alert, and record state
+    even with EWMA risk smoothing enabled.
+    """
+    import json
+    from adaptshield.daemon import AdaptShieldDaemon
+    from adaptshield.ml.classifier import RuleBasedClassifier
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        tmp_path = Path(tmp_dir)
+        ctrl_dir = tmp_path / "control"
+        quarantine_dir = tmp_path / "quarantine"
+        alert_file = tmp_path / "alert.jsonl"
+        state_file = tmp_path / "state.json"
+
+        cfg = AdaptShieldConfig()
+        cfg.mode = "protect"
+        cfg.monitor_first_period_hours = 0
+        cfg.classifier.mode = "rule_based"
+        cfg.response.control_dir = str(ctrl_dir)
+        cfg.response.quarantine_dir = str(quarantine_dir)
+        cfg.logging.alert_file = str(alert_file)
+        cfg.detection.use_risk_smoothing = True  # Real runtime setting
+        cfg.detection.consecutive_windows_for_critical = 2
+
+        daemon = AdaptShieldDaemon.from_config(cfg, dry_run=False)
+        daemon.state_mgr = StateManager(state_file)
+        assert isinstance(daemon.classifier, RuleBasedClassifier)
+        assert daemon.mode_mgr.get_active_mode() == "protect"
+
+        # Simulated ransomware process exceeding both rule-based thresholds:
+        # mod_rate >= 80.0 and rename_rate >= 30.0
+        simulated_pid = 7890
+        ransom_row = {
+            "pid": simulated_pid,
+            "mod_rate": 120.0,
+            "rename_rate": 45.0,
+            "create_del_rate": 15.0,
+            "event_count": 250.0,
+            "concentration_gini": 0.88,
+            "process_name": "simulated_encryptor",
+        }
+
+        # Process through daemon pipeline
+        daemon._classify_and_score([ransom_row])
+
+        # Assert process was contained
+        assert simulated_pid in daemon._contained_pids
+
+        # Assert containment was logged to alert file
+        assert alert_file.exists()
+        lines = [json.loads(line) for line in alert_file.read_text().splitlines() if line.strip()]
+        containment_events = [ev for ev in lines if ev.get("event") == "containment" and ev.get("pid") == simulated_pid]
+        assert len(containment_events) == 1
+        ev = containment_events[0]
+        assert ev["policy"] == "immediate"
+        assert "backend" in ev
+
+        # Assert runtime state was recorded
+        assert state_file.exists()
+        reloaded_state = StateManager(state_file)
+        assert simulated_pid in reloaded_state.records
+
+        daemon.stop()
+
+

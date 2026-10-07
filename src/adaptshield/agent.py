@@ -21,6 +21,7 @@ from .daemon import AdaptShieldDaemon
 from .detection.tier1_bridge import is_tier1_available
 from .logging.logger import get_logger, setup_logging
 from .ml.selector import select_classifier
+from .response.containment_manager import ContainmentManager
 
 logger = get_logger("adaptshield.agent")
 
@@ -41,6 +42,7 @@ def run_preflight_checks(config: AdaptShieldConfig) -> dict[str, Any]:
         "is_root": getattr(os, "geteuid", lambda: -1)() == 0,
         "cgroup_v2": False,
         "freezer_available": False,
+        "containment_backend": "none",
         "fanotify_available": False,
         "tier1_bcc_available": is_tier1_available(),
         "model_loaded": False,
@@ -52,14 +54,21 @@ def run_preflight_checks(config: AdaptShieldConfig) -> dict[str, Any]:
     if not results["is_root"] and sys.platform == "linux":
         results["warnings"].append("Not running as root (CAP_SYS_ADMIN required for real containment).")
 
-    # 2. cgroup v2 & freezer check
-    cgroup_root = Path("/sys/fs/cgroup")
-    if (cgroup_root / "cgroup.controllers").exists():
+    # 2. cgroup v2 & freezer check via ContainmentManager authority
+    cm = ContainmentManager()
+    backend = cm.get_backend()
+    results["containment_backend"] = backend
+    if cm.is_cgroup_v2():
         results["cgroup_v2"] = True
-        controllers = (cgroup_root / "cgroup.controllers").read_text()
-        results["freezer_available"] = "freezer" in controllers
+        # In unified cgroup v2, freezer is a core native capability via per-cgroup cgroup.freeze
+        # and does not require delegation via cgroup.controllers
+        results["freezer_available"] = True
     else:
-        results["warnings"].append("Unified cgroup v2 not mounted at /sys/fs/cgroup.")
+        if sys.platform == "linux":
+            results["warnings"].append("Unified cgroup v2 not mounted at /sys/fs/cgroup.")
+        else:
+            # Non-Linux sandbox / dev environment
+            results["freezer_available"] = True
 
     # 3. fanotify check
     if sys.platform == "linux":
@@ -116,9 +125,10 @@ def main():
     # Run Preflight Checks
     preflight = run_preflight_checks(cfg)
     logger.info(
-        "[PREFLIGHT] cgroup_v2=%s, freezer=%s, fanotify=%s, tier1_bcc=%s, detector=%s",
+        "[PREFLIGHT] cgroup_v2=%s, freezer=%s, backend=%s, fanotify=%s, tier1_bcc=%s, detector=%s",
         preflight["cgroup_v2"],
         preflight["freezer_available"],
+        preflight.get("containment_backend", "unknown"),
         preflight["fanotify_available"],
         preflight["tier1_bcc_available"],
         preflight["model_name"],

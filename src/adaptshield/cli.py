@@ -41,6 +41,7 @@ from .logging.logger import get_logger, setup_logging
 from .ml.classifier import build_classifier
 from .ml.registry import ModelRegistry
 from .ml.selector import select_classifier
+from .mode import ModeManager
 from .response.containment_manager import (
     ContainmentManager,
     clear_manual_decision,
@@ -171,8 +172,18 @@ def cmd_status(args):
     except Exception as e:
         logger.debug("Could not resolve active classifier: %s", e)
 
+    mode_mgr = ModeManager(cfg)
+    active_mode = mode_mgr.get_active_mode().upper()
+    if mode_mgr.is_monitor_first_active():
+        rem_hrs = mode_mgr.remaining_monitor_first_seconds() / 3600.0
+        mode_str = f"{active_mode} (monitor-first active: {rem_hrs:.1f}h remaining; configured: {cfg.mode.upper()})"
+    elif active_mode != cfg.mode.upper():
+        mode_str = f"{active_mode} (configured: {cfg.mode.upper()})"
+    else:
+        mode_str = active_mode
+
     print(f"Version:                        {__version__}")
-    print(f"Operating Mode:                 {cfg.mode.upper()}")
+    print(f"Operating Mode:                 {mode_str}")
     print(f"Monitor-First Window:           {cfg.monitor_first_period_hours} hours")
     print(f"Response Policy:                {cfg.response.policy.upper()} (auto-resolve: {cfg.response.auto_resolve_after_seconds}s -> {cfg.response.auto_resolve_action})")
     print(f"Configured Detector:            {configured_detector}")
@@ -455,9 +466,11 @@ def cmd_alerts(args):
                     elif ev == "containment":
                         pol = record.get("policy", "unknown")
                         action = "KILLED" if record.get("killed") else ("FROZEN" if pol != "none" else "FLAGGED")
+                        backend = record.get("backend")
+                        backend_str = f"backend={backend}" if backend else ""
                         rb = "rolled_back=True" if record.get("rolled_back") else ""
                         files = f"files_at_risk={record.get('files_at_risk', 0)}"
-                        details = ", ".join(filter(None, [f"action={action}", f"policy={pol}", files, rb]))
+                        details = ", ".join(filter(None, [f"action={action}", f"policy={pol}", backend_str, files, rb]))
                         summary = f"Containment executed: {details}"
                     elif ev == "storm_panic_switch_tripped":
                         summary = f"Safety rail: storm panic switch tripped ({record.get('reason', 'rate exceeded')})"
@@ -664,8 +677,11 @@ def cmd_mode(args):
         try:
             data = yaml.safe_load(conf_path.read_text()) or {}
             data["mode"] = target
+            if target == "protect":
+                data["monitor_first_period_hours"] = 0
             conf_path.write_text(yaml.safe_dump(data, sort_keys=False))
-            print(f"Updated {conf_path}: mode set to '{target}'.")
+            extra = " (monitor-first grace period cleared)" if target == "protect" else ""
+            print(f"Updated {conf_path}: mode set to '{target}'{extra}.")
         except PermissionError:
             print("ERROR: Permission denied. Modifying system configuration requires operator privileges (sudo).")
         except Exception as e:
