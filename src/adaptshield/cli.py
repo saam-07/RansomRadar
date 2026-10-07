@@ -63,22 +63,60 @@ def cmd_version(args):
 
 
 def cmd_status(args):
-    cfg = load_config(args.config)
+    config_perm_denied = False
+    try:
+        cfg = load_config(args.config)
+    except PermissionError:
+        config_perm_denied = True
+        cfg = AdaptShieldConfig()
+    except Exception as e:
+        logger.debug("Could not load config: %s", e)
+        cfg = AdaptShieldConfig()
+
     tier1_st = get_tier1_status()
 
     # Protection manager status
-    prot_mgr = ProtectionManager(config=cfg)
-    prot_mgr.load_manifest()
-    prot_st = prot_mgr.get_status()
+    prot_perm_denied = False
+    prot_st = {
+        "rollback_globally_available": False,
+        "targets": {},
+    }
+    try:
+        prot_mgr = ProtectionManager(config=cfg)
+        prot_mgr.load_manifest()
+        if getattr(prot_mgr, "manifest_permission_denied", False):
+            prot_perm_denied = True
+        prot_st = prot_mgr.get_status()
+    except PermissionError:
+        prot_perm_denied = True
+    except Exception as e:
+        logger.debug("Could not load protection status: %s", e)
 
     # State manager
-    state_file = Path(cfg.response.control_dir).parent / "state.json"
-    state_mgr = StateManager(state_file)
-    contained_pids = [p for p, r in state_mgr.records.items() if r.status in ("frozen", "awaiting_manual")]
+    state_perm_denied = False
+    contained_pids = []
+    try:
+        state_file = Path(cfg.response.control_dir).parent / "state.json"
+        state_mgr = StateManager(state_file)
+        if getattr(state_mgr, "permission_denied", False):
+            state_perm_denied = True
+        else:
+            contained_pids = [p for p, r in state_mgr.records.items() if r.status in ("frozen", "awaiting_manual")]
+    except PermissionError:
+        state_perm_denied = True
+    except Exception as e:
+        logger.debug("Could not read runtime state: %s", e)
 
     print("=" * 64)
     print(" AdaptShield Endpoint Agent Status")
     print("=" * 64)
+
+    if prot_perm_denied or state_perm_denied or config_perm_denied:
+        print("WARNING: Protection manifest or system state is not readable by current user.")
+        print("         Run with appropriate operator privileges or grant the user the 'adaptshield' group:")
+        print("         sudo usermod -aG adaptshield $USER")
+        print("-" * 64)
+
     print(f"Version:              {__version__}")
     print(f"Operating Mode:       {cfg.mode.upper()}")
     print(f"Monitor-First Window: {cfg.monitor_first_period_hours} hours")
@@ -88,11 +126,23 @@ def cmd_status(args):
     print(f"Watched Paths:        {', '.join(cfg.watch.paths)}")
     print(f"Excluded Paths:       {', '.join(cfg.watch.excludes[:4])} ... ({len(cfg.watch.excludes)} total)")
     print(f"Protected Paths:      {', '.join(cfg.protect_paths)}")
-    print(f"Rollback Status:      {'AVAILABLE' if prot_st['rollback_globally_available'] else 'DEGRADED / FALLBACK ONLY'}")
+
+    if prot_perm_denied:
+        rollback_desc = "UNKNOWN (Permission Denied)"
+    else:
+        rollback_desc = "AVAILABLE" if prot_st.get("rollback_globally_available") else "DEGRADED / FALLBACK ONLY"
+    print(f"Rollback Status:      {rollback_desc}")
+
     print(f"Tier-1 eBPF:          {'ACTIVE' if tier1_st['available'] else 'DEGRADED (Tier-0 Only)'}")
     if not tier1_st["available"]:
         print(f"  Tier-1 Reason:      {tier1_st['error'] or 'BCC not installed'}")
-    print(f"Contained PIDs:       {len(contained_pids)} active ({contained_pids if contained_pids else 'none'})")
+
+    if state_perm_denied:
+        contained_desc = "N/A (Permission Denied)"
+    else:
+        contained_desc = f"{len(contained_pids)} active ({contained_pids if contained_pids else 'none'})"
+    print(f"Contained PIDs:       {contained_desc}")
+
     print(f"Log Destination:      {cfg.logging.file}")
     print(f"Alert Feed:           {cfg.logging.alert_file}")
     print("=" * 64)
@@ -230,11 +280,21 @@ def _parse_duration(since_str: str) -> float:
 
 
 def cmd_alerts(args):
-    cfg = load_config(args.config)
+    try:
+        cfg = load_config(args.config)
+    except PermissionError:
+        print("WARNING: Configuration is not readable by current user.")
+        cfg = AdaptShieldConfig()
     alert_file = Path(cfg.logging.alert_file)
 
-    if not alert_file.exists():
-        print(f"No alerts log found at {alert_file}.")
+    try:
+        if not alert_file.exists():
+            print(f"No alerts log found at {alert_file}.")
+            return
+    except PermissionError:
+        print(f"WARNING: Alert log at {alert_file} is not readable by current user.")
+        print("Run with operator privileges or grant the user the 'adaptshield' group:")
+        print("sudo usermod -aG adaptshield $USER")
         return
 
     cutoff = 0.0
@@ -268,23 +328,27 @@ def cmd_alerts(args):
         except Exception:
             pass
 
-    if args.follow:
-        print(f"Tailing alerts from {alert_file} (Ctrl+C to stop)...")
-        with open(alert_file, "r", encoding="utf-8") as f:
-            # First dump existing matches
-            for line in f:
-                print_alert(line)
-            # Then follow new lines
-            while True:
-                line = f.readline()
-                if line:
+    try:
+        if args.follow:
+            print(f"Tailing alerts from {alert_file} (Ctrl+C to stop)...")
+            with open(alert_file, "r", encoding="utf-8") as f:
+                for line in f:
                     print_alert(line)
-                else:
-                    time.sleep(0.5)
-    else:
-        with open(alert_file, "r", encoding="utf-8") as f:
-            for line in f:
-                print_alert(line)
+                while True:
+                    line = f.readline()
+                    if line:
+                        print_alert(line)
+                    else:
+                        time.sleep(0.5)
+        else:
+            with open(alert_file, "r", encoding="utf-8") as f:
+                for line in f:
+                    print_alert(line)
+    except PermissionError:
+        print(f"WARNING: Alert log at {alert_file} is not readable by current user.")
+        print("Run with operator privileges or grant the user the 'adaptshield' group:")
+        print("sudo usermod -aG adaptshield $USER")
+        return
 
 
 # -----------------------------------------------------------------------------
@@ -292,9 +356,21 @@ def cmd_alerts(args):
 # -----------------------------------------------------------------------------
 
 def cmd_list(args):
-    cfg = load_config(args.config)
+    try:
+        cfg = load_config(args.config)
+    except PermissionError:
+        cfg = AdaptShieldConfig()
     state_file = Path(cfg.response.control_dir).parent / "state.json"
-    state_mgr = StateManager(state_file)
+    try:
+        state_mgr = StateManager(state_file)
+        if getattr(state_mgr, "permission_denied", False):
+            raise PermissionError("Access denied to state file")
+    except PermissionError:
+        print(f"WARNING: Runtime containment state at {state_file} is not readable by current user.")
+        print("Run with operator privileges or grant the user the 'adaptshield' group:")
+        print("sudo usermod -aG adaptshield $USER")
+        return
+
     active = [r for r in state_mgr.records.values() if r.status in ("frozen", "awaiting_manual")]
 
     if not active:
@@ -311,16 +387,29 @@ def cmd_list(args):
 
 
 def cmd_show(args):
-    cfg = load_config(args.config)
+    try:
+        cfg = load_config(args.config)
+    except PermissionError:
+        cfg = AdaptShieldConfig()
     state_file = Path(cfg.response.control_dir).parent / "state.json"
-    state_mgr = StateManager(state_file)
+    try:
+        state_mgr = StateManager(state_file)
+        if getattr(state_mgr, "permission_denied", False):
+            raise PermissionError("Access denied to state file")
+    except PermissionError:
+        print(f"WARNING: Runtime containment state at {state_file} is not readable by current user.")
+        print("Run with operator privileges or grant the user the 'adaptshield' group:")
+        print("sudo usermod -aG adaptshield $USER")
+        return
 
     if args.pid not in state_mgr.records:
-        # Also check pending decision control file
-        ctrl_file = Path(cfg.response.control_dir) / f"decision_pid{args.pid}.json"
-        if ctrl_file.exists():
-            print(json.dumps(json.loads(ctrl_file.read_text()), indent=2))
-            return
+        try:
+            ctrl_file = Path(cfg.response.control_dir) / f"decision_pid{args.pid}.json"
+            if ctrl_file.exists():
+                print(json.dumps(json.loads(ctrl_file.read_text()), indent=2))
+                return
+        except PermissionError:
+            pass
         print(f"PID {args.pid} is not present in AdaptShield containment records.")
         return
 
@@ -329,68 +418,75 @@ def cmd_show(args):
 
 
 def cmd_release(args):
-    cfg = load_config(args.config)
-    ctrl_dir = cfg.response.control_dir
-    state_file = Path(ctrl_dir).parent / "state.json"
-    state_mgr = StateManager(state_file)
+    try:
+        cfg = load_config(args.config)
+        ctrl_dir = cfg.response.control_dir
+        state_file = Path(ctrl_dir).parent / "state.json"
+        state_mgr = StateManager(state_file)
 
-    if getattr(args, "all", False) or str(args.pid).lower() == "all" or args.pid is None:
-        active_pids = [r.pid for r in state_mgr.records.values() if r.status in ("frozen", "awaiting_manual")]
-        cgroup_root = Path("/sys/fs/cgroup/adaptshield")
-        if cgroup_root.exists():
-            for p in cgroup_root.glob("proc_*"):
-                try:
-                    c_pid = int(p.name.replace("proc_", ""))
-                    if c_pid not in active_pids:
-                        active_pids.append(c_pid)
-                except ValueError:
-                    pass
-        if not active_pids:
-            print("No frozen processes found to release.")
+        if getattr(args, "all", False) or str(args.pid).lower() == "all" or args.pid is None:
+            active_pids = [r.pid for r in state_mgr.records.values() if r.status in ("frozen", "awaiting_manual")]
+            cgroup_root = Path("/sys/fs/cgroup/adaptshield")
+            if cgroup_root.exists():
+                for p in cgroup_root.glob("proc_*"):
+                    try:
+                        c_pid = int(p.name.replace("proc_", ""))
+                        if c_pid not in active_pids:
+                            active_pids.append(c_pid)
+                    except ValueError:
+                        pass
+            if not active_pids:
+                print("No frozen processes found to release.")
+                return
+            for p in active_pids:
+                unfreeze_pid(p)
+                clear_manual_decision(ctrl_dir, p)
+                state_mgr.record_resolution(p, "release")
+                print(f"Released and thawed PID {p}.")
             return
-        for p in active_pids:
-            unfreeze_pid(p)
-            clear_manual_decision(ctrl_dir, p)
-            state_mgr.record_resolution(p, "release")
-            print(f"Released and thawed PID {p}.")
-        return
 
-    pid = int(args.pid)
-    # Thaw per-PID cgroup
-    unfreeze_pid(pid)
-    # Clear decision file
-    clear_manual_decision(ctrl_dir, pid)
-    # Record state resolution
-    state_mgr.record_resolution(pid, "release")
+        pid = int(args.pid)
+        # Thaw per-PID cgroup
+        unfreeze_pid(pid)
+        # Clear decision file
+        clear_manual_decision(ctrl_dir, pid)
+        # Record state resolution
+        state_mgr.record_resolution(pid, "release")
+        print(f"Released and thawed PID {pid}.")
+    except PermissionError:
+        print("ERROR: Permission denied. Releasing processes requires operator privileges (sudo).")
 
     print(f"Successfully released and thawed PID {pid} (marked false positive).")
 
 
 def cmd_confirm(args):
-    cfg = load_config(args.config)
-    ctrl_dir = cfg.response.control_dir
-    state_file = Path(ctrl_dir).parent / "state.json"
-    state_mgr = StateManager(state_file)
+    try:
+        cfg = load_config(args.config)
+        ctrl_dir = cfg.response.control_dir
+        state_file = Path(ctrl_dir).parent / "state.json"
+        state_mgr = StateManager(state_file)
 
-    record = state_mgr.records.get(args.pid)
-    upper = record.overlay_upperdir if record and record.overlay_upperdir else os.path.join(cfg.response.quarantine_dir, "upper")
-    work = record.overlay_workdir if record and record.overlay_workdir else os.path.join(cfg.response.quarantine_dir, "work")
+        record = state_mgr.records.get(args.pid)
+        upper = record.overlay_upperdir if record and record.overlay_upperdir else os.path.join(cfg.response.quarantine_dir, "upper")
+        work = record.overlay_workdir if record and record.overlay_workdir else os.path.join(cfg.response.quarantine_dir, "work")
 
-    result = resolve_manual_decision(
-        pid=args.pid,
-        decision="confirm",
-        upperdir=upper,
-        workdir=work,
-        quarantine_root=cfg.response.quarantine_dir,
-        control_dir=ctrl_dir,
-        rollback_available=True,
-    )
-    state_mgr.record_resolution(args.pid, "confirm")
+        result = resolve_manual_decision(
+            pid=args.pid,
+            decision="confirm",
+            upperdir=upper,
+            workdir=work,
+            quarantine_root=cfg.response.quarantine_dir,
+            control_dir=ctrl_dir,
+            rollback_available=True,
+        )
+        state_mgr.record_resolution(args.pid, "confirm")
 
-    print(f"Confirmed ransomware for PID {args.pid}.")
-    print(f"  Quarantine:  {result.quarantine_path} ({result.quarantined_files} files preserved)")
-    print(f"  Rollback:    {'Completed' if result.rolled_back else 'Unavailable'}")
-    print("  Process:     Terminated")
+        print(f"Confirmed ransomware for PID {args.pid}.")
+        print(f"  Quarantine:  {result.quarantine_path} ({result.quarantined_files} files preserved)")
+        print(f"  Rollback:    {'Completed' if result.rolled_back else 'Unavailable'}")
+        print("  Process:     Terminated")
+    except PermissionError:
+        print("ERROR: Permission denied. Confirming containment requires operator privileges (sudo).")
 
 
 # -----------------------------------------------------------------------------
@@ -398,7 +494,11 @@ def cmd_confirm(args):
 # -----------------------------------------------------------------------------
 
 def cmd_mode(args):
-    cfg = load_config(args.config)
+    try:
+        cfg = load_config(args.config)
+    except PermissionError:
+        cfg = AdaptShieldConfig()
+
     if not args.target_mode:
         print(f"Current configured mode: {cfg.mode}")
         return
@@ -416,6 +516,8 @@ def cmd_mode(args):
             data["mode"] = target
             conf_path.write_text(yaml.safe_dump(data, sort_keys=False))
             print(f"Updated {conf_path}: mode set to '{target}'.")
+        except PermissionError:
+            print("ERROR: Permission denied. Modifying system configuration requires operator privileges (sudo).")
         except Exception as e:
             print(f"Could not update config file: {e}")
     else:

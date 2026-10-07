@@ -172,3 +172,20 @@ def test_cli_release_all():
         # Now list should be empty
         out_list = run_cli_args("-c", str(conf_file), "list")
         assert "No contained or pending processes found." in out_list
+
+
+def test_cli_status_handles_permission_error_gracefully(monkeypatch):
+    """Verifies that adaptshield status does NOT crash with a traceback on PermissionError."""
+    from adaptshield.response.protection import ProtectionManager
+
+    def mock_load_manifest(self):
+        self.manifest_permission_denied = True
+        raise PermissionError("Permission denied: /var/lib/adaptshield/protection_manifest.json")
+
+    monkeypatch.setattr(ProtectionManager, "load_manifest", mock_load_manifest)
+
+    out = run_cli_args("status")
+    assert "AdaptShield Endpoint Agent Status" in out
+    assert "WARNING: Protection manifest or system state is not readable" in out
+    assert "sudo usermod -aG adaptshield" in out
+    assert "Traceback" not in out

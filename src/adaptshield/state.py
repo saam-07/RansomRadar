@@ -40,6 +40,7 @@ class ContainedProcessRecord:
 class StateManager:
     def __init__(self, state_file: str | Path = "/var/lib/adaptshield/state.json"):
         self.state_file = Path(state_file)
+        self.permission_denied = False
         self._ensure_dir()
         self.records: dict[int, ContainedProcessRecord] = {}
         self.load()
@@ -47,16 +48,21 @@ class StateManager:
     def _ensure_dir(self):
         try:
             self.state_file.parent.mkdir(parents=True, exist_ok=True)
-        except (PermissionError, OSError):
+        except PermissionError:
+            self.permission_denied = True
+        except OSError:
             fallback_dir = Path("results/state")
-            fallback_dir.mkdir(parents=True, exist_ok=True)
-            self.state_file = fallback_dir / self.state_file.name
+            try:
+                fallback_dir.mkdir(parents=True, exist_ok=True)
+                self.state_file = fallback_dir / self.state_file.name
+            except Exception:
+                pass
 
     def load(self):
         """Loads state from the persistent state file."""
-        if not self.state_file.exists():
-            return
         try:
+            if not self.state_file.exists():
+                return
             data = json.loads(self.state_file.read_text(encoding="utf-8"))
             records = {}
             for pid_str, item in data.get("contained_pids", {}).items():
@@ -64,6 +70,9 @@ class StateManager:
                 records[pid] = ContainedProcessRecord(**item)
             self.records = records
             logger.info("Loaded runtime state with %d contained processes.", len(self.records))
+        except PermissionError:
+            self.permission_denied = True
+            logger.warning("Permission denied reading state file %s.", self.state_file)
         except Exception as e:
             logger.warning("Could not read state file %s (%s); starting fresh.", self.state_file, e)
 
@@ -78,6 +87,10 @@ class StateManager:
         }
         try:
             tmp_file.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+            try:
+                os.chmod(tmp_file, 0o640)
+            except Exception:
+                pass
             tmp_file.replace(self.state_file)
         except Exception as e:
             logger.error("Failed to save state to %s: %s", self.state_file, e)

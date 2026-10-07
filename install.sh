@@ -219,7 +219,26 @@ if [ -f "$REPO_ROOT/requirements.txt" ]; then
 fi
 /opt/adaptshield/venv/bin/pip install -e "$REPO_ROOT" -q
 
-# 9. Setup System Paths & Config
+# 9. Setup AdaptShield System Operator Group & System Paths
+echo ""
+echo "=== Configuring AdaptShield Operator Group & Permissions ==="
+if ! getent group adaptshield >/dev/null 2>&1; then
+  echo "[*] Creating system group: adaptshield"
+  groupadd --system adaptshield 2>/dev/null || true
+else
+  echo "[*] System group 'adaptshield' already exists."
+fi
+
+# Add the installing user to the adaptshield group for non-root CLI status/alerts access
+TARGET_USER="${SUDO_USER:-}"
+if [ -z "$TARGET_USER" ] || [ "$TARGET_USER" = "root" ]; then
+  TARGET_USER="$(logname 2>/dev/null || id -un 1000 2>/dev/null || true)"
+fi
+if [ -n "$TARGET_USER" ] && [ "$TARGET_USER" != "root" ] && id "$TARGET_USER" >/dev/null 2>&1; then
+  echo "[*] Adding user '$TARGET_USER' to operator group 'adaptshield'"
+  usermod -aG adaptshield "$TARGET_USER" 2>/dev/null || true
+fi
+
 echo ""
 echo "=== Configuring State, Log, and Config Directories ==="
 mkdir -p /etc/adaptshield
@@ -230,8 +249,14 @@ mkdir -p /var/lib/adaptshield/telemetry
 mkdir -p /var/lib/adaptshield/overlay_mounts
 mkdir -p /var/log/adaptshield
 
-chmod 750 /var/lib/adaptshield
-chmod 755 /var/log/adaptshield
+# Set group ownership to root:adaptshield for state, log, and config paths
+chown -R root:adaptshield /etc/adaptshield /var/lib/adaptshield /var/log/adaptshield 2>/dev/null || true
+
+# Set directory permissions:
+# Root has rwx, group adaptshield has r-x (and setgid to inherit group), others have no access
+chmod 2750 /etc/adaptshield /var/lib/adaptshield /var/log/adaptshield 2>/dev/null || chmod 750 /etc/adaptshield /var/lib/adaptshield /var/log/adaptshield
+find /var/lib/adaptshield -type d -exec chmod 2750 {} + 2>/dev/null || find /var/lib/adaptshield -type d -exec chmod 750 {} + 2>/dev/null || true
+find /var/log/adaptshield -type d -exec chmod 2750 {} + 2>/dev/null || find /var/log/adaptshield -type d -exec chmod 750 {} + 2>/dev/null || true
 
 # Config file: NEVER overwrite on upgrade or if existing
 if [ -f /etc/adaptshield/config.yaml ]; then
@@ -239,8 +264,9 @@ if [ -f /etc/adaptshield/config.yaml ]; then
 else
   echo "[*] Creating default configuration at /etc/adaptshield/config.yaml."
   cp "$REPO_ROOT/packaging/config.default.yaml" /etc/adaptshield/config.yaml
-  chmod 640 /etc/adaptshield/config.yaml
 fi
+chown root:adaptshield /etc/adaptshield/config.yaml 2>/dev/null || true
+chmod 640 /etc/adaptshield/config.yaml 2>/dev/null || true
 
 # Seed model registry if models exist in repo
 if [ -d "$REPO_ROOT/models/registry" ]; then
@@ -249,6 +275,11 @@ fi
 if [ -d "$REPO_ROOT/results/processed" ]; then
   cp "$REPO_ROOT/results/processed"/*.joblib /var/lib/adaptshield/models/ 2>/dev/null || true
 fi
+
+# Ensure existing state and log files are group-readable, preserving root-only write access
+chown -R root:adaptshield /var/lib/adaptshield /var/log/adaptshield 2>/dev/null || true
+find /var/lib/adaptshield -type f -exec chmod 640 {} + 2>/dev/null || true
+find /var/log/adaptshield -type f -exec chmod 640 {} + 2>/dev/null || true
 
 # 10. Install CLI Symlinks on PATH
 echo ""
@@ -286,5 +317,6 @@ echo "AdaptShield is running."
 MODE_INFO="$(/usr/local/bin/adaptshield mode 2>/dev/null || echo 'Operating Mode: protect (with 24h monitor-first grace period)')"
 echo "$MODE_INFO"
 echo "Status check: adaptshield status"
+echo "Operator tip: If user was just added to 'adaptshield' group, run 'newgrp adaptshield' or re-login."
 echo "Logs:         journalctl -u adaptshield -f  OR  tail -f /var/log/adaptshield/adaptshield.log"
 echo "=================================================================="
