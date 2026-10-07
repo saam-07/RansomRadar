@@ -195,6 +195,15 @@ def test_cli_simulate_benign():
         assert "Benign simulation finished" in out
 
 
+def test_cli_simulate_ransomware():
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        sandbox = Path(tmp_dir) / "sim_ransom_test"
+        out = run_cli_args("simulate", "ransomware", "--target", str(sandbox), "--count", "15")
+        assert "Simulated ransomware encryption completed in sandbox" in out
+        assert sandbox.exists()
+        assert len(list(sandbox.glob("*.locked*"))) > 0
+
+
 def test_cli_release_all():
     with tempfile.TemporaryDirectory() as tmp_dir:
         state_file = Path(tmp_dir) / "state.json"

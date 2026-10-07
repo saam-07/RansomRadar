@@ -27,7 +27,6 @@ import os
 import platform
 import subprocess
 import sys
-import tempfile
 import time
 from dataclasses import asdict
 from pathlib import Path
@@ -49,6 +48,7 @@ from .response.containment_manager import (
     unfreeze_pid,
 )
 from .response.protection import ProtectionManager
+from .simulator import resolve_sandbox_dir, run_simulation
 from .state import StateManager
 
 __version__ = "0.2.0"
@@ -867,23 +867,42 @@ def cmd_evaluate(args):
 
 
 def cmd_simulate(args):
-    target_dir = Path(args.target or tempfile.gettempdir()) / f"adaptshield_sim_{args.sim_type}"
-    target_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        cfg = load_config(args.config)
+    except (PermissionError, Exception):
+        cfg = AdaptShieldConfig()
+
+    count = getattr(args, "count", None)
+    if count is None:
+        count = 10 if args.sim_type == "benign" else 120
+    duration = getattr(args, "duration", 6.0)
+
+    try:
+        target_dir = resolve_sandbox_dir(target_arg=args.target, sim_type=args.sim_type, cfg=cfg)
+    except ValueError as e:
+        print(f"ERROR: {e}")
+        return
+
     print(f"Running safe {args.sim_type} simulation in sandbox: {target_dir}")
 
+    res = run_simulation(
+        sim_type=args.sim_type,
+        target=target_dir,
+        count=count,
+        duration=duration,
+        cfg=cfg,
+    )
+
     if args.sim_type == "benign":
-        # Create standard non-malicious text files with normal write gaps
-        for i in range(10):
-            p = target_dir / f"doc_{i}.txt"
-            p.write_text(f"Benign document content {i}\n" * 10)
-            time.sleep(0.01)
-        print("Benign simulation finished. Generated 10 standard text files.")
+        created = res.get("files_created", count)
+        print(f"Benign simulation finished. Generated {created} standard text files.")
     else:
-        # Create mock locked files for demonstration
-        for i in range(10):
-            p = target_dir / f"doc_{i}.txt.locked"
-            p.write_bytes(os.urandom(1024))
-        print("Simulated ransomware encryption completed in sandbox.")
+        files = res.get("files", count)
+        mods = res.get("modifications", 0)
+        renames = res.get("renames", 0)
+        print(
+            f"Simulated ransomware encryption completed in sandbox: {files} files, {mods} modifications, {renames} renames."
+        )
 
 
 # -----------------------------------------------------------------------------
@@ -953,7 +972,9 @@ def main():
 
     p_sim = sub.add_parser("simulate")
     p_sim.add_argument("sim_type", choices=["benign", "ransomware"])
-    p_sim.add_argument("--target", default=None)
+    p_sim.add_argument("--target", default=None, help="Sandbox target directory (must not be critical system directory)")
+    p_sim.add_argument("--count", type=int, default=None, help="Number of files to simulate (default: 10 benign, 120 ransomware)")
+    p_sim.add_argument("--duration", type=float, default=6.0, help="Simulation duration window in seconds")
 
     args = parser.parse_args()
 
