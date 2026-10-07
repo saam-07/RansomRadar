@@ -398,20 +398,82 @@ def cmd_alerts(args):
             return
         try:
             record = json.loads(line_text)
-            ts = record.get("timestamp", 0.0)
-            if cutoff and ts < cutoff:
+
+            # Robust timestamp resolution (ts float, timestamp float, or ISO string)
+            raw_ts = record.get("ts") if "ts" in record else record.get("timestamp")
+            if raw_ts is None:
+                raw_ts = 0.0
+            try:
+                ts = float(raw_ts)
+                timestr = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(ts))
+            except (ValueError, TypeError, OverflowError):
+                ts = 0.0
+                timestr = str(raw_ts)[:19].replace("T", " ")
+
+            if cutoff and ts and ts < cutoff:
                 return
 
             if args.json:
                 print(json.dumps(record))
             else:
-                timestr = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(ts))
-                ev = record.get("event", "ALERT")
+                ev = record.get("event") or record.get("event_type") or "ALERT"
                 pid = record.get("pid", "N/A")
-                score = record.get("risk_ewma", 0.0)
+
+                # Score resolution: check risk_ewma, tier0_score, score, risk
+                score_val = None
+                if "risk_ewma" in record:
+                    score_val = record["risk_ewma"]
+                elif "tier0_score" in record:
+                    score_val = record["tier0_score"]
+                elif "score" in record:
+                    score_val = record["score"]
+                elif "risk" in record:
+                    score_val = record["risk"]
+
+                if score_val is not None:
+                    try:
+                        score_str = f"Risk={float(score_val):.2f}"
+                    except (ValueError, TypeError):
+                        score_str = f"Risk={score_val}"
+                else:
+                    score_str = "Risk=0.00"
+
+                # Explanation / summary resolution
                 expl = record.get("explanation", {})
-                summary = expl.get("summary", "No details")
-                print(f"[{timestr}] {ev:<15} PID={pid:<6} Risk={score:.2f} | {summary}")
+                if isinstance(expl, dict):
+                    summary = expl.get("summary")
+                else:
+                    summary = str(expl) if expl else None
+
+                if not summary or summary == "No details":
+                    if ev == "escalation":
+                        t0 = record.get("tier0_score")
+                        lat = record.get("escalation_latency_s")
+                        lat_str = f" (latency={lat:.4f}s)" if lat is not None else ""
+                        t0_str = f"tier0_score={float(t0):.4f}" if t0 is not None else "Tier-1 activated"
+                        summary = f"Tier-1 escalation: {t0_str}{lat_str}"
+                    elif ev == "containment":
+                        pol = record.get("policy", "unknown")
+                        action = "KILLED" if record.get("killed") else ("FROZEN" if pol != "none" else "FLAGGED")
+                        rb = "rolled_back=True" if record.get("rolled_back") else ""
+                        files = f"files_at_risk={record.get('files_at_risk', 0)}"
+                        details = ", ".join(filter(None, [f"action={action}", f"policy={pol}", files, rb]))
+                        summary = f"Containment executed: {details}"
+                    elif ev == "storm_panic_switch_tripped":
+                        summary = f"Safety rail: storm panic switch tripped ({record.get('reason', 'rate exceeded')})"
+                    elif ev == "manual_decision_applied":
+                        summary = f"Operator decision: {record.get('decision', 'resolved')} applied"
+                    elif "message" in record:
+                        summary = record["message"]
+                    elif "detail" in record:
+                        summary = record["detail"]
+                    elif "evidence" in record and isinstance(record["evidence"], dict):
+                        top_feats = [f"{k}={v}" for k, v in list(record["evidence"].items())[:3]]
+                        summary = f"Evidence: {', '.join(top_feats)}"
+                    else:
+                        summary = "Alert logged"
+
+                print(f"[{timestr}] {ev:<15} PID={str(pid):<6} {score_str} | {summary}")
         except Exception:
             pass
 

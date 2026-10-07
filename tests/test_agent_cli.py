@@ -145,6 +145,42 @@ def test_cli_alerts_output():
         assert "5555" in out_json
         assert "Rapid modification rate" in out_json
 
+        out_human = run_cli_args("-c", str(conf_file), "alerts")
+        assert "5555" in out_human
+        assert "0.88" in out_human
+        assert "Rapid modification rate" in out_human
+
+
+def test_cli_alerts_escalation_presentation():
+    """Verify that escalation events logged with ts/tier0_score format timestamps and scores properly."""
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        alert_file = Path(tmp_dir) / "alert.jsonl"
+        # Real agent escalation record schema from AlertLogger
+        esc_record = {
+            "ts": 1791393646.9082456,
+            "event_type": "escalation",
+            "pid": 4512,
+            "tier0_score": 0.7287,
+            "escalation_latency_s": 0.0015,
+        }
+        alert_file.write_text(json.dumps(esc_record) + "\n")
+
+        conf_file = Path(tmp_dir) / "config.yaml"
+        conf_file.write_text(yaml.safe_dump({"logging": {"alert_file": str(alert_file)}}))
+
+        out = run_cli_args("-c", str(conf_file), "alerts")
+        # 1. Must NOT show 1970 timestamp
+        assert "1970-01-01" not in out
+        # 2. Must show escalation event
+        assert "escalation" in out
+        # 3. Must show PID
+        assert "4512" in out
+        # 4. Must show risk score derived from tier0_score
+        assert "0.73" in out
+        # 5. Must show detailed summary instead of "No details"
+        assert "tier0_score=0.7287" in out
+        assert "No details" not in out
+
 
 def test_cli_simulate_benign():
     with tempfile.TemporaryDirectory() as tmp_dir:
