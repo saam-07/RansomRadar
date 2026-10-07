@@ -28,6 +28,7 @@ export function AppContent() {
   const [status, setStatus] = useState<SystemStatus | null>(null);
   const [wsEvents, setWsEvents] = useState<WebSocketEvent[]>([]);
   const [isGuidedDemoOpen, setIsGuidedDemoOpen] = useState<boolean>(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
 
   // Fetch system status
   const fetchStatus = useCallback(async () => {
@@ -76,17 +77,26 @@ export function AppContent() {
       <Navbar
         status={status}
         wsConnected={isConnected}
+        isSidebarOpen={isSidebarOpen}
+        onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
         onPolicyChange={handlePolicyChange}
         onResetStorm={handleResetStorm}
         onOpenGuidedDemo={() => setIsGuidedDemoOpen(true)}
       />
 
-      <div className="flex flex-1 overflow-hidden">
-        {/* Left Sidebar */}
-        <Sidebar currentTab={currentTab} onSelectTab={setCurrentTab} />
+      <div className="flex flex-1 overflow-hidden relative">
+        {/* Left Sidebar (hidden by default, toggleable via hamburger) */}
+        {isSidebarOpen && (
+          <Sidebar
+            currentTab={currentTab}
+            onSelectTab={(tab) => {
+              setCurrentTab(tab);
+            }}
+          />
+        )}
 
-        {/* Main Content Area */}
-        <main className="flex-1 flex flex-col overflow-hidden bg-[#0a1020]">
+        {/* Main Content Area (expands to full width when sidebar is hidden) */}
+        <main className="flex-1 flex flex-col overflow-hidden bg-[#0a1020] w-full">
           {currentTab === 'dashboard' && (
             <DashboardPage
               status={status}

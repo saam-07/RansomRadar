@@ -62,8 +62,8 @@ export const EvidenceDrawer: React.FC<EvidenceDrawerProps> = ({
               {expl.summary || 'Anomalous behavioral rates and byte entropy triggered critical containment.'}
             </p>
             <div className="flex items-center space-x-4 mt-3 text-[11px] font-mono text-slate-400">
-              <div>Detector: <span className="text-emerald-400 font-bold">{alert.model_name}</span></div>
-              <div>EWMA Risk: <span className="text-red-400 font-bold">{alert.ewma_score.toFixed(4)}</span></div>
+              <div>Engine: <span className="text-emerald-400 font-bold">{alert.model_name || 'Behavioral Core'}</span></div>
+              <div>Risk Score: <span className="text-red-400 font-bold">{alert.ewma_score.toFixed(4)}</span></div>
               <div>Action: <span className="text-amber-400 font-bold">{alert.action_taken}</span></div>
             </div>
           </div>
@@ -72,7 +72,7 @@ export const EvidenceDrawer: React.FC<EvidenceDrawerProps> = ({
           <div className="space-y-3 mb-6">
             <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center justify-between">
               <span>Behavioral Feature Attribution</span>
-              <span className="text-[11px] font-normal text-slate-400">Tree Contributions / Rules</span>
+              <span className="text-[11px] font-normal text-slate-400">Behavioral Attribution Matrix</span>
             </h4>
 
             {contributions.length === 0 ? (

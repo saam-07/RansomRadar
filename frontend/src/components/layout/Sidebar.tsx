@@ -6,7 +6,6 @@ import {
   Cpu,
   ShieldAlert,
   Settings,
-  Terminal,
 } from 'lucide-react';
 
 export type NavTab =
@@ -32,8 +31,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const navItems = [
     { id: 'dashboard' as NavTab, label: 'Live Dashboard', icon: Activity, badge: null },
     { id: 'scenarios' as NavTab, label: 'Scenario Runner', icon: PlayCircle, badge: null },
-    { id: 'comparison' as NavTab, label: 'Detector Comparison', icon: BarChart3, badge: null },
-    { id: 'datasets' as NavTab, label: 'Datasets Explorer', icon: Database, badge: null },
+    { id: 'comparison' as NavTab, label: 'Detection Analysis', icon: BarChart3, badge: null },
+    { id: 'datasets' as NavTab, label: 'Event Explorer', icon: Database, badge: null },
     { id: 'models' as NavTab, label: 'Models & Training', icon: Cpu, badge: null },
     {
       id: 'alerts' as NavTab,
@@ -46,7 +45,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   ];
 
   return (
-    <aside className="w-64 border-r border-slate-800 bg-[#0a0f1d] flex flex-col justify-between select-none">
+    <aside className="w-64 border-r border-slate-800 bg-[#0a0f1d] flex flex-col justify-between select-none shrink-0 transition-all duration-200">
       <div className="py-6 px-4 space-y-1">
         <div className="px-3 pb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
           Navigation
@@ -81,17 +80,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </button>
           );
         })}
-      </div>
-
-      {/* System Telemetry Info */}
-      <div className="p-4 border-t border-slate-800/80 m-2 rounded-lg bg-slate-900/50">
-        <div className="flex items-center space-x-2 text-xs text-slate-400 mb-2">
-          <Terminal className="w-3.5 h-3.5 text-blue-400" />
-          <span>AdaptShield Daemon v0.1.0</span>
-        </div>
-        <p className="text-[11px] text-slate-400 leading-relaxed">
-          Autonomous Tier-0 heuristic & Tier-1 eBPF behavioral containment engine.
-        </p>
       </div>
     </aside>
   );

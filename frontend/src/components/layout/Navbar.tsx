@@ -1,9 +1,11 @@
-import { Shield, Radio, AlertTriangle, RefreshCw, Sparkles } from 'lucide-react';
+import { Shield, Radio, AlertTriangle, RefreshCw, Sparkles, Menu } from 'lucide-react';
 import { SystemStatus } from '../../types/api';
 
 interface NavbarProps {
   status: SystemStatus | null;
   wsConnected: boolean;
+  isSidebarOpen?: boolean;
+  onToggleSidebar?: () => void;
   onPolicyChange?: (policy: string) => void;
   onResetStorm?: () => void;
   onOpenGuidedDemo?: () => void;
@@ -12,14 +14,27 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({
   status,
   wsConnected,
+  isSidebarOpen = false,
+  onToggleSidebar,
   onPolicyChange,
   onResetStorm,
   onOpenGuidedDemo,
 }) => {
   return (
     <header className="h-16 border-b border-slate-800 bg-[#0d1527]/90 backdrop-blur-md px-6 flex items-center justify-between sticky top-0 z-40">
-      {/* Left: Brand, Simulated Badge, & Guided Demo trigger */}
-      <div className="flex items-center space-x-4">
+      {/* Left: Hamburger, Brand, Simulated Badge, & Guided Demo trigger */}
+      <div className="flex items-center space-x-3">
+        {onToggleSidebar && (
+          <button
+            onClick={onToggleSidebar}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors mr-1"
+            title={isSidebarOpen ? 'Hide Navigation' : 'Open Navigation'}
+            aria-label="Toggle navigation menu"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+        )}
+
         <div className="flex items-center space-x-2 text-blue-500 font-bold text-lg tracking-wider">
           <Shield className="w-6 h-6 text-blue-400" />
           <span>ADAPTSHIELD</span>
@@ -47,7 +62,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         )}
       </div>
 
-      {/* Right: Runtime State, Model, Policy & Stream Status */}
+      {/* Right: Runtime State, Engine, Policy & Stream Status */}
       <div className="flex items-center space-x-4">
         {/* Active Scenario Indicator */}
         {status?.running_scenario && (
@@ -85,14 +100,14 @@ export const Navbar: React.FC<NavbarProps> = ({
           </select>
         </div>
 
-        {/* Active Detector & Data Origin */}
+        {/* Detection Engine Status */}
         <div className="flex items-center space-x-1.5 text-xs bg-slate-900 border border-slate-800 rounded-md px-2.5 py-1">
-          <span className="text-slate-400">Detector:</span>
+          <span className="text-slate-400">Detection Engine:</span>
           <span className="font-semibold text-emerald-400">
-            {status?.active_detector || 'xgboost'}
+            Behavioral Core
           </span>
-          <span className="text-[10px] uppercase font-mono px-1 rounded bg-slate-800 text-slate-400">
-            {status?.data_source || 'synthetic'}
+          <span className="text-[10px] text-slate-500 font-mono">
+            (<span>{status?.active_detector || 'xgboost'}</span>)
           </span>
         </div>
 

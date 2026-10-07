@@ -33,7 +33,7 @@ export const RiskTimelineChart: React.FC<RiskTimelineChartProps> = ({ data }) =>
             Process Risk Telemetry Timeline
           </h3>
           <p className="text-xs text-slate-400 mt-0.5">
-            Streaming EWMA risk scorer score & raw ML ransomware probability with containment thresholds
+            Streaming behavioral risk telemetry & anomaly index with containment thresholds
           </p>
         </div>
 
@@ -83,7 +83,7 @@ export const RiskTimelineChart: React.FC<RiskTimelineChartProps> = ({ data }) =>
                 }}
                 formatter={(val: any, name: any) => [
                   Number(val).toFixed(4),
-                  name === 'ewma' ? 'EWMA Risk Score' : 'Raw Classifier Prob',
+                  name === 'ewma' || name === 'Risk Score' ? 'Risk Score' : 'Behavioral Anomaly Index',
                 ]}
                 labelFormatter={(lbl) => `Window ${lbl}`}
               />
@@ -107,7 +107,7 @@ export const RiskTimelineChart: React.FC<RiskTimelineChartProps> = ({ data }) =>
                 strokeWidth={2.5}
                 dot={{ r: 3, fill: '#38bdf8' }}
                 activeDot={{ r: 5 }}
-                name="ewma"
+                name="Risk Score"
                 isAnimationActive={false}
               />
               <Line
@@ -117,7 +117,7 @@ export const RiskTimelineChart: React.FC<RiskTimelineChartProps> = ({ data }) =>
                 strokeWidth={1.5}
                 strokeDasharray="4 4"
                 dot={false}
-                name="probability"
+                name="Behavioral Anomaly"
                 isAnimationActive={false}
               />
             </LineChart>

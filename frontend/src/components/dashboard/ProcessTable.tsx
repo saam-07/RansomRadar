@@ -22,7 +22,7 @@ export const ProcessTable: React.FC<ProcessTableProps> = ({
             Monitored Process Table
           </h3>
           <p className="text-xs text-slate-400 mt-0.5">
-            Active process monitoring, stateful EWMA risk levels, and manual containment controls
+            Active process monitoring, behavioral risk scoring, and manual containment controls
           </p>
         </div>
         <div className="text-xs font-mono px-2.5 py-1 rounded bg-slate-900 border border-slate-800 text-slate-400">
@@ -37,7 +37,7 @@ export const ProcessTable: React.FC<ProcessTableProps> = ({
               <th className="py-3 px-4">PID</th>
               <th className="py-3 px-4">Process Name</th>
               <th className="py-3 px-4">Label</th>
-              <th className="py-3 px-4 w-44">Risk EWMA</th>
+              <th className="py-3 px-4 w-44">Risk Score</th>
               <th className="py-3 px-4">Level</th>
               <th className="py-3 px-4">Status</th>
               <th className="py-3 px-4">Files Touched</th>
@@ -102,7 +102,7 @@ export const ProcessTable: React.FC<ProcessTableProps> = ({
                       <div className="space-y-1">
                         <div className="flex justify-between items-center text-[11px] gap-2">
                           <span className="font-semibold text-slate-200">{ewmaVal.toFixed(3)}</span>
-                          <span className="text-slate-400">{(proc.probability || 0).toFixed(2)} raw</span>
+                          <span className="text-slate-400">{(proc.probability || 0).toFixed(2)} score</span>
                         </div>
                         <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
                           <div

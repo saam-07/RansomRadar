@@ -57,8 +57,8 @@ export const AlertFeed: React.FC<AlertFeedProps> = ({ alerts, onSelectAlert }) =
                       {summary}
                     </p>
                     <div className="flex items-center space-x-3 mt-1.5 text-[10px] font-mono text-slate-400">
-                      <span>EWMA: <strong className="text-red-400">{Number(alert.ewma_score || 0).toFixed(3)}</strong></span>
-                      <span>Detector: <strong className="text-emerald-400">{alert.model_name}</strong></span>
+                      <span>Risk: <strong className="text-red-400">{Number(alert.ewma_score || 0).toFixed(3)}</strong></span>
+                      <span>Engine: <strong className="text-emerald-400">{alert.model_name || 'Behavioral Core'}</strong></span>
                       <span>Action: <strong className="text-amber-400">{alert.action_taken}</strong></span>
                     </div>
                   </div>

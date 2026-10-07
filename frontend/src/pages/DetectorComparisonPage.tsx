@@ -130,9 +130,9 @@ export const DetectorComparisonPage: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <div className="flex items-center space-x-2">
-            <h1 className="text-2xl font-bold text-white tracking-tight">Detector Comparison Benchmark</h1>
+            <h1 className="text-2xl font-bold text-white tracking-tight">Detection Analysis</h1>
             <span className="px-2 py-0.5 rounded text-xs font-mono bg-blue-500/10 text-blue-400 border border-blue-500/20">
-              SIMULATED BENCHMARK
+              Detector Comparison Benchmark
             </span>
           </div>
           <p className="text-sm text-slate-400 mt-1">
