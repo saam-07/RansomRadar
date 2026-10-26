@@ -26,8 +26,8 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
   const connect = useCallback(() => {
     try {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      // In dev proxy or direct connection
-      const wsUrl = `${protocol}//${window.location.hostname}:8000/api/stream`;
+      const defaultWsUrl = `${protocol}//${window.location.hostname}:8000/api/stream`;
+      const wsUrl = (import.meta.env.VITE_WS_URL as string) || defaultWsUrl;
 
       const ws = new WebSocket(wsUrl);
       socketRef.current = ws;
