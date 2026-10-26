@@ -8,11 +8,11 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 import time
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 
 CGROUP_ROOT = Path("/sys/fs/cgroup")
 ADAPTSHIELD_CGROUP = CGROUP_ROOT / "adaptshield"
@@ -53,22 +53,23 @@ def get_pid_cgroup(pid: int, cgroup_parent: Path = ADAPTSHIELD_CGROUP) -> Path:
     return cgroup_parent / f"pid_{pid}"
 
 
-
-
 def ensure_cgroup_ready(cgroup_parent: Path = ADAPTSHIELD_CGROUP):
     """Creates the parent adaptshield cgroup and enables the freezer controller."""
     try:
         cgroup_parent.mkdir(parents=True, exist_ok=True)
         subtree_control = CGROUP_ROOT / "cgroup.subtree_control"
-        if subtree_control.exists():
-            current = subtree_control.read_text()
-            if "+freezer" not in current and "freezer" not in current:
-                try:
-                    subtree_control.write_text("+freezer")
-                except OSError as e:
-                    raise RuntimeError(
-                        f"Could not enable freezer controller in {subtree_control}."
-                    ) from e
+        controllers_file = CGROUP_ROOT / "cgroup.controllers"
+        if subtree_control.exists() and controllers_file.exists():
+            controllers = controllers_file.read_text()
+            if "freezer" in controllers:
+                current = subtree_control.read_text()
+                if "+freezer" not in current and "freezer" not in current:
+                    try:
+                        subtree_control.write_text("+freezer")
+                    except OSError as e:
+                        raise RuntimeError(
+                            f"Could not enable freezer controller in {subtree_control}."
+                        ) from e
     except (PermissionError, OSError):
         pass
 
@@ -81,9 +82,11 @@ def freeze_pid(pid: int, cgroup_parent: Path = ADAPTSHIELD_CGROUP) -> float:
     pid_cgroup = get_pid_cgroup(pid, cgroup_parent)
     pid_cgroup.mkdir(parents=True, exist_ok=True)
 
-    # Enable freezer on child if needed
+    # Enable freezer on child if needed and supported
     try:
-        (cgroup_parent / "cgroup.subtree_control").write_text("+freezer")
+        parent_controllers = cgroup_parent / "cgroup.controllers"
+        if parent_controllers.exists() and "freezer" in parent_controllers.read_text():
+            (cgroup_parent / "cgroup.subtree_control").write_text("+freezer")
     except Exception:
         pass
 
@@ -95,7 +98,6 @@ def freeze_pid(pid: int, cgroup_parent: Path = ADAPTSHIELD_CGROUP) -> float:
         procs_file.write_text(str(pid))
         freeze_file.write_text("1")
     except (PermissionError, OSError):
-    except (PermissionError, OSError) as e:
         # If in sandbox or non-root, simulate freeze state in events file
         events_file.write_text("frozen 1\n")
         return time.monotonic()
@@ -175,7 +177,6 @@ def is_pid_frozen(pid: int, cgroup_parent: Path = ADAPTSHIELD_CGROUP) -> bool:
 
 
 def list_frozen_pids(cgroup_parent: Path = ADAPTSHIELD_CGROUP) -> list[int]:
-def list_frozen_pids(cgroup_parent: Path = ADAPTSHIELD_CGROUP) -> List[int]:
     """Scans and lists all PIDs currently in a frozen cgroup state."""
     pids = []
     if cgroup_parent.exists():
@@ -452,18 +453,6 @@ def resolve_manual_decision(
                 rollback_available=False,
                 rollback_reason=rollback_reason or "Overlay rollback unavailable for this filesystem",
             )
-        bytes_at_risk, files_at_risk = compute_overlay_diff(upperdir)
-        qpath, qfiles, qbytes = quarantine_upper(upperdir, quarantine_root, pid)
-        rollback_overlay(upperdir, workdir)
-        kill_pid(pid)
-        unfreeze_pid(pid, cgroup_parent=cgroup_parent)
-        clear_manual_decision(control_dir, pid)
-        return ContainmentResult(
-            pid=pid, decision_ts=decision_ts, frozen_ts=None, freeze_latency_s=None,
-            bytes_at_risk=bytes_at_risk, files_at_risk=files_at_risk,
-            policy=RollbackPolicy.MANUAL, rolled_back=True, killed=True,
-            quarantine_path=qpath, quarantined_files=qfiles, quarantined_bytes=qbytes,
-        )
     raise ValueError(f"Unknown decision: {decision}")
 
 
@@ -475,6 +464,63 @@ class ContainmentManager:
 
     def is_cgroup_v2(self) -> bool:
         return (CGROUP_ROOT / "cgroup.controllers").exists()
+
+    def get_backend(self) -> str:
+        """Returns the active containment backend mechanism."""
+        if sys.platform != "linux":
+            return "simulated"
+        if self.is_cgroup_v2():
+            return "cgroup_v2_freeze"
+        return "sigstop_fallback"
+
+    def self_test(self) -> tuple[bool, str]:
+        """
+        Executes a safe temporary create -> freeze -> thaw -> cleanup probe.
+        Verifies that per-PID cgroups can be created and manipulated.
+        Returns (success, description).
+        """
+        backend = self.get_backend()
+        if backend == "simulated":
+            probe_dir = self.cgroup_path / f"_selftest_{os.getpid()}"
+            try:
+                probe_dir.mkdir(parents=True, exist_ok=True)
+                (probe_dir / "cgroup.freeze").write_text("1")
+                (probe_dir / "cgroup.events").write_text("frozen 1\n")
+                (probe_dir / "cgroup.freeze").write_text("0")
+                (probe_dir / "cgroup.events").write_text("frozen 0\n")
+                for f in probe_dir.glob("*"):
+                    try:
+                        f.unlink()
+                    except Exception:
+                        pass
+                probe_dir.rmdir()
+                return True, "Simulated containment verified (sandbox mock)"
+            except Exception as e:
+                return False, f"Simulated probe error: {e}"
+
+        if not self.is_cgroup_v2():
+            return True, "SIGSTOP process signaling fallback active"
+
+        probe_dir = self.cgroup_path / f"_doctor_probe_{os.getpid()}_{int(time.time())}"
+        try:
+            probe_dir.mkdir(parents=True, exist_ok=True)
+            freeze_file = probe_dir / "cgroup.freeze"
+            if not freeze_file.exists():
+                probe_dir.rmdir()
+                return False, f"cgroup.freeze missing in {probe_dir}"
+            freeze_file.write_text("1")
+            freeze_file.write_text("0")
+            probe_dir.rmdir()
+            return True, "Native cgroup v2 cgroup.freeze verified via live probe"
+        except PermissionError:
+            return False, "Permission denied creating cgroup probe directory (requires root/CAP_SYS_ADMIN)"
+        except Exception as e:
+            try:
+                if probe_dir.exists():
+                    probe_dir.rmdir()
+            except Exception:
+                pass
+            return False, f"cgroup v2 probe failed: {e}"
 
     def ensure_ready(self):
         ensure_cgroup_ready(self.cgroup_path)
@@ -489,7 +535,6 @@ class ContainmentManager:
         return is_pid_frozen(pid, self.cgroup_path)
 
     def list_frozen(self) -> list[int]:
-    def list_frozen(self) -> List[int]:
         return list_frozen_pids(self.cgroup_path)
 
     def kill(self, pid: int):

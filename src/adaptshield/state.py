@@ -16,14 +16,6 @@ from typing import Any
 from .config import AdaptShieldConfig
 from .logging.logger import get_logger
 from .response.containment_manager import (
-from typing import Any, Dict, List, Optional
-
-from .config import AdaptShieldConfig, load_config
-from .logging.logger import get_logger
-from .response.containment_manager import (
-    ContainmentManager,
-    RollbackPolicy,
-    is_pid_frozen,
     list_frozen_pids,
     request_manual_decision,
     resolve_manual_decision,
@@ -43,33 +35,34 @@ class ContainedProcessRecord:
     quarantine_path: str | None = None
     overlay_upperdir: str | None = None
     overlay_workdir: str | None = None
-    evidence: Dict[str, Any]
-    quarantine_path: Optional[str] = None
-    overlay_upperdir: Optional[str] = None
-    overlay_workdir: Optional[str] = None
 
 
 class StateManager:
     def __init__(self, state_file: str | Path = "/var/lib/adaptshield/state.json"):
         self.state_file = Path(state_file)
+        self.permission_denied = False
         self._ensure_dir()
         self.records: dict[int, ContainedProcessRecord] = {}
-        self.records: Dict[int, ContainedProcessRecord] = {}
         self.load()
 
     def _ensure_dir(self):
         try:
             self.state_file.parent.mkdir(parents=True, exist_ok=True)
-        except (PermissionError, OSError):
+        except PermissionError:
+            self.permission_denied = True
+        except OSError:
             fallback_dir = Path("results/state")
-            fallback_dir.mkdir(parents=True, exist_ok=True)
-            self.state_file = fallback_dir / self.state_file.name
+            try:
+                fallback_dir.mkdir(parents=True, exist_ok=True)
+                self.state_file = fallback_dir / self.state_file.name
+            except Exception:
+                pass
 
     def load(self):
         """Loads state from the persistent state file."""
-        if not self.state_file.exists():
-            return
         try:
+            if not self.state_file.exists():
+                return
             data = json.loads(self.state_file.read_text(encoding="utf-8"))
             records = {}
             for pid_str, item in data.get("contained_pids", {}).items():
@@ -77,6 +70,9 @@ class StateManager:
                 records[pid] = ContainedProcessRecord(**item)
             self.records = records
             logger.info("Loaded runtime state with %d contained processes.", len(self.records))
+        except PermissionError:
+            self.permission_denied = True
+            logger.warning("Permission denied reading state file %s.", self.state_file)
         except Exception as e:
             logger.warning("Could not read state file %s (%s); starting fresh.", self.state_file, e)
 
@@ -91,6 +87,10 @@ class StateManager:
         }
         try:
             tmp_file.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+            try:
+                os.chmod(tmp_file, 0o640)
+            except Exception:
+                pass
             tmp_file.replace(self.state_file)
         except Exception as e:
             logger.error("Failed to save state to %s: %s", self.state_file, e)
@@ -104,10 +104,6 @@ class StateManager:
         quarantine_path: str | None = None,
         overlay_upper: str | None = None,
         overlay_work: str | None = None,
-        evidence: Dict[str, Any],
-        quarantine_path: Optional[str] = None,
-        overlay_upper: Optional[str] = None,
-        overlay_work: Optional[str] = None,
     ):
         self.records[pid] = ContainedProcessRecord(
             pid=pid,
@@ -146,13 +142,11 @@ class StateManager:
             return False
 
     def recover(self, config: AdaptShieldConfig) -> dict[str, Any]:
-    def recover(self, config: AdaptShieldConfig) -> Dict[str, Any]:
         """
         Recovers frozen and pending processes on agent startup.
         Handles auto-resolve timeouts for manual policy decisions.
         """
         recovered_actions: dict[int, str] = {}
-        recovered_actions: Dict[int, str] = {}
         now = time.time()
         timeout = config.response.auto_resolve_after_seconds
         auto_action = config.response.auto_resolve_action

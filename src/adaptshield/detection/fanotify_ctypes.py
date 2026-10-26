@@ -61,6 +61,12 @@ FAN_EVENT_ON_CHILD = 0x08000000
 
 FAN_NOFD = -1
 
+# Info record types
+FAN_EVENT_INFO_TYPE_FID = 1
+FAN_EVENT_INFO_TYPE_DFID_NAME = 2
+FAN_EVENT_INFO_TYPE_DFID = 3
+FAN_EVENT_INFO_TYPE_PIDFD = 4
+
 # Full mask for DFID_NAME mode
 DFID_WATCH_MASK = (
     FAN_MODIFY | FAN_CLOSE_WRITE | FAN_MOVED_FROM | FAN_MOVED_TO
@@ -79,14 +85,26 @@ _META_FMT = "=IBBHQii"
 _META_SIZE = struct.calcsize(_META_FMT)
 
 if libc:
-    libc.fanotify_init.restype = ctypes.c_int
-    libc.fanotify_init.argtypes = [ctypes.c_uint, ctypes.c_uint]
+    try:
+        libc.fanotify_init.restype = ctypes.c_int
+        libc.fanotify_init.argtypes = [ctypes.c_uint, ctypes.c_uint]
+    except AttributeError:
+        pass
 
-    libc.fanotify_mark.restype = ctypes.c_int
-    libc.fanotify_mark.argtypes = [
-        ctypes.c_int, ctypes.c_uint, ctypes.c_uint64,
-        ctypes.c_int, ctypes.c_char_p,
-    ]
+    try:
+        libc.fanotify_mark.restype = ctypes.c_int
+        libc.fanotify_mark.argtypes = [
+            ctypes.c_int, ctypes.c_uint, ctypes.c_uint64,
+            ctypes.c_int, ctypes.c_char_p,
+        ]
+    except AttributeError:
+        pass
+
+    try:
+        libc.open_by_handle_at.restype = ctypes.c_int
+        libc.open_by_handle_at.argtypes = [ctypes.c_int, ctypes.c_void_p, ctypes.c_int]
+    except AttributeError:
+        pass
 
 
 def is_path_excluded(path: str, excludes: list[str]) -> bool:
@@ -112,6 +130,128 @@ class FanotifyEvent:
     path: str | None = None
 
 
+def parse_fanotify_buffer(
+    buf: bytes,
+    default_dir: str = "",
+    mount_fd: int = -1,
+    close_fds: bool = True,
+) -> list[FanotifyEvent]:
+    """
+    Pure function to parse fanotify event buffer returned by os.read().
+    Supports both traditional file descriptor events and modern
+    FAN_REPORT_DFID_NAME / FAN_REPORT_FID directory entry events.
+
+    For DFID_NAME events (create, delete, rename):
+      - Extracts the directory entry filename from the variable-length info record.
+      - Attempts path resolution via open_by_handle_at() using mount_fd.
+      - Falls back to default_dir (watch path) + filename if open_by_handle_at fails or is unavailable.
+      - Ensures all open fds are closed if close_fds is True.
+    """
+    events = []
+    offset = 0
+    buf_len = len(buf)
+
+    while offset + _META_SIZE <= buf_len:
+        event_len, vers, _reserved, metadata_len, mask, fd, pid = struct.unpack_from(
+            _META_FMT, buf, offset
+        )
+        if event_len < _META_SIZE or offset + event_len > buf_len:
+            break
+
+        resolved_path = None
+        extracted_name = None
+        handle_buf = None
+
+        if fd >= 0:
+            try:
+                resolved_path = os.readlink(f"/proc/self/fd/{fd}")
+            except (OSError, AttributeError):
+                resolved_path = None
+            if close_fds:
+                try:
+                    os.close(fd)
+                except OSError:
+                    pass
+        else:
+            # Handle variable-length info records when fd == FAN_NOFD (-1)
+            info_offset = offset + metadata_len
+            event_end = offset + event_len
+
+            while info_offset + 4 <= event_end:
+                info_type, _pad, info_len = struct.unpack_from("=BBH", buf, info_offset)
+                if info_len < 4 or info_offset + info_len > event_end:
+                    break
+
+                if info_type in (
+                    FAN_EVENT_INFO_TYPE_DFID_NAME,
+                    FAN_EVENT_INFO_TYPE_FID,
+                    FAN_EVENT_INFO_TYPE_DFID,
+                ):
+                    # Record layout:
+                    # [0:4]   hdr (info_type, pad, len)
+                    # [4:12]  fsid (8 bytes)
+                    # [12:16] handle_bytes (__u32)
+                    # [16:20] handle_type (int)
+                    # [20 : 20 + handle_bytes] f_handle
+                    # [20 + handle_bytes : info_len] name (null-terminated string for DFID_NAME)
+                    if info_len >= 20:
+                        handle_bytes, handle_type = struct.unpack_from("=Ii", buf, info_offset + 12)
+                        f_handle_start = info_offset + 20
+                        f_handle_end = f_handle_start + handle_bytes
+
+                        if f_handle_end <= info_offset + info_len:
+                            handle_buf = buf[info_offset + 12 : f_handle_end]
+
+                            if info_type == FAN_EVENT_INFO_TYPE_DFID_NAME:
+                                name_raw = buf[f_handle_end : info_offset + info_len]
+                                null_idx = name_raw.find(b"\x00")
+                                name_bytes = name_raw[:null_idx] if null_idx >= 0 else name_raw
+                                try:
+                                    decoded_name = name_bytes.decode("utf-8", errors="replace").strip()
+                                    if decoded_name and decoded_name != ".":
+                                        extracted_name = decoded_name
+                                except Exception:
+                                    extracted_name = None
+
+                info_offset += info_len
+
+            # Resolve directory path via open_by_handle_at if available
+            dir_path = None
+            if handle_buf and libc and hasattr(libc, "open_by_handle_at") and mount_fd >= 0:
+                try:
+                    c_handle = ctypes.create_string_buffer(handle_buf)
+                    dfd = libc.open_by_handle_at(mount_fd, ctypes.byref(c_handle), O_RDONLY)
+                    if dfd >= 0:
+                        try:
+                            dir_path = os.readlink(f"/proc/self/fd/{dfd}")
+                        except (OSError, AttributeError):
+                            dir_path = None
+                        finally:
+                            try:
+                                os.close(dfd)
+                            except OSError:
+                                pass
+                except Exception:
+                    dir_path = None
+
+            # Fall back to default_dir + extracted_name if open_by_handle_at fails or is unavailable
+            if dir_path and extracted_name:
+                resolved_path = os.path.join(dir_path, extracted_name)
+            elif dir_path:
+                resolved_path = dir_path
+            elif default_dir and extracted_name:
+                resolved_path = os.path.join(default_dir, extracted_name)
+            elif extracted_name:
+                resolved_path = extracted_name
+            elif default_dir:
+                resolved_path = default_dir
+
+        events.append(FanotifyEvent(mask=mask, pid=pid, fd=fd, path=resolved_path))
+        offset += event_len
+
+    return events
+
+
 class Fanotify:
     """
     Multi-path fanotify watcher for Linux filesystems.
@@ -132,9 +272,17 @@ class Fanotify:
         self.mode = "none"
         self.marked_paths: list[str] = []
         self.failed_paths: dict[str, str] = {}
+        self.mount_fd = -1
 
         if not self.watch_paths:
             return
+
+        # Attempt to open directory descriptor for open_by_handle_at path resolution
+        try:
+            if self.watch_path and os.path.exists(self.watch_path):
+                self.mount_fd = os.open(self.watch_path, os.O_RDONLY | getattr(os, "O_PATH", 0))
+        except Exception:
+            self.mount_fd = -1
 
         # Attempt 1: Modern DFID_NAME mode (Linux >= 5.9, supports create/delete/rename)
         init_flags = FAN_CLASS_NOTIF | FAN_REPORT_DFID_NAME | FAN_CLOEXEC | FAN_NONBLOCK
@@ -166,6 +314,9 @@ class Fanotify:
         self.fd = libc.fanotify_init(init_flags, O_RDONLY)
         if self.fd < 0:
             errno = ctypes.get_errno()
+            if self.mount_fd >= 0:
+                os.close(self.mount_fd)
+                self.mount_fd = -1
             raise OSError(
                 errno,
                 os.strerror(errno)
@@ -191,6 +342,9 @@ class Fanotify:
             errno = ctypes.get_errno()
             os.close(self.fd)
             self.fd = -1
+            if self.mount_fd >= 0:
+                os.close(self.mount_fd)
+                self.mount_fd = -1
             raise OSError(
                 errno,
                 os.strerror(errno) + f" -- fanotify_mark failed on all paths: {self.watch_paths}",
@@ -230,29 +384,9 @@ class Fanotify:
                 return []
             raise
 
-        events = []
-        offset = 0
-        while offset + _META_SIZE <= len(buf):
-            event_len, vers, _reserved, metadata_len, mask, fd, pid = struct.unpack_from(
-                _META_FMT, buf, offset
-            )
-            if event_len < _META_SIZE:
-                break
-
-            resolved_path = None
-            if fd >= 0:
-                try:
-                    # Resolve path before closing fd on Linux
-                    resolved_path = os.readlink(f"/proc/self/fd/{fd}")
-                except (OSError, AttributeError):
-                    resolved_path = None
-                try:
-                    os.close(fd)
-                except OSError:
-                    pass
-            events.append(FanotifyEvent(mask=mask, pid=pid, fd=fd, path=resolved_path))
-            offset += event_len
-        return events
+        return parse_fanotify_buffer(
+            buf, default_dir=self.watch_path, mount_fd=self.mount_fd, close_fds=True
+        )
 
     def close(self):
         if self.fd >= 0:
@@ -261,3 +395,9 @@ class Fanotify:
             except OSError:
                 pass
             self.fd = -1
+        if self.mount_fd >= 0:
+            try:
+                os.close(self.mount_fd)
+            except OSError:
+                pass
+            self.mount_fd = -1

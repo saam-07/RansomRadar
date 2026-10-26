@@ -34,12 +34,6 @@ from .response.protection import ProtectionManager, ProtectionTarget
 from .response.safety import SafetyRails
 from .state import StateManager
 from .telemetry import TelemetryWriter
-from .response.safety import SafetyRails
-from .state import StateManager
-from .logging.logger import setup_logging, get_logger
-from .logging.alert_logger import AlertLogger
-from .ml.registry import ModelRegistry
-from .ml.classifier import build_classifier
 
 __all__ = [
     "FEATURE_COLUMNS",
@@ -78,10 +72,4 @@ __all__ = [
     "setup_logging",
     "tier0_suspicion_score",
     "unfreeze_pid",
-    "get_logger",
-    "AlertLogger",
-    "ModelRegistry",
-    "build_classifier",
-    "SafetyRails",
-    "StateManager",
 ]

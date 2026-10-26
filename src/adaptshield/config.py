@@ -204,15 +204,24 @@ def load_config(path: str | Path | None = None) -> AdaptShieldConfig:
         ])
 
     for c in candidates:
-        if c.exists() and c.is_file():
-            try:
-                with open(c, "r", encoding="utf-8") as f:
-                    data = yaml.safe_load(f) or {}
-                return AdaptShieldConfig(**data)
-            except Exception as e:
-                if path is not None:
-                    raise ValueError(f"Error parsing configuration file {c}: {e}") from e
-                # Otherwise, continue search
+        try:
+            if c.exists() and c.is_file():
+                try:
+                    with open(c, "r", encoding="utf-8") as f:
+                        data = yaml.safe_load(f) or {}
+                    return AdaptShieldConfig(**data)
+                except Exception as e:
+                    if path is not None:
+                        raise ValueError(f"Error parsing configuration file {c}: {e}") from e
+                    # Otherwise, continue search
+        except PermissionError:
+            if path is not None:
+                raise
+            continue
+        except OSError:
+            if path is not None:
+                raise
+            continue
 
     # If no configuration file was found or readable, return default configuration
     return AdaptShieldConfig()

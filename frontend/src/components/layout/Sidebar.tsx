@@ -6,7 +6,6 @@ import {
   Cpu,
   ShieldAlert,
   Settings,
-  Terminal,
 } from 'lucide-react';
 
 export type NavTab =
@@ -32,23 +31,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const navItems = [
     { id: 'dashboard' as NavTab, label: 'Live Dashboard', icon: Activity, badge: null },
     { id: 'scenarios' as NavTab, label: 'Scenario Runner', icon: PlayCircle, badge: null },
-    { id: 'comparison' as NavTab, label: 'Detector Comparison', icon: BarChart3, badge: null },
-    { id: 'datasets' as NavTab, label: 'Datasets Explorer', icon: Database, badge: null },
+    { id: 'comparison' as NavTab, label: 'Detection Analysis', icon: BarChart3, badge: null },
+    { id: 'datasets' as NavTab, label: 'Event Explorer', icon: Database, badge: null },
     { id: 'models' as NavTab, label: 'Models & Training', icon: Cpu, badge: null },
     {
       id: 'alerts' as NavTab,
       label: 'Alerts & Forensics',
       icon: ShieldAlert,
       badge: unresolvedAlertsCount > 0 ? String(unresolvedAlertsCount) : null,
-      badgeColor: 'bg-red-500/20 text-red-400 border border-red-500/30',
+      badgeColor: 'bg-[#fdecee] text-[#9e3146] border border-[#f8c4cd]',
     },
     { id: 'settings' as NavTab, label: 'System Settings', icon: Settings, badge: null },
   ];
 
   return (
-    <aside className="w-64 border-r border-slate-800 bg-[#0a0f1d] flex flex-col justify-between select-none">
+    <aside className="w-64 border-r border-[#e5dbe8] bg-[#fbf9fa]/95 backdrop-blur-md flex flex-col justify-between select-none shrink-0 transition-all duration-200 shadow-sm">
       <div className="py-6 px-4 space-y-1">
-        <div className="px-3 pb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
+        <div className="px-3 pb-3 text-xs font-semibold uppercase tracking-wider text-[#786c85]">
           Navigation
         </div>
 
@@ -61,18 +60,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onClick={() => onSelectTab(item.id)}
               className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                 isActive
-                  ? 'bg-blue-600/15 text-blue-400 border border-blue-500/30 font-semibold'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                  ? 'bg-[#f4e6ec] text-[#8e455d] border border-[#e2c1ce] font-semibold'
+                  : 'text-[#5e5369] hover:text-[#2c2436] hover:bg-[#f6eff4]'
               }`}
             >
               <div className="flex items-center space-x-3">
-                <Icon className={`w-4 h-4 ${isActive ? 'text-blue-400' : 'text-slate-400'}`} />
+                <Icon className={`w-4 h-4 ${isActive ? 'text-[#8e455d]' : 'text-[#786c85]'}`} />
                 <span>{item.label}</span>
               </div>
               {item.badge && (
                 <span
                   className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${
-                    item.badgeColor || 'bg-slate-800 text-slate-400 border border-slate-700'
+                    item.badgeColor || 'bg-[#f1ebf4] text-[#6b5f77] border border-[#ded5e3]'
                   }`}
                 >
                   {item.badge}
@@ -81,17 +80,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </button>
           );
         })}
-      </div>
-
-      {/* System Telemetry Info */}
-      <div className="p-4 border-t border-slate-800/80 m-2 rounded-lg bg-slate-900/50">
-        <div className="flex items-center space-x-2 text-xs text-slate-400 mb-2">
-          <Terminal className="w-3.5 h-3.5 text-blue-400" />
-          <span>AdaptShield Daemon v0.1.0</span>
-        </div>
-        <p className="text-[11px] text-slate-400 leading-relaxed">
-          Autonomous Tier-0 heuristic & Tier-1 eBPF behavioral containment engine.
-        </p>
       </div>
     </aside>
   );

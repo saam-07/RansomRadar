@@ -42,9 +42,12 @@ class AlertLogger:
 
     def log(self, event_type: str, **fields):
         """Records an event to the JSONL log file and emits a structured log message."""
+        now = time.time()
         record = {
-            "ts": time.time(),
+            "ts": now,
+            "timestamp": now,
             "event_type": event_type,
+            "event": event_type,
             **fields,
         }
 

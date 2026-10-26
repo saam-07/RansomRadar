@@ -145,16 +145,29 @@ class ProtectionManager:
             }
             tmp = self.state_file.with_suffix(".tmp")
             tmp.write_text(json.dumps(manifest, indent=2))
+            try:
+                os.chmod(tmp, 0o640)
+            except Exception:
+                pass
             tmp.replace(self.state_file)
         except Exception as e:
             logger.warning("Could not persist protection manifest to %s: %s", self.state_file, e)
 
     def load_manifest(self) -> dict[str, Any]:
         """Loads previously saved protection targets from manifest."""
-        if not self.state_file.exists():
-            return {}
+        self.manifest_permission_denied = False
         try:
+            if not self.state_file.exists():
+                return {}
             return json.loads(self.state_file.read_text())
+        except PermissionError as e:
+            self.manifest_permission_denied = True
+            logger.warning(
+                "Protection manifest %s is not readable by current user: %s",
+                self.state_file,
+                e,
+            )
+            return {}
         except Exception as e:
             logger.warning("Could not load protection manifest %s: %s", self.state_file, e)
             return {}

@@ -1,0 +1,37 @@
+services:
+  # Backend API Web Service
+  - type: web
+    name: adaptshield-backend
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: "pip install -r requirements.txt && pip install -e ."
+    startCommand: "uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: ADAPTSHIELD_MODE
+        value: simulated
+      - key: ADAPTSHIELD_DEFAULT_DETECTOR
+        value: xgboost
+      - key: ADAPTSHIELD_DEFAULT_POLICY
+        value: immediate
+      - key: ADAPTSHIELD_DB_URL
+        value: sqlite:///data/adaptshield.db
+
+  # Frontend Static Site
+  - type: web
+    name: adaptshield-frontend
+    env: static
+    region: oregon
+    plan: free
+    rootDir: frontend
+    buildCommand: "npm install && npm run build"
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        value: https://adaptshield-backend.onrender.com/api
+      - key: VITE_WS_URL
+        value: wss://adaptshield-backend.onrender.com/api/stream

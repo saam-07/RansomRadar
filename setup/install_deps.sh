@@ -46,8 +46,10 @@ fi
 
 # Enable freezer controller in cgroup root if supported
 if [ -f /sys/fs/cgroup/cgroup.subtree_control ]; then
-  if ! grep -q "freezer" /sys/fs/cgroup/cgroup.subtree_control; then
-    echo "+freezer" | sudo tee /sys/fs/cgroup/cgroup.subtree_control 2>/dev/null || true
+  if grep -qw "freezer" /sys/fs/cgroup/cgroup.controllers 2>/dev/null; then
+    if ! grep -q "freezer" /sys/fs/cgroup/cgroup.subtree_control; then
+      echo "+freezer" | sudo tee /sys/fs/cgroup/cgroup.subtree_control 2>/dev/null || true
+    fi
   fi
   echo "Root subtree_control: $(cat /sys/fs/cgroup/cgroup.subtree_control || true)"
 fi

@@ -80,6 +80,34 @@ class Tier0Watcher:
         self._stop = threading.Event()
         self._thread = None
 
+    def record_event(
+        self,
+        pid: int,
+        mask: int,
+        path: str | None = None,
+        timestamp: float | None = None,
+    ):
+        """Records a single filesystem event for a PID after exclusion and watch-path filtering."""
+        if pid in self.excluded_pids:
+            return
+        if path and is_path_excluded(path, self.excludes):
+            return
+        if path and self.watch_paths:
+            norm = os.path.abspath(path)
+            matched = False
+            for wp in self.watch_paths:
+                norm_wp = os.path.abspath(wp)
+                if norm == norm_wp or norm.startswith(norm_wp + os.sep):
+                    matched = True
+                    break
+            if not matched:
+                return
+
+        now = timestamp if timestamp is not None else time.monotonic()
+        with self._lock:
+            st = self._state[pid]
+            st.events.append((now, mask))
+
     def _reader_loop(self):
         while not self._stop.is_set():
             if not self.fan:
@@ -94,16 +122,8 @@ class Tier0Watcher:
                 time.sleep(0.05)
                 continue
             now = time.monotonic()
-            with self._lock:
-                for ev in events:
-                    # 1. Filter out self / excluded PIDs
-                    if ev.pid in self.excluded_pids:
-                        continue
-                    # 2. Filter out excluded paths
-                    if ev.path and is_path_excluded(ev.path, self.excludes):
-                        continue
-                    st = self._state[ev.pid]
-                    st.events.append((now, ev.mask))
+            for ev in events:
+                self.record_event(ev.pid, ev.mask, path=ev.path, timestamp=now)
 
     def start(self):
         self._stop.clear()

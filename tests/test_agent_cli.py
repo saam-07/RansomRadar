@@ -40,6 +40,8 @@ def test_cli_status():
     assert "AdaptShield Endpoint Agent Status" in out
     assert "Operating Mode:" in out
     assert "Response Policy:" in out
+    assert "Configured Detector:" in out
+    assert "Effective Containment Detector:" in out
     assert "Active Detector:" in out
 
 
@@ -65,6 +67,13 @@ def test_cli_mode():
         assert "mode set to 'monitor'" in out_set
         data = yaml.safe_load(conf_file.read_text())
         assert data["mode"] == "monitor"
+
+        # Change mode to protect -> resets monitor-first window to 0
+        out_prot = run_cli_args("-c", str(conf_file), "mode", "protect")
+        assert "mode set to 'protect'" in out_prot
+        data_prot = yaml.safe_load(conf_file.read_text())
+        assert data_prot["mode"] == "protect"
+        assert data_prot.get("monitor_first_period_hours") == 0
 
 
 def test_cli_config_check_and_show():
@@ -143,11 +152,56 @@ def test_cli_alerts_output():
         assert "5555" in out_json
         assert "Rapid modification rate" in out_json
 
+        out_human = run_cli_args("-c", str(conf_file), "alerts")
+        assert "5555" in out_human
+        assert "0.88" in out_human
+        assert "Rapid modification rate" in out_human
+
+
+def test_cli_alerts_escalation_presentation():
+    """Verify that escalation events logged with ts/tier0_score format timestamps and scores properly."""
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        alert_file = Path(tmp_dir) / "alert.jsonl"
+        # Real agent escalation record schema from AlertLogger
+        esc_record = {
+            "ts": 1791393646.9082456,
+            "event_type": "escalation",
+            "pid": 4512,
+            "tier0_score": 0.7287,
+            "escalation_latency_s": 0.0015,
+        }
+        alert_file.write_text(json.dumps(esc_record) + "\n")
+
+        conf_file = Path(tmp_dir) / "config.yaml"
+        conf_file.write_text(yaml.safe_dump({"logging": {"alert_file": str(alert_file)}}))
+
+        out = run_cli_args("-c", str(conf_file), "alerts")
+        # 1. Must NOT show 1970 timestamp
+        assert "1970-01-01" not in out
+        # 2. Must show escalation event
+        assert "escalation" in out
+        # 3. Must show PID
+        assert "4512" in out
+        # 4. Must show risk score derived from tier0_score
+        assert "0.73" in out
+        # 5. Must show detailed summary instead of "No details"
+        assert "tier0_score=0.7287" in out
+        assert "No details" not in out
+
 
 def test_cli_simulate_benign():
     with tempfile.TemporaryDirectory() as tmp_dir:
         out = run_cli_args("simulate", "benign", "--target", tmp_dir)
         assert "Benign simulation finished" in out
+
+
+def test_cli_simulate_ransomware():
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        sandbox = Path(tmp_dir) / "sim_ransom_test"
+        out = run_cli_args("simulate", "ransomware", "--target", str(sandbox), "--count", "15")
+        assert "Simulated ransomware encryption completed in sandbox" in out
+        assert sandbox.exists()
+        assert len(list(sandbox.glob("*.locked*"))) > 0
 
 
 def test_cli_release_all():
@@ -172,3 +226,91 @@ def test_cli_release_all():
         # Now list should be empty
         out_list = run_cli_args("-c", str(conf_file), "list")
         assert "No contained or pending processes found." in out_list
+
+
+def test_cli_status_handles_permission_error_gracefully(monkeypatch):
+    """Verifies that adaptshield status does NOT crash with a traceback on PermissionError."""
+    from adaptshield.response.protection import ProtectionManager
+
+    def mock_load_manifest(self):
+        self.manifest_permission_denied = True
+        raise PermissionError("Permission denied: /var/lib/adaptshield/protection_manifest.json")
+
+    monkeypatch.setattr(ProtectionManager, "load_manifest", mock_load_manifest)
+
+    out = run_cli_args("status")
+    assert "AdaptShield Endpoint Agent Status" in out
+    assert "WARNING: Protection manifest or system state is not readable" in out
+    assert "sudo usermod -aG adaptshield" in out
+    assert "Traceback" not in out
+
+
+def test_cli_log_path_resolution(monkeypatch, tmp_path):
+    """Verify that installed log file /var/log/adaptshield is prioritized if accessible."""
+    from adaptshield.cli import get_effective_alert_file, get_effective_log_file
+    from adaptshield.config import AdaptShieldConfig
+
+    cfg = AdaptShieldConfig()
+    cfg.logging.file = "relative.log"
+    cfg.logging.alert_file = "alerts.jsonl"
+
+    var_log_dir = tmp_path / "var_log"
+    var_log_dir.mkdir()
+    var_log_file = var_log_dir / "adaptshield.log"
+    var_alert_file = var_log_dir / "alerts.jsonl"
+    var_log_file.write_text("dummy log")
+    var_alert_file.write_text("dummy alert\n")
+
+    monkeypatch.setattr("adaptshield.cli.SYSTEM_LOG_FILE", var_log_file)
+    monkeypatch.setattr("adaptshield.cli.SYSTEM_ALERT_FILE", var_alert_file)
+
+    eff_log = get_effective_log_file(cfg)
+    assert eff_log == str(var_log_file)
+
+    eff_alert = get_effective_alert_file(cfg)
+    assert eff_alert == str(var_alert_file)
+
+
+def test_cli_alerts_handles_permission_error_gracefully(monkeypatch, tmp_path):
+    """Verifies that adaptshield alerts does NOT crash with traceback on PermissionError."""
+    fake_alert = tmp_path / "fake_alert.jsonl"
+    fake_alert.write_text('{"event": "TEST"}\n')
+
+    def mock_open(*args, **kwargs):
+        raise PermissionError("Permission denied reading alerts")
+
+    monkeypatch.setattr("adaptshield.cli.SYSTEM_ALERT_FILE", fake_alert)
+    monkeypatch.setattr("builtins.open", mock_open)
+    out = run_cli_args("alerts")
+    assert "WARNING: Alert log at" in out
+    assert "sudo usermod -aG adaptshield" in out
+    assert "Traceback" not in out
+
+
+def test_cli_doctor_containment_and_detector_output():
+    """Verify doctor outputs Containment Backend and Active Detector."""
+    out = run_cli_args("doctor")
+    assert "Containment Backend:" in out
+    assert "Active Detector:" in out
+    assert "Privileges:" in out
+
+
+def test_cli_logging_read_only_avoids_service_log_write():
+    """Verify that default CLI logging does not attach a write FileHandler against the service log."""
+    import logging
+    from adaptshield.logging.logger import setup_logging
+
+    root_logger = setup_logging()
+    file_handlers = [h for h in root_logger.handlers if isinstance(h, logging.FileHandler)]
+    assert len(file_handlers) == 0, "CLI logging must remain read-only without attaching write FileHandlers"
+
+
+def test_cli_status_displays_effective_containment_detector_with_synthetic_guard():
+    """Verify status reports Configured Detector and Effective Containment Detector with synthetic guard."""
+    out = run_cli_args("status")
+    assert "Configured Detector:" in out
+    assert "Effective Containment Detector:" in out
+    if "xgboost" in out and "Synthetic Guard: ACTIVE" in out:
+        assert "rule_based" in out
+
+
