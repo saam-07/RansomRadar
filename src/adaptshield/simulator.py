@@ -7,8 +7,11 @@ a dedicated sandbox directory.
 """
 from __future__ import annotations
 
+import json
+import multiprocessing
 import os
 import shutil
+import signal
 import sys
 import tempfile
 import time
@@ -184,11 +187,13 @@ def simulate_benign_workload(
     target_dir: Path,
     count: int = 20,
     delay: float = 0.05,
+    status_file: Path | None = None,
 ) -> dict[str, Any]:
     """
     Generates standard benign document creation and editing with gentle write pauses.
     Produces low modification rates and zero file rename operations.
     """
+    set_sim_process_name("benign_worker")
     target_dir.mkdir(parents=True, exist_ok=True)
     created = []
     for i in range(count):
@@ -198,14 +203,23 @@ def simulate_benign_workload(
         if delay > 0:
             time.sleep(delay)
 
-    return {
+    res = {
         "sim_type": "benign",
         "pid": os.getpid(),
         "target_dir": str(target_dir),
+        "files": len(created),
         "files_created": len(created),
         "modifications": len(created),
         "renames": 0,
+        "contained": False,
+        "exitcode": 0,
     }
+    if status_file:
+        try:
+            status_file.write_text(json.dumps({**res, "status": "completed"}))
+        except Exception:
+            pass
+    return res
 
 
 def simulate_ransomware_workload(
@@ -213,6 +227,7 @@ def simulate_ransomware_workload(
     count: int = 120,
     rounds: int = 2,
     burst_delay: float = 0.001,
+    status_file: Path | None = None,
 ) -> dict[str, Any]:
     """
     Safely simulates ransomware behavior strictly within target_dir:
@@ -239,6 +254,19 @@ def simulate_ransomware_workload(
     total_mods = 0
     total_renames = 0
 
+    if status_file:
+        try:
+            status_file.write_text(json.dumps({
+                "pid": os.getpid(),
+                "sim_type": "ransomware",
+                "status": "running",
+                "files": len(file_paths),
+                "modifications": total_mods,
+                "renames": total_renames,
+            }))
+        except Exception:
+            pass
+
     # 2. Rapid modification and extension-altering rename bursts
     for r in range(rounds):
         ext = f".locked{r}" if r > 0 else ".locked"
@@ -259,6 +287,19 @@ def simulate_ransomware_workload(
                 total_renames += 1
                 new_paths.append(target_p)
 
+                if total_mods % 10 == 0 and status_file:
+                    try:
+                        status_file.write_text(json.dumps({
+                            "pid": os.getpid(),
+                            "sim_type": "ransomware",
+                            "status": "running",
+                            "files": len(file_paths),
+                            "modifications": total_mods,
+                            "renames": total_renames,
+                        }))
+                    except Exception:
+                        pass
+
                 if burst_delay > 0:
                     time.sleep(burst_delay)
             except OSError:
@@ -266,14 +307,154 @@ def simulate_ransomware_workload(
 
         file_paths = new_paths
 
-    return {
+    res = {
         "sim_type": "ransomware",
         "pid": os.getpid(),
         "target_dir": str(target_dir),
         "files": len(file_paths),
         "modifications": total_mods,
         "renames": total_renames,
+        "contained": False,
+        "exitcode": 0,
     }
+    if status_file:
+        try:
+            status_file.write_text(json.dumps({**res, "status": "completed"}))
+        except Exception:
+            pass
+    return res
+
+
+def check_pid_containment(pid: int, cfg: AdaptShieldConfig | None = None) -> tuple[bool, dict[str, Any]]:
+    """
+    Checks if AdaptShield has contained the given PID:
+    1. Checks if PID is currently frozen in a cgroup.
+    2. Checks state.json for a recorded containment record.
+    3. Checks alerts.jsonl for an alert_critical / containment event.
+    Returns (is_contained, evidence_dict).
+    """
+    evidence: dict[str, Any] = {}
+    if cfg is None:
+        try:
+            cfg = load_config()
+        except Exception:
+            cfg = AdaptShieldConfig()
+
+    # 1. Check frozen cgroup
+    try:
+        from .response.containment_manager import is_pid_frozen
+        if is_pid_frozen(pid):
+            evidence["reason"] = "Process cgroup is frozen"
+            evidence["frozen"] = True
+            return True, evidence
+    except Exception:
+        pass
+
+    # 2. Check state.json
+    try:
+        state_file = Path(cfg.response.control_dir).parent / "state.json"
+        if state_file.exists():
+            from .state import StateManager
+            mgr = StateManager(state_file)
+            if pid in mgr.records:
+                r = mgr.records[pid]
+                evidence["policy"] = r.policy
+                evidence["status"] = r.status
+                evidence["quarantine_path"] = r.quarantine_path
+                evidence["action"] = "quarantined" if r.status == "quarantined" else "frozen"
+                return True, evidence
+    except Exception:
+        pass
+
+    # 3. Check alerts.jsonl
+    try:
+        from .cli import get_effective_alert_file
+        alert_file = Path(get_effective_alert_file(cfg))
+        if alert_file.exists():
+            lines = alert_file.read_text(encoding="utf-8").splitlines()
+            for line in reversed(lines):
+                if not line.strip():
+                    continue
+                try:
+                    ev = json.loads(line)
+                    if ev.get("pid") == pid and ev.get("event") in ("containment", "alert_critical"):
+                        evidence["event"] = ev.get("event")
+                        evidence["policy"] = ev.get("policy", "immediate")
+                        evidence["action"] = ev.get("event")
+                        return True, evidence
+                except Exception:
+                    continue
+    except Exception:
+        pass
+
+    return False, evidence
+
+
+def _sim_child_worker(
+    sim_type: str,
+    target_dir_str: str,
+    count: int,
+    rounds: int,
+    burst_delay: float,
+    status_file_str: str,
+    queue: Any,
+) -> None:
+    """
+    Child process entrypoint. Runs in a dedicated process separate from CLI and daemon.
+    Sets distinct non-allowlisted identity ('ransom_worker' or 'benign_worker')
+    and executes simulation strictly within target_dir.
+    """
+    target_dir = Path(target_dir_str)
+    status_file = Path(status_file_str)
+    pid = os.getpid()
+
+    try:
+        status_file.write_text(json.dumps({
+            "pid": pid,
+            "status": "running",
+            "sim_type": sim_type,
+            "started_at": time.time(),
+            "files": 0,
+            "modifications": 0,
+            "renames": 0,
+        }))
+    except Exception:
+        pass
+
+    try:
+        if sim_type == "benign":
+            res = simulate_benign_workload(
+                target_dir, count=min(count, 20), status_file=status_file
+            )
+        else:
+            res = simulate_ransomware_workload(
+                target_dir, count=count, rounds=rounds, burst_delay=burst_delay, status_file=status_file
+            )
+
+        if queue is not None:
+            try:
+                queue.put(res)
+            except Exception:
+                pass
+    except Exception as e:
+        err_res = {
+            "sim_type": sim_type,
+            "pid": pid,
+            "target_dir": target_dir_str,
+            "status": "error",
+            "error": str(e),
+            "files": 0,
+            "modifications": 0,
+            "renames": 0,
+            "contained": False,
+            "exitcode": 1,
+        }
+        if queue is not None:
+            try:
+                queue.put(err_res)
+            except Exception:
+                pass
+        sys.exit(1)
 
 
 def run_simulation(
@@ -282,10 +463,16 @@ def run_simulation(
     count: int = 120,
     duration: float = 6.0,
     cfg: AdaptShieldConfig | None = None,
-    in_process: bool = True,
+    in_process: bool = False,
+    rounds: int = 2,
+    burst_delay: float = 0.001,
 ) -> dict[str, Any]:
     """
     Executes a workload simulation in a safe sandbox directory.
+
+    When in_process is False (default), executes the simulation in a dedicated child
+    process separate from the CLI. If containment occurs, the child process is
+    terminated/frozen while the CLI survives to observe and report the outcome.
     """
     if cfg is None:
         try:
@@ -295,11 +482,107 @@ def run_simulation(
 
     target_dir = resolve_sandbox_dir(target_arg=target, sim_type=sim_type, cfg=cfg)
 
-    if sim_type == "benign":
-        return simulate_benign_workload(target_dir, count=min(count, 20))
+    # 1. In-process execution (opt-in for lightweight direct tests)
+    if in_process:
+        if sim_type == "benign":
+            return simulate_benign_workload(target_dir, count=min(count, 20))
+        return simulate_ransomware_workload(
+            target_dir, count=count, rounds=rounds, burst_delay=burst_delay
+        )
 
-    # Ransomware workload
-    return simulate_ransomware_workload(target_dir, count=count)
+    # 2. Dedicated Child Process Execution (default)
+    status_file = target_dir / ".sim_status.json"
+    if status_file.exists():
+        try:
+            status_file.unlink()
+        except OSError:
+            pass
+
+    methods = multiprocessing.get_all_start_methods()
+    ctx = multiprocessing.get_context("fork" if "fork" in methods else None)
+    queue = ctx.Queue()
+
+    p = ctx.Process(
+        target=_sim_child_worker,
+        args=(sim_type, str(target_dir), count, rounds, burst_delay, str(status_file), queue),
+    )
+    p.start()
+    child_pid = p.pid
+
+    # Wait for completion or containment
+    max_wait = max(duration + 4.0, 10.0)
+    p.join(timeout=max_wait)
+
+    exitcode = p.exitcode
+    is_alive = p.is_alive()
+
+    # Check if PID was contained by AdaptShield daemon
+    is_contained, evidence = check_pid_containment(child_pid, cfg=cfg)
+
+    # Negative exit code indicates killed by signal (e.g. -9 is SIGKILL)
+    if exitcode is not None and exitcode < 0:
+        sig = -exitcode
+        if sig in (9, 15):
+            is_contained = True
+            evidence["signal"] = sig
+            evidence["reason"] = f"Process terminated by signal {sig}"
+
+    if is_alive:
+        # Check if process is frozen in cgroups
+        try:
+            from .response.containment_manager import is_pid_frozen
+            if is_pid_frozen(child_pid):
+                is_contained = True
+                evidence["frozen"] = True
+                evidence["reason"] = "Process frozen by cgroups v2"
+            else:
+                p.terminate()
+                p.join(timeout=1.0)
+        except Exception:
+            try:
+                p.terminate()
+                p.join(timeout=1.0)
+            except Exception:
+                pass
+
+    # Read result from queue or status_file
+    res_data: dict[str, Any] = {}
+    try:
+        if not queue.empty():
+            res_data = queue.get_nowait()
+    except Exception:
+        pass
+
+    if not res_data and status_file.exists():
+        try:
+            res_data = json.loads(status_file.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+
+    files_count = res_data.get("files", res_data.get("files_created", count))
+    mods_count = res_data.get("modifications", 0)
+    renames_count = res_data.get("renames", 0)
+
+    # If child was killed mid-way, check filesystem for actual locked files created
+    if mods_count == 0 and target_dir.exists():
+        locked_files = list(target_dir.glob("*.locked*"))
+        if locked_files:
+            mods_count = len(locked_files)
+            renames_count = len(locked_files)
+            files_count = max(files_count, len(locked_files))
+
+    return {
+        "sim_type": sim_type,
+        "pid": child_pid,
+        "target_dir": str(target_dir),
+        "files": files_count,
+        "files_created": files_count,
+        "modifications": mods_count,
+        "renames": renames_count,
+        "exitcode": p.exitcode,
+        "contained": is_contained,
+        "containment_evidence": evidence,
+    }
 
 
 def cleanup_sandbox(target_dir: Path):

@@ -314,3 +314,57 @@ def test_cli_status_displays_effective_containment_detector_with_synthetic_guard
         assert "rule_based" in out
 
 
+
+
+def test_cli_simulate_reports_containment_when_child_is_intercepted(monkeypatch):
+    """
+    Regression test:
+    Verifies that when the child process is terminated by AdaptShield containment,
+    the CLI reports interception and containment cleanly instead of printing Killed
+    or claiming successful completed encryption.
+    """
+    from adaptshield.cli import run_simulation
+
+    def mock_run_simulation(*args, **kwargs):
+        return {
+            "sim_type": "ransomware",
+            "pid": 4321,
+            "target_dir": "/home/user/adaptshield_sim_ransomware",
+            "files": 120,
+            "modifications": 42,
+            "renames": 42,
+            "exitcode": -9,
+            "contained": True,
+            "containment_evidence": {
+                "policy": "immediate",
+                "action": "containment",
+                "signal": 9,
+            },
+        }
+
+    monkeypatch.setattr("adaptshield.cli.run_simulation", mock_run_simulation)
+    out = run_cli_args("simulate", "ransomware")
+    assert "Ransomware simulation intercepted and CONTAINED by AdaptShield." in out
+    assert "Target PID:           4321" in out
+    assert "Terminated via signal (exit code -9)" in out
+    assert "Containment verified: Threat was halted before completing payload execution." in out
+    assert "Simulated ransomware encryption completed in sandbox" not in out
+
+
+def test_cli_simulate_reports_benign_completion(monkeypatch):
+    """Verify benign simulation reports clean completion with distinct child PID."""
+    def mock_run_simulation(*args, **kwargs):
+        return {
+            "sim_type": "benign",
+            "pid": 5678,
+            "target_dir": "/tmp/adaptshield_sim_benign",
+            "files_created": 10,
+            "modifications": 10,
+            "renames": 0,
+            "exitcode": 0,
+            "contained": False,
+        }
+
+    monkeypatch.setattr("adaptshield.cli.run_simulation", mock_run_simulation)
+    out = run_cli_args("simulate", "benign")
+    assert "Benign simulation finished. Generated 10 standard text files (PID 5678)." in out

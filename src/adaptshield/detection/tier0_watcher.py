@@ -4,6 +4,7 @@ Computes windowed features per PID without reading contents or computing entropy
 """
 import os
 import threading
+from pathlib import Path
 import time
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
@@ -27,6 +28,7 @@ CREATE_DEL_MASK = FAN_CREATE | FAN_DELETE
 @dataclass
 class PidWindowState:
     events: deque = field(default_factory=lambda: deque())  # (timestamp, mask)
+    process_name: str | None = None
 
 
 def gini_of_gaps(timestamps: list) -> float:
@@ -107,6 +109,13 @@ class Tier0Watcher:
         with self._lock:
             st = self._state[pid]
             st.events.append((now, mask))
+            if getattr(st, "process_name", None) is None:
+                try:
+                    comm_f = Path(f"/proc/{pid}/comm")
+                    if comm_f.exists():
+                        st.process_name = comm_f.read_text(encoding="utf-8").strip()
+                except OSError:
+                    pass
 
     def _reader_loop(self):
         while not self._stop.is_set():
@@ -156,6 +165,7 @@ class Tier0Watcher:
                 creates_dels = sum(1 for _t, m in st.events if m & CREATE_DEL_MASK)
                 out[pid] = {
                     "pid": pid,
+                    "process_name": getattr(st, "process_name", None),
                     "window_s": self.window_seconds,
                     "mod_rate": mods / self.window_seconds,
                     "rename_rate": renames / self.window_seconds,

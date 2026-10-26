@@ -891,18 +891,47 @@ def cmd_simulate(args):
         count=count,
         duration=duration,
         cfg=cfg,
+        in_process=False,
     )
+
+    pid = res.get("pid", "unknown")
+    contained = res.get("contained", False)
 
     if args.sim_type == "benign":
         created = res.get("files_created", count)
-        print(f"Benign simulation finished. Generated {created} standard text files.")
+        if contained:
+            print(f"WARNING: Benign simulation was CONTAINED (PID {pid}). This indicates a false alarm!")
+        else:
+            print(f"Benign simulation finished. Generated {created} standard text files (PID {pid}).")
     else:
         files = res.get("files", count)
         mods = res.get("modifications", 0)
         renames = res.get("renames", 0)
-        print(
-            f"Simulated ransomware encryption completed in sandbox: {files} files, {mods} modifications, {renames} renames."
-        )
+        exitcode = res.get("exitcode", 0)
+
+        if contained:
+            print(f"Ransomware simulation intercepted and CONTAINED by AdaptShield.")
+            print(f"  Target PID:           {pid}")
+            exit_detail = f"Terminated via signal (exit code {exitcode})" if exitcode != 0 else "Frozen by cgroups v2"
+            print(f"  Process Status:       {exit_detail}")
+            print(f"  Sandbox Directory:    {target_dir}")
+            print(f"  Files Touched:        {files} files ({mods} modifications, {renames} renames)")
+            evidence = res.get("containment_evidence", {})
+            if evidence.get("policy"):
+                print(f"  Containment Policy:   {evidence.get('policy')}")
+            if evidence.get("action"):
+                print(f"  Containment Action:   {evidence.get('action')}")
+            print("Containment verified: Threat was halted before completing payload execution.")
+        elif exitcode != 0:
+            print(f"Simulated workload (PID {pid}) terminated with unexpected exit code {exitcode}.")
+        else:
+            print(
+                f"Simulated ransomware encryption completed in sandbox: {files} files, {mods} modifications, {renames} renames (PID {pid})."
+            )
+            print("WARNING: Workload completed without containment.")
+            print("Check that the AdaptShield daemon is active and running in protect mode:")
+            print("  adaptshield status")
+            print("  sudo adaptshield mode protect")
 
 
 # -----------------------------------------------------------------------------
