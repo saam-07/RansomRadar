@@ -5,9 +5,11 @@ services:
     env: python
     region: oregon
     plan: free
-    buildCommand: "pip install -r requirements.txt && pip install -e ."
+    buildCommand: "pip install -r requirements.txt && pip install ."
     startCommand: "uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT"
     envVars:
+      - key: PYTHONPATH
+        value: src:.
       - key: ADAPTSHIELD_MODE
         value: simulated
       - key: ADAPTSHIELD_DEFAULT_DETECTOR
