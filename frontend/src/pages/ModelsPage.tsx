@@ -120,7 +120,7 @@ export const ModelsPage: React.FC = () => {
         hyperparameters: {
           n_estimators: nEstimators,
           max_depth: maxDepth,
-          learning_rate: learningRate,
+          ...(trainClassifier === 'xgboost' ? { learning_rate: learningRate } : {}),
         },
       });
       setTrainingLogs((prev) => [...prev, `Job queued: ID ${res.job_id}`]);

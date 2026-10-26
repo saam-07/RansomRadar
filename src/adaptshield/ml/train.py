@@ -44,15 +44,17 @@ def train_classifier(
         clf = build_classifier("rule_based")
         clf.fit(X, y)
     elif classifier_name == "random_forest":
-        kwargs = dict(random_state=seed)
-        kwargs.update(model_kwargs)
         clf = build_classifier("random_forest", columns=feature_cols)
+        valid_params = set(clf.model.get_params().keys())
+        kwargs = {k: v for k, v in model_kwargs.items() if k in valid_params}
+        kwargs["random_state"] = seed
         clf.model.set_params(**kwargs)
         clf.fit(X, y)
     elif classifier_name == "xgboost":
-        kwargs = dict(random_state=seed)
-        kwargs.update(model_kwargs)
         clf = build_classifier("xgboost", columns=feature_cols)
+        valid_params = set(clf.model.get_params().keys())
+        kwargs = {k: v for k, v in model_kwargs.items() if k in valid_params}
+        kwargs["random_state"] = seed
         clf.model.set_params(**kwargs)
         clf.fit(X, y)
     else:
