@@ -37,7 +37,19 @@ async def lifespan(app: FastAPI):
     # 2. Auto-seed demo data on first launch
     seed_demo_data()
 
-    # 3. Initialize state coordinator and subscribe broadcaster
+    # 3. Ensure baseline dataset traces exist
+    try:
+        from pathlib import Path
+        repo_root = Path(__file__).resolve().parent.parent.parent
+        raw_traces = repo_root / "data" / "raw" / "traces_train.csv"
+        if not raw_traces.exists():
+            logger.info("Baseline dataset traces missing. Generating synthetic datasets...")
+            from scripts.make_datasets import generate_datasets
+            generate_datasets(seed=42)
+    except Exception as e:
+        logger.warning(f"Dataset check/generation note: {e}")
+
+    # 4. Initialize state coordinator and subscribe broadcaster
     state = SystemStateManager.get_instance()
     broadcaster.subscribe_to_bus(state)
 

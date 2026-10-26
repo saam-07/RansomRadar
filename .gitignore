@@ -46,7 +46,6 @@ state/
 models/registry/test_*/
 
 # Large generated data & telemetry
-data/raw/
 telemetry/
 /var/lib/adaptshield/telemetry/
 
