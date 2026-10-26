@@ -35,6 +35,8 @@ def aggregate_tier1(events: list, window_seconds: float) -> dict:
 def build_feature_row(pid: int, tier0_features: dict, tier1_events: list,
                        window_seconds: float, label: str | None = None) -> dict:
     row = {"pid": pid}
+    if "process_name" in tier0_features and tier0_features["process_name"]:
+        row["process_name"] = tier0_features["process_name"]
     row.update({k: tier0_features.get(k, np.nan) for k in
                 ["mod_rate", "rename_rate", "create_del_rate",
                  "event_count", "concentration_gini"]})

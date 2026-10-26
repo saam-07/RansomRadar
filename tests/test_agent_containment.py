@@ -443,3 +443,72 @@ def test_simulator_sandbox_and_agent_protect_mode_integration():
         assert not explicit_sandbox.exists()
 
 
+
+
+def test_simulator_runs_in_dedicated_child_process_with_distinct_pid():
+    """
+    Regression test:
+    Verifies that run_simulation(in_process=False) spawns a dedicated child process
+    with a PID distinct from the parent runner.
+    """
+    from adaptshield.simulator import run_simulation
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        sandbox = Path(tmp_dir) / "sim_child_test"
+        parent_pid = os.getpid()
+        res = run_simulation("ransomware", target=sandbox, count=10, in_process=False)
+        assert res["pid"] != parent_pid, f"Child PID {res['pid']} must differ from parent {parent_pid}"
+        assert res["sim_type"] == "ransomware"
+        assert res["files"] > 0
+        assert sandbox.exists()
+        # All files must remain strictly within sandbox
+        for f in sandbox.glob("*"):
+            assert f.resolve().is_relative_to(sandbox.resolve())
+
+
+def test_cli_survives_when_simulated_child_is_terminated_by_containment(monkeypatch):
+    """
+    Regression test:
+    Verifies that if the simulated ransomware child process is terminated by containment
+    (e.g. killed via SIGKILL), the CLI parent survives completely and reports containment.
+    """
+    from adaptshield.simulator import run_simulation
+    from adaptshield.config import AdaptShieldConfig
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        sandbox = Path(tmp_dir) / "sim_containment_test"
+        sandbox.mkdir(parents=True, exist_ok=True)
+        # Seed test files
+        (sandbox / "work_001.txt.locked").write_bytes(b"encrypted")
+
+        # Mock child worker being killed by containment signal (-9)
+        import multiprocessing
+
+        class MockProcess:
+            def __init__(self, *args, **kwargs):
+                self.pid = 9876
+                self.exitcode = -9
+
+            def start(self):
+                pass
+
+            def join(self, timeout=None):
+                pass
+
+            def is_alive(self):
+                return False
+
+        class MockContext:
+            def Queue(self):
+                return multiprocessing.Queue()
+
+            def Process(self, *args, **kwargs):
+                return MockProcess(*args, **kwargs)
+
+        monkeypatch.setattr("multiprocessing.get_context", lambda *args, **kwargs: MockContext())
+
+        res = run_simulation("ransomware", target=sandbox, count=10, in_process=False)
+        # Parent CLI runner did not crash
+        assert res["contained"] is True
+        assert res["exitcode"] == -9
+        assert res["pid"] == 9876
+        assert res["modifications"] > 0
