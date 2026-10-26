@@ -27,7 +27,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     try {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const defaultWsUrl = `${protocol}//${window.location.hostname}:8000/api/stream`;
-      const wsUrl = (import.meta.env.VITE_WS_URL as string) || defaultWsUrl;
+      const wsUrl = ((import.meta as any).env?.VITE_WS_URL as string) || defaultWsUrl;
 
       const ws = new WebSocket(wsUrl);
       socketRef.current = ws;
